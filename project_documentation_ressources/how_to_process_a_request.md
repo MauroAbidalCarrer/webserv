@@ -29,5 +29,11 @@
 > #### check if the request complies to the context
 > 
 > - **If** the **request body size is bigger than ``client_max_body_size``**(default is 1MB), **respond with ``413 Request Entity Too Large``** 
-> - **If** the request **method is not allowed** by the ``allowed_methods`` directive, **respond with ``405 Method Not Allowed``**
-> - **If** 
+> - **If** the request **method is not allowed** by the ``allowed_methods`` directive, **respond with ``405 Method Not Allowed``**  
+>
+> **If** the server must respond with an **error and if context defines a default error page for that error code** with the ``error_page`` directive,  
+**return that page**.
+
+### Apply modifications to the path to file according to the context
+> - Apply the ``root`` directive by inserting the path of ``root`` at the beggining of the path file.
+> - Apply the 
