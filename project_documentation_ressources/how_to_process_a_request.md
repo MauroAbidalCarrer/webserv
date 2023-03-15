@@ -61,21 +61,24 @@ to prevent from looping for ever in case of a maliscious user agent that sends i
 > - If the ``index`` directive is defined, add its value to the end of the path.
 
 ### Genereate response
-> #### ``GET`` method: 
-> If ``ngx_http_autoindex_module`` is on and the requested path is a directory, respond with the list of files and directories in the requested directory.  
-> If it is not defined or if it is defined as false don't respond with directory listing.  
+>  > #### ``GET`` method: 
+>  > If ``ngx_http_autoindex_module`` is on and the requested path is a directory, respond with the list of files and directories in the requested directory.  
+>  > If it is not defined or if it is defined as false don't respond with directory listing.  
+>  >  
+>  > If the path is a path to a file and that this file extension matches the one defined by the directive ``cgi_pass``(or ``cgi_setup``?)
+>  > 1. Create pipes to read and write to std_out and in of the CGI that is going to be executed.
+>  > 2. Fork
+>  >       * **In child**:  
+>  >           1. dup2 and close the pipes.  
+>  >           2. Try to excve the file. If it is not possible to excecute the file, respond with and error 401, 403, 404 or 500 depending on the error encountered.
+>  >       * **In parent**:
+>  >           1. close the unused pipe ends.  
+>  >           2. Wait to be able to write on the STDIN pipe, then write the request on the STDIN pipe.
+>  >           3. Wait to be able to read from the STDOUT pipe, then read the request on the STDOUT pipe.
+>  >           4. ``waitpid`` the CGI with ``NOHANG`` (or kill it?).
+>  >           4. Complete the response with any missing header field.  
+>  >   
+>  > Otherwise, if the file does exist, re
 >  
-> If the path is a path to a file and that this file extension matches the one defined by the directive ``cgi_pass``(or ``cgi_setup``?)
-> 1. Create pipes to read and write to std_out and in of the CGI that is going to be executed.
-> 2. Fork
->       * **In child**:  
->           1. dup2 and close the pipes.  
->           2. Try to excve the file. If it is not possible to excecute the file, respond with and error 401, 403, 404 or 500 depending on the error encountered.
->       * **In parent**:
->           1. close the unused pipe ends.  
->           2. Wait to be able to write on the STDIN pipe, then write the request on the STDIN pipe.
->           3. Wait to be able to read from the STDOUT pipe, then read the request on the STDOUT pipe.
->           4. ``waitpid`` the CGI with ``NOHANG`` (or kill it?).
->           4. Complete the response with any missing header field.  
->   
-> Otherwise, if the file does exist, re
+> > #### ``POST`` method
+> > 
