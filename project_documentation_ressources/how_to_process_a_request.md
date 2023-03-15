@@ -1,16 +1,16 @@
 # How to process a request 
 
 ### Receive the request
-> This is the best solution I found that respects ALL the constrians of the subject:
-> We need to parse the request as we receive it to know when we can stop calling recv.
+> This is the best solution I found that respects ALL the constrians of the subject:  
+> Parse the request as we receive it to know when we can stop calling recv.
 > > According to the [RFC](https://www.rfc-editor.org/rfc/rfc7230#section-3.3.3) here is how to process the message:
 > > - Read from the socket until you encounter the ``\r\n\r\n`` sequence of bytes denoting the end of the header.
 > > - If the method of the request does not have a body(like ``GET``), we know we received the full request.
 > > - If a message is received with both a Transfer-Encoding and a Content-Length header field,  
 such a message might indicate an attempt to perform request smuggling (Section 9.5) or response splitting (Section 9.4)  
 and ought to be handled as an error (*400 Bad Request?*).
-> > - If a Transfer-Encoding header is present and has a value other than identity, read the message body in chunks until a 0-length chunk is read(see [RFC]()).
-> > - If a Content-Length header is present, read from the socket until the exact number of bytes specified have been read.
+> > - If a Transfer-Encoding header is present and has a value other than identity, read the message body in chunks until a 0-length chunk is read(see [RFC](https://www.rfc-editor.org/rfc/rfc2616#section-3.6.1)).
+> > - If a Content-Length header is present, read from the socket until the exact number of bytes specified have been read, if content length is too .
 > > - (*note sure we should implement this one*)If the Content-Type header indicates a multipart/... media type, read from the socket and parse the MIME data until the final terminating MIME boundary is reached.  
 > > *Note: For every recv/read loops that gets terminated by reading a delimiter we should set a maximum amount of bytes from which we consider the request to be invalid.  
 to prevent from looping for ever in case of a maliscious user agent that sends infinite amounts of data without any delimiter
@@ -39,7 +39,9 @@ to prevent from looping for ever in case of a maliscious user agent that sends i
 > 1. In the server context, **check the ``URI part`` of the request against ``location``s directives**.
 > 2. Repeat this process recursively until there is no more matching ``location`` directive.  
 > 
-> *Note that: ``redirect``, ``root`` and ``index`` directives get applied after the location context has been found.*
+> *Note that: ``redirect``, ``root`` and ``index`` directives get applied after the location context has been found.*  
+> *We could find the context as soon as we read the first line of the HTTP request and then stop reading the request as soon as we found an error speciffic to the context.*  
+> *That would make the server a bit more performant as it would not waist time reciving a request it will discard because of context/request error, but it would also make it a lot more complicated to implement.*  
 
 
 ### Check for errors relative to the context
@@ -59,5 +61,21 @@ to prevent from looping for ever in case of a maliscious user agent that sends i
 > - If the ``index`` directive is defined, add its value to the end of the path.
 
 ### Genereate response
-> If ``autoindex`` is on and the requested path is a directory, respond with the list of files and directories in the requested directory.  
-> If it is not defined or if it is defined as false don't do it.
+> #### ``GET`` method: 
+> If ``ngx_http_autoindex_module`` is on and the requested path is a directory, respond with the list of files and directories in the requested directory.  
+> If it is not defined or if it is defined as false don't respond with directory listing.  
+>  
+> If the path is a path to a file and that this file extension matches the one defined by the directive ``cgi_pass``(or ``cgi_setup``?)
+> 1. Create pipes to read and write to std_out and in of the CGI that is going to be executed.
+> 2. Fork
+>       * **In child**:  
+>           1. dup2 and close the pipes.  
+>           2. Try to excve the file. If it is not possible to excecute the file, respond with and error 401, 403, 404 or 500 depending on the error encountered.
+>       * **In parent**:
+>           1. close the unused pipe ends.  
+>           2. Wait to be able to write on the STDIN pipe, then write the request on the STDIN pipe.
+>           3. Wait to be able to read from the STDOUT pipe, then read the request on the STDOUT pipe.
+>           4. ``waitpid`` the CGI with ``NOHANG`` (or kill it?).
+>           4. Complete the response with any missing header field.  
+>   
+> Otherwise, if the file does exist, re
