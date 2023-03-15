@@ -60,14 +60,16 @@ to prevent from looping for ever in case of a maliscious user agent that sends i
 > - Apply the ``return``(or rewrite?) directive if it is defined to redirect the user agent.
 > - If the ``index`` directive is defined, add its value to the end of the path.
 
-### Genereate response
+### Genereate and send response
 > Methods specific steps: 
 > > #### ``GET`` method: 
 > > If ``ngx_http_autoindex_module`` is on and the requested path is a directory, respond with the list of files and directories in the requested directory.  
 > > If it is not defined or if it is defined as false don't respond with directory listing.  
-> > If the file does exist, re
+> > If the file does exist, open it, read it(with a read/wait loop) and send it in the response.
 >  
 > > #### ``POST`` method
+>  
+> > #### ``DELETE`` method
 > 
 > > #### CGI steps
 > > If the path is a path to a file and that this file extension matches the one defined by the directive ``cgi_pass``(or ``cgi_setup``?)
@@ -82,3 +84,6 @@ to prevent from looping for ever in case of a maliscious user agent that sends i
 > >           3. Wait to be able to read from the STDOUT pipe, then read the request on the STDOUT pipe.
 > >           4. ``waitpid`` the CGI with ``NOHANG`` (or kill it?).
 > >           4. Complete the response with any missing header field.  
+>
+> If an error has been encountered, close the connexion.
+> Otherwise, if the response has been succefully sent, reset the timeout for the connection.
