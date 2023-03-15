@@ -31,9 +31,14 @@
 > - **If** the **request body size is bigger than ``client_max_body_size``**(default is 1MB), **respond with ``413 Request Entity Too Large``** 
 > - **If** the request **method is not allowed** by the ``allowed_methods`` directive, **respond with ``405 Method Not Allowed``**  
 >
-> **If** the server must respond with an **error and if context defines a default error page for that error code** with the ``error_page`` directive,  
+> **If** the server must respond with an **error and if context defines a default error page for that error code** with the ``error_page`` directive,
 **return that page**.
 
-### Apply modifications to the path to file according to the context
+### Apply modifications to the requested path according to the context
 > - Apply the ``root`` directive by inserting the path of ``root`` at the beggining of the path file.
-> - Apply the 
+> - Apply the ``return``(or rewrite?) directive if it is defined to redirect the user agent.
+> - If the ``index`` directive is defined, add its value to the end of the path.
+
+### Genereate response
+If ``autoindex`` is on and the requested path is a directory, respond with the list of files and directories in the requested directory.  
+If it is not defined or if it is defined as false don't do it.
