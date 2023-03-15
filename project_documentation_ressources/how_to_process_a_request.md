@@ -1,5 +1,4 @@
-## How to process a request 
----
+# How to process a request 
 
 ### Receive the request
 > This is the best solution I found that respects ALL the constrians of the subject:
