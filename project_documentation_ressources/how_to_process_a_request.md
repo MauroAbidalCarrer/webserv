@@ -47,7 +47,7 @@ to prevent from looping for ever in case of a maliscious user agent that sends i
 ### Check for errors relative to the context
 > Now that we have the context, we must check if the request complies to it.
 > 
-> #### check if the request complies to the context
+> #### Check if the request complies to the context
 > 
 > - **If** the **request body size is bigger than ``client_max_body_size``**(default is 1MB), **respond with ``413 Request Entity Too Large``** 
 > - **If** the request **method is not allowed** by the ``allowed_methods`` directive, **respond with ``405 Method Not Allowed``**  
@@ -81,7 +81,8 @@ to prevent from looping for ever in case of a maliscious user agent that sends i
 > >       * **In parent**:
 > >           1. close the unused pipe ends.  
 > >           2. Wait to be able to write on the STDIN pipe, then write the request on the STDIN pipe.
-> >           3. Wait to be able to read from the STDOUT pipe, then read the request on the STDOUT pipe.
+> >           3. Wait to be able to read from the STDOUT pipe, then read the request on the STDOUT pipe  
+*maybe read the CGI output the same way we read the client request?*.
 > >           4. ``waitpid`` the CGI with ``NOHANG`` (or kill it?).
 > >           4. Complete the response with any missing header field.  
 >
