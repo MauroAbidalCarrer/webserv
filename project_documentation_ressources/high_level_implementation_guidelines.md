@@ -71,8 +71,26 @@ There is most likely functions that we will use for both the config file and the
 > >        * end the recursion with ``return new_context``
 > >  * ``public void check_for_error_with_request(HTTP_Request request)``  
 > >     *If an error is encoutered according to [Request_processing_guidelines](Request_processing_guidelines.md#check-for-errors-relative-to-the-context)throws an error containing the response to send to the client.*
-> >  * ``public void apply_modifications_to_request(HTTP_Request request)``
-> >     *Applies modifications according to ther request accodring to [Request_processing_guidelines](Request_processing_guidelines.md#apply-modifications-to-the-requested-path-according-to-the-context).
+> >  * ``public void apply_modifications_to_request(HTTP_Request request)``  
+> >     *Applies modifications according to ther request accodring to [Request_processing_guidelines](Request_processing_guidelines.md#apply-modifications-to-the-requested-path-according-to-the-context).*
 >
-> > #### ``class Global: public Context<ServerContext>``
-> > *Overrides its virtual base class methodes following the 
+> > #### ``class GlobalContext: public Context<ServerContext>``
+> > *Overrides its virtual base class methodes following the [request processing guidelines](Request_processing_guidelines.md).*   
+> > ``GlobaContext((string or char * )config_file_path)``
+>
+> > #### ``class ServerContext: public Context<LocationContext>``
+> > *Overrides its virtual base class methodes following the [request processing guidelines](Request_processing_guidelines.md).* 
+>
+> > #### ``class LocationContext: public Context<LocationContext>``
+> > *Overrides its virtual base class methodes following the [request processing guidelines](Request_processing_guidelines.md).*  
+>
+> To use the context structure, the caller can just use the following:  
+> ```C++
+ GlobalContext globalContext(configurationFilePath);  
+ try
+ {
+
+ }
+ Context request_context = globalContext.Get_Context_for_request(my_awesome_request);  
+ GlobalContext globalContext(configurationFilePath);
+> ```  
