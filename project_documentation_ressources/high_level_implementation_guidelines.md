@@ -50,7 +50,7 @@ There is most likely functions that we will use for both the config file and the
 > >  * sequential_container of ChildType ``childs``
 > >  * strings representing all the directives values
 > >
-> >  ***constructors, destructors and methods***
+> >  ***constructors***
 > >  * ``virtual std::string get_name() = 0``  
 > >    *Returns the name that will be used for parsing.*  
 > >  * ``Context(configuration file text(either stream or string))``  
@@ -61,6 +61,7 @@ There is most likely functions that we will use for both the config file and the
 > >   * ``Context(const Context& src)``  
 > >    *Copy constructor used by the ``Get_context_for_request`` method, only copies the directives*
 > >  
+> >   ***methods***
 > >  * ``protected virtual int matches_request() = 0``  
 > >    *Returns an int indicating how much the request fits the context(this sounds shaky...).*
 > >  
