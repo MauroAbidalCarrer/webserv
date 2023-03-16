@@ -86,11 +86,11 @@ There is most likely functions that we will use for both the config file and the
 >
 > To use the context structure, the caller can just use the following:  
 > ```C++
- GlobalContext globalContext(configurationFilePath);  
- try
- {
-
- }
- Context request_context = globalContext.Get_Context_for_request(my_awesome_request);  
- GlobalContext globalContext(configurationFilePath);
+> GlobalContext globalContext(configurationFilePath);  
+> try
+> {
+>
+> }
+> Context request_context = globalContext.Get_Context_for_request(my_awesome_request);  
+> GlobalContext globalContext(configurationFilePath);
 > ```  
