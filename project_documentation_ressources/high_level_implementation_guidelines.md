@@ -46,11 +46,11 @@ There is most likely functions that we will use for both the config file and the
 > Here is how I see the structure implemented:
 > > #### ``template<typename ChildType, std::string name>Context`` *abstract base class*
 > > 
-> >  ##### fields
+> >  ***fields***
 > >  * sequential_container of ChildType ``childs``
 > >  * strings representing all the directives values
 > >
-> >  ##### constructors, destructors and methods
+> >  ***constructors, destructors and methods***
 > >  * ``virtual std::string get_name() = 0``  
 > >    *Returns the name that will be used for parsing.*  
 > >  * ``Context(configuration file text(either stream or string))``  
