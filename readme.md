@@ -6,4 +6,4 @@ The server will be configurable through the use of ngnix like configuration file
 The server will follow the webserv [subject](/project_documentation_ressources/subject.pdf) for the feature it will implement to ease the exportation of te code to the final webserv project.  
 Because the official school subject uses a lot of esoteric termes difficult to understand for newcomers I've made a [commented version](/project_documentation_ressources/commented_subject.md) of the subject.  
 
-I have also written a guide on how to [process a request](/project_documentation_ressources/how_to_process_a_request.md) as well as a high level [implementation guide](/project_documentation_ressources/high_level_implementation_guidelines.md).
+I have also written a guide on how to [process a request](/project_documentation_ressources/how_to_process_a_request.md) as well as [implementation guidelines](/project_documentation_ressources/high_level_implementation_guidelines.md).
