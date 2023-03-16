@@ -44,32 +44,35 @@ There is most likely functions that we will use for both the config file and the
 > **browse it to find the appropriate context for a given request**.  
 >
 > Here is how I see the structure implemented:
-> > #### ``template<typename ChildType, std::string name>Context`` *abstract base class*
+> > #### ``template<typename ChildType> class Context`` *abstract base class*
 > > 
 > >  ***fields***
 > >  * sequential_container of ChildType ``childs``
 > >  * strings representing all the directives values
 > >
 > >  ***constructors***
-> >  * ``virtual std::string get_name() = 0``  
+> >  * ``virtual std::string get_name() = 0;```  
 > >    *Returns the name that will be used for parsing.*  
-> >  * ``Context(configuration file text(either stream or string))``  
+> >  * ``Context(const Context& parent_context, (either stream or string) configuration_file_subtext)``  
 > >    *Constructs itself and its childs.*
-> >    1. Set its directives to their default values and ``childs`` empty.
-> >    2. Set its directives to the values given in the config file (if they are defined).
-> >    3. Populates childs with sub configuration file text when it finds an occurence of the child name.  
-> >   * ``Context(const Context& src)``  
-> >    *Copy constructor used by the ``Get_context_for_request`` method, only copies the directives*
+> >    1. Copies the directives values of the parent_context.
+> >    2. If a directive is find in its ``configuration_file_subtext``, it updates its corresponding variable that was previously to the value of its parent.
+> >    3. Populates childs with sub configuration_file_text when it finds an occurence of the child name.  
 > >  
 > >   ***methods***
 > >  * ``protected virtual int matches_request() = 0``  
 > >    *Returns an int indicating how much the request fits the context(this sounds shaky...).*
 > >  
-> >  * ``protected virtual Context Get_Context_for_request(Context new_context, const HTTP& request) = 0``  
+> >  * ``public virtual Context Get_Context_for_request(const HTTP& request) = 0``  
 > >    *Recursive method that returns the appropriate context for the request*
-> >    1. Overrides the ``new_context``'s directives with its own directive that are defined.
-> >    2. If an appropriate child context is found
+> >    * If an appropriate child context is found
 > >        * ``return child.Get_Context_for_request(new_context, request)``   
-> >        * else end the recursion with ``return new_context``
-> >  * ``protected void check_for_error
-> >  * ``protected void apply
+> >    * else 
+> >        * end the recursion with ``return new_context``
+> >  * ``public void check_for_error_with_request(HTTP_Request request)``  
+> >     *If an error is encoutered according to [Request_processing_guidelines](Request_processing_guidelines.md#check-for-errors-relative-to-the-context)throws an error containing the response to send to the client.*
+> >  * ``public void apply_modifications_to_request(HTTP_Request request)``
+> >     *Applies modifications according to ther request accodring to [Request_processing_guidelines](Request_processing_guidelines.md#apply-modifications-to-the-requested-path-according-to-the-context).
+>
+> > #### ``class Global: public Context<ServerContext>``
+> > *Overrides its virtual base class methodes following the 
