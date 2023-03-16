@@ -37,22 +37,24 @@ find the callbacks corresponding to the FD with the interest_container and call 
 There is most likely functions that we will use for both the config file and the HTTP request/responses.
 
 > ### Context parsing and browsing
-> The gninx's contexts can be thought of as a tree data structure.  
+> The gninx's contexts can be thought of as a tree data structure similar to the folder system.  
 > The global/main context is the trunc, server contexts are the branches and locations can be both branches and leafs.  
 > We will need to both  
 > **Make that context structure from the configuration file** and then  
 > **browse it to find the appropriate context for a given request**.  
 >
 > Here is how I see the structure implemented:
-> > #### ``Context`` *abstract base class*
+> > #### ``template<typename ChildType, std::string name>Context`` *abstract base class*
 > > 
 > > > ##### fields
-> > > * sequential_container of child contexts ``childs``
+> > > * sequential_container of ChildType ``childs``
 > > > * strings representing all the directives values
 > > 
 > > > ##### constructors, destructors and methods
 > > > * ``Context(configuration file text(either stream or string))``  
 > > >   1. Set its directives to their default values
-> > >   1. Set its directives to the values given in the config file (if they are defined)
-> > >   1. populates childs with sub configuration file text.
-> > > ``Get_Context
+> > >   2. Set its directives to the values given in the config file (if they are defined)
+> > >   3. populates childs with sub configuration file text when it finds an occurence of the child name.  
+> > > 
+> > > * ``private Context Get_Context_for_request(HTTP request)``  
+> > >   1.
