@@ -51,10 +51,15 @@ There is most likely functions that we will use for both the config file and the
 > > > * strings representing all the directives values
 > > 
 > > > ##### constructors, destructors and methods
+> > > * ``virtual std::string get_name() = 0``  
+> > >   *returns the name that will be used for parsing*  
 > > > * ``Context(configuration file text(either stream or string))``  
-> > >   1. Set its directives to their default values
-> > >   2. Set its directives to the values given in the config file (if they are defined)
-> > >   3. populates childs with sub configuration file text when it finds an occurence of the child name.  
+> > >   1. Set its directives to their default values and ``childs`` empty.
+> > >   2. Set its directives to the values given in the config file (if they are defined).
+> > >   3. Populates childs with sub configuration file text when it finds an occurence of the child name.  
+> > > 
+> > > * ``protected virtual int matches_request() = 0``  
+> > >   *Returns an int indicating how much the request fits the context.*
 > > > 
 > > > * ``private Context Get_Context_for_request(HTTP request)``  
 > > >   1.
