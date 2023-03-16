@@ -63,12 +63,12 @@ There is most likely functions that we will use for both the config file and the
 > >  * ``protected virtual int matches_request() = 0``  
 > >    *Returns an int indicating how much the request fits the context(this sounds shaky...).*
 > >  
-> >  * ``public virtual Context Get_Context_for_request(const HTTP& request) = 0``  
+> >  * ``public virtual Context& Get_Context_for_request(const HTTP& request) = 0``  
 > >    *Recursive method that returns the appropriate context for the request*
 > >    * If an appropriate child context is found
-> >        * ``return child.Get_Context_for_request(new_context, request)``   
+> >        * ``return child.Get_Context_for_request(request)``   
 > >    * else 
-> >        * end the recursion with ``return new_context``
+> >        * end the recursion with ``return *this*``
 > >  * ``public void check_for_error_with_request(HTTP_Request request)``  
 > >     *If an error is encoutered according to [Request_processing_guidelines](Request_processing_guidelines.md#check-for-errors-relative-to-the-context)throws an error containing the response to send to the client.*
 > >  * ``public void apply_modifications_to_request(HTTP_Request request)``  
@@ -84,13 +84,25 @@ There is most likely functions that we will use for both the config file and the
 > > #### ``class LocationContext: public Context<LocationContext>``
 > > *Overrides its virtual base class methodes following the [request processing guidelines](Request_processing_guidelines.md).*  
 >
-> To use the context structure, the caller can just use the following:  
+> To use the context structure, the user can just use the following:  
 > ```C++
 > GlobalContext globalContext(configurationFilePath);  
 > try
 > {
->
+>   Context request_context = globalContext.Get_Context_for_request(my_awesome_request);  
+>   request_context.check_for_error_with_request(my_awesome_request);
+>   request_context.apply_modifications_to_request(my_awesome_request);
 > }
-> Context request_context = globalContext.Get_Context_for_request(my_awesome_request);  
-> GlobalContext globalContext(configurationFilePath);
+> catch
+> {
+>   //send eror response
+> }
 > ```  
+
+> ### HTTP messages handling
+> There are _ we need to do with HTTP messages:
+> * Receive it from client connection
+> * Deserialize it: Convert from text to message class/structure.  
+> * Process it
+> * Serialize it: Convert from message class/structure to text.  
+> * Send it through client connection

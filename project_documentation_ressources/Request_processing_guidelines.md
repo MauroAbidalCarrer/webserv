@@ -2,25 +2,9 @@
 
 ### Receive the request
 > This is the best solution I found that respects ALL the constrians of the subject:  
-> Parse the request as we receive it to know when we can stop calling recv.
-> > According to the [RFC](https://www.rfc-editor.org/rfc/rfc7230#section-3.3.3) here is how to process the message:
-> > - Read from the socket until you encounter the ``\r\n\r\n`` sequence of bytes denoting the end of the header.
-> > - If the method of the request does not have a body(like ``GET``), we know we received the full request.
-> > - If a message is received with both a Transfer-Encoding and a Content-Length header field,  
-such a message might indicate an attempt to perform request smuggling (Section 9.5) or response splitting (Section 9.4)  
-and ought to be handled as an error (*400 Bad Request?*).
-> > - If a Transfer-Encoding header is present and has a value other than identity, read the message body in chunks until a 0-length chunk is read(see [RFC](https://www.rfc-editor.org/rfc/rfc2616#section-3.6.1)).
-> > - If a Content-Length header is present, read from the socket until the exact number of bytes specified have been read, if content length is too .
-> > - (*note sure we should implement this one*)If the Content-Type header indicates a multipart/... media type, read from the socket and parse the MIME data until the final terminating MIME boundary is reached.  
-> > *Note: For every recv/read loops that gets terminated by reading a delimiter we should set a maximum amount of bytes from which we consider the request to be invalid.  
-to prevent from looping for ever in case of a maliscious user agent that sends infinite amounts of data without any delimiter
-> 
-> > *Note:*  
-> > *Ideally we would simply call recv with the flag ``MSG_DONWAIT`` until recv returns -1 and that ``(errno | EAGAIN) (errno | EWOULDBLOCK)``.*  
-> > *But we are not allowed to check errno after read/write operations (-_-).*  
-> > *It's not possible to perform ``recv`` and ``epoll_wait`` calls until the number of read bytes is inferior to the buffer size.*  
-> > *Because the server would do an extra ``epoll_wait`` if the request/message length is a multiple of the buffer size and would hang foreever.*
-
+> Do a ``recv`` calls and epoll_waits of with a 0 timeout as long as the number of bytes read by recv is inferior to the buffer size.  
+> *Note: Ideally we would simply call recv with the flag ``MSG_DONWAIT`` until recv returns -1 and that ``(errno | EAGAIN) (errno | EWOULDBLOCK)``.*  
+> *But we are not allowed to check errno after read/write operations (-_-).*  
 ### Find the context in which the request will be processed
 > Once the server receives a request, it first needs to know in which context it will be processed in.
 > 
@@ -87,4 +71,3 @@ to prevent from looping for ever in case of a maliscious user agent that sends i
 > >           4. Complete the response with any missing header field.  
 >
 > If an error has been encountered, close the connexion.
-> Otherwise, if the response has been succefully sent, reset the timeout for the connection.
