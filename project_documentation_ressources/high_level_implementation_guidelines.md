@@ -46,27 +46,29 @@ There is most likely functions that we will use for both the config file and the
 > Here is how I see the structure implemented:
 > > #### ``template<typename ChildType, std::string name>Context`` *abstract base class*
 > > 
-> > > ##### fields
-> > > * sequential_container of ChildType ``childs``
-> > > * strings representing all the directives values
-> > 
-> > > ##### constructors, destructors and methods
-> > > * ``virtual std::string get_name() = 0``  
-> > >   *Returns the name that will be used for parsing.*  
-> > > * ``Context(configuration file text(either stream or string))``  
-> > >   *Constructs itself and its childs.*
-> > >   1. Set its directives to their default values and ``childs`` empty.
-> > >   2. Set its directives to the values given in the config file (if they are defined).
-> > >   3. Populates childs with sub configuration file text when it finds an occurence of the child name.  
-> > >  * ``Context(const Context& src)``  
-> > >   *Copy constructor used by the ``Get_context_for_request`` method, only copies the directives*
-> > > 
-> > > * ``protected virtual int matches_request() = 0``  
-> > >   *Returns an int indicating how much the request fits the context(this sounds shaky...).*
-> > > 
-> > > * ``protected virtual Context Get_Context_for_request(Context new_context, const HTTP& request) = 0``  
-> > >   *Recursive method that returns the appropriate context for the request*
-> > >   1. Overrides the ``new_context``'s directives with its own directive that are defined.
-> > >   2. If an appropriate child context is found
-> > >       * ``return child.Get_Context_for_request(new_context, request)``   
-> > >       * else end the recursion with ``return new_context``
+> >  ##### fields
+> >  * sequential_container of ChildType ``childs``
+> >  * strings representing all the directives values
+> >
+> >  ##### constructors, destructors and methods
+> >  * ``virtual std::string get_name() = 0``  
+> >    *Returns the name that will be used for parsing.*  
+> >  * ``Context(configuration file text(either stream or string))``  
+> >    *Constructs itself and its childs.*
+> >    1. Set its directives to their default values and ``childs`` empty.
+> >    2. Set its directives to the values given in the config file (if they are defined).
+> >    3. Populates childs with sub configuration file text when it finds an occurence of the child name.  
+> >   * ``Context(const Context& src)``  
+> >    *Copy constructor used by the ``Get_context_for_request`` method, only copies the directives*
+> >  
+> >  * ``protected virtual int matches_request() = 0``  
+> >    *Returns an int indicating how much the request fits the context(this sounds shaky...).*
+> >  
+> >  * ``protected virtual Context Get_Context_for_request(Context new_context, const HTTP& request) = 0``  
+> >    *Recursive method that returns the appropriate context for the request*
+> >    1. Overrides the ``new_context``'s directives with its own directive that are defined.
+> >    2. If an appropriate child context is found
+> >        * ``return child.Get_Context_for_request(new_context, request)``   
+> >        * else end the recursion with ``return new_context``
+> >  * ``protected void check_for_error
+> >  * ``protected void apply
