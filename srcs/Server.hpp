@@ -8,15 +8,20 @@
 # include "HTTP_Message.hpp"
 # include "sys_calls_warp_arounds.hpp"
 
+# define MAX_QUEUE_SIZE 10
+# define RECV_BUFFER_SIZE 1000
+# define LISTENING_PORT 8080
+# define IDLE_CLIENT_CONNEXION_TIMEOUT_IN_MILL 3000
+
 class Server
 {
     private:
-    std::vector<HTTP_Message> messages;
-    typedef std::vector<HTTP_Message>::iterator messages_iterator_t;
     
     public:
+    std::vector<HTTP_Message> messages_storage;
+    typedef std::vector<HTTP_Message>::iterator messages_iterator_t;
     //constructors and destructors
-    Server() : messages()
+    Server()
     {
         
     }
@@ -36,21 +41,8 @@ class Server
     }
 
     //methods
-    #define MAX_QUEUE_SIZE 10
-    #define RECV_BUFFER_SIZE 1000
-    #define LISTENING_PORT 8080
-    #define IDLE_CLIENT_CONNEXION_TIMEOUT_IN_MILL 3000
 
-    static void handle_HTTP_request(std::string request)
-    {
-        if (request == "close\r\n")
-            throw IO_Manager::StopWaitLoop();
-        std::cout << "---------HTTP request---------" << std::endl;
-        std::cout << request;
-        std::cout << "------------------------------" << std::endl;
-    }
-
-    static void handle_client_msg(int connexion_socket_fd)
+    void handle_client_msg(int connexion_socket_fd)
     {
         char buffer[RECV_BUFFER_SIZE];
         size_t nb_read_bytes = ws_recv(connexion_socket_fd, buffer, RECV_BUFFER_SIZE, 0);
@@ -58,27 +50,27 @@ class Server
         if (nb_read_bytes == 0)
         {
             IO_Manager::remove_interest_and_close_fd(connexion_socket_fd);
-            std::cout << "closed client connexion, connexion_socket_fd: " << connexion_socket_fd << std::endl;
+            std::cout << "Closed client connexion, connexion_socket_fd: " << connexion_socket_fd << std::endl;
         }
         else
-            handle_HTTP_request(buffer);
+            HTTP_Message(connexion_socket_fd, messages_storage);
     }
 
-    static void close_idle_connexion(int connexion_fd)
+    void close_idle_connexion(int connexion_fd)
     {
         ws_send(connexion_fd, "connexion close, you've been idle for too long.", 47, 0, "sending idle connexion close msg");
         IO_Manager::remove_interest_and_close_fd(connexion_fd);
     }
-    static void set_interest_to_close_idle_connexion(int connexion_fd)
+    void set_interest_to_close_idle_connexion(int connexion_fd)
     {
-        IO_Manager::set_interest(connexion_fd, NULL, close_idle_connexion);
+        IO_Manager::set_interest<Server>(connexion_fd, NULL, &Server::close_idle_connexion, this);
     }
 
-    static void accept_client_connexion(int listening_socket_fd)
+    void accept_client_connexion(int listening_socket_fd)
     {
         int connexion_socket_fd = ws_accept(listening_socket_fd, NULL, NULL, "accepting connexion... da");
         std::cout << "accepted new client connexion, connexion_socket_fd: " << connexion_socket_fd << std::endl;
-        IO_Manager::set_interest(connexion_socket_fd, handle_client_msg, NULL, set_interest_to_close_idle_connexion, IDLE_CLIENT_CONNEXION_TIMEOUT_IN_MILL, renew_after_IO_operation);
+        IO_Manager::set_interest<Server>(connexion_socket_fd,  &Server::handle_client_msg, NULL, &Server::set_interest_to_close_idle_connexion, IDLE_CLIENT_CONNEXION_TIMEOUT_IN_MILL, renew_after_IO_operation, this);
     }
 
     //Creates a socket, binds it, listens to it and monitor it.
@@ -102,7 +94,7 @@ class Server
         //start listening for clients connexion requests
         ws_listen(listen_socket_fd, MAX_QUEUE_SIZE, "listen for listening socket... obviously");
         std::cout << "listening..." << std::endl;
-        IO_Manager::set_interest(listen_socket_fd, accept_client_connexion, NULL);
+        IO_Manager::set_interest<Server>(listen_socket_fd, &Server::accept_client_connexion, NULL, this);
     }
 
     void Run()

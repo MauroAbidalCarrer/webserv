@@ -88,12 +88,12 @@ class IO_Manager
     };
     template<typename T>class TemplateIO_callbacks : public IO_callbacks
     {
-        void (*read_callback)(T*, int);
-        void (*write_callback)(T*, int);
-        void (*timeout_callback)(T*, int);
+        void (T::*read_callback)(int);
+        void (T::*write_callback)(int);
+        void (T::*timeout_callback)(int);
         T* instance;
         public:
-        TemplateIO_callbacks(void (*read_callback)(T*, int), void (*write_callback)(T*, int), void (*timeout_callback)(T*, int), T* instance, time_t timeout_in_mill, timeout_mode_e timeout_mode, int fd) :
+        TemplateIO_callbacks(void (T::*read_callback)(int), void (T::*write_callback)(int), void (T::*timeout_callback)(int), time_t timeout_in_mill, timeout_mode_e timeout_mode, int fd, T* instance) :
         read_callback(read_callback),
         write_callback(write_callback), 
         timeout_callback(timeout_callback), 
@@ -104,14 +104,14 @@ class IO_Manager
         void call_event_callbacks(epoll_event event)
         {
             if ((event.events | EPOLLIN) && read_callback)
-                    (*read_callback)(instance, event.data.fd);
+                    (instance->*read_callback)(event.data.fd);
             if ((event.events | EPOLLOUT) && write_callback)
-                    (*write_callback)(instance, event.data.fd);
+                    (instance->*write_callback)(event.data.fd);
         }
         void call_timeout_callback(int fd)
         {
             if (timeout_callback)
-                (*timeout_callback)(instance, fd);
+                (instance->*timeout_callback)(fd);
         }
     };
   
@@ -169,11 +169,11 @@ class IO_Manager
         singleton().non_static_set_interest(fd, event, IO_callbacks(read_callback, write_callback, timeout_calback, timeout_in_mill, timeout_mode, fd));
     }
     //static overload for static methods
-    template <typename T> static void set_interest(int fd, void (*read_callback)(T*, int), void (*write_callback)(T*, int))
+    template <typename T> static void set_interest(int fd, void (T::*read_callback)(int), void (T::*write_callback)(int), T* instance)
     {
-        set_interest(fd, read_callback, write_callback, NULL, -1, no_timeout);
+        set_interest(fd, read_callback, write_callback, NULL, -1, no_timeout, instance);
     }
-    template <typename T> static void set_interest(int fd, void (*read_callback)(T*, int), void (*write_callback)(T*, int), void (*timeout_callback)(T*, int), time_t timeout_in_mill, timeout_mode_e timeout_mode)
+    template <typename T> static void set_interest(int fd, void (T::*read_callback)(int), void (T::*write_callback)(int), void (T::*timeout_callback)(int), time_t timeout_in_mill, timeout_mode_e timeout_mode, T* instance)
     {
         epoll_event event;
         event.data.fd = fd;
@@ -182,7 +182,7 @@ class IO_Manager
             event.events |= EPOLLIN;
         if (write_callback)
             event.events |= EPOLLOUT;
-        singleton().non_static_set_interest(fd, event, TemplateIO_callbacks<T>(read_callback, write_callback, timeout_callback, timeout_in_mill, timeout_mode));
+        singleton().non_static_set_interest(fd, event, TemplateIO_callbacks<T>(read_callback, write_callback, timeout_callback, timeout_in_mill, timeout_mode, instance));
     }
     void non_static_remove_interest_and_close_fd(int fd)
     {
