@@ -29,6 +29,7 @@
 # include <cstdlib>
 # include <sys/epoll.h>
 # include <time.h>
+# include <sys/time.h>
 
 
 
@@ -96,8 +97,9 @@ void ws_listen(int __fd, int __n, std::string context)
 int ws_epoll_create1(int __flags, std::string context)
 {
     int epoll_fd = epoll_create1(__flags);
-    if (epoll_create1(__flags) == -1)
+    if (epoll_fd == -1)
         throw SystemCallException("epoll_create1", context);
+    std::cout << "new epoll_fd = " << epoll_fd << std::endl;
     return epoll_fd;
 }
 
@@ -151,7 +153,9 @@ int ws_accept(int __fd, __SOCKADDR_ARG __addr, socklen_t *__restrict __addr_len,
 void ws_close(int __fd, std::string context)
 {
     if (close(__fd) == -1)
-        throw SystemCallException("close", context);
+    {
+        std::cerr << SystemCallException("close", context).what() << std::endl;
+    }
 }
 
 
@@ -183,11 +187,21 @@ void epoll_wait (int __epfd, struct epoll_event *__events, int __maxevents, int 
         throw SystemCallException("epoll_wait", context);
 }
 
-clock_t ws_clock()
+time_t ws_epoch_time_in_mill()
 {
-    clock_t res = clock();
-    if (res == -1)
-        throw SystemCallException("clock");
-    return res;
+    struct timeval time_now;
+    if (gettimeofday(&time_now, nullptr) == -1)
+        throw SystemCallException("gettimeofday");
+    return (time_now.tv_sec * 1000) + (time_now.tv_usec / 1000);
+}
+
+ssize_t ws_recv(int socket_fd, char *buffer, size_t buffer_size, int flags)
+{
+    ssize_t nb_read_bytes;
+    if ((nb_read_bytes = recv(socket_fd, buffer, buffer_size, flags)) == -1)
+    {
+        throw SystemCallException("recv");
+    }
+    return nb_read_bytes;
 }
 #endif
