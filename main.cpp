@@ -38,12 +38,16 @@ void close_idle_connexion(int connexion_fd)
     ws_send(connexion_fd, "connexion close, you've been idle for too long.", 47, 0, "sending idle connexion close msg");
     IO_Manager::remove_interest_and_close_fd(connexion_fd);
 }
+void set_interest_to_close_idle_connexion(int connexion_fd)
+{
+    IO_Manager::set_interest(connexion_fd, NULL, close_idle_connexion);
+}
 
 void accept_client_connexion(int listening_socket_fd)
 {
     int connexion_socket_fd = ws_accept(listening_socket_fd, NULL, NULL, "accepting connexion... da");
     std::cout << "accepted new client connexion, connexion_socket_fd: " << connexion_socket_fd << std::endl;
-    IO_Manager::set_interest(connexion_socket_fd, handle_client_msg, NULL, close_idle_connexion, IDLE_CLIENT_CONNEXION_TIMEOUT_IN_MILL, do_not_renew);
+    IO_Manager::set_interest(connexion_socket_fd, handle_client_msg, NULL, set_interest_to_close_idle_connexion, IDLE_CLIENT_CONNEXION_TIMEOUT_IN_MILL, do_not_renew);
 }
 
 //Creates a socket, binds it, listens to it and monitor it.

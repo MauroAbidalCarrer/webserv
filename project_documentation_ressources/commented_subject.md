@@ -21,7 +21,7 @@ it will answer to all the requests that don’t belong to an other server).
     - Execute CGI based on certain file extension (for example .php).
     - Make it work with POST and GET methods.
     - Make the route able to accept uploaded files and configure where they should be saved.
-        - Do you wonder what a CGI is?
+        - Do you wonder what a [CGI](https://en.wikipedia.org/wiki/Common_Gateway_Interface) is?
         >⚠️ The Wikipedia page is not enough in it of itself, I recommend you read [this documention](https://www.oreilly.com/library/view/cgi-programming-on/9781565921689/04_chapter-01.html) from chapter one to three.
         - Because you won’t call the CGI directly, use the full path as PATH_INFO.
         - Just remember that, for chunked request, your server needs to unchunk it, the CGI will expect EOF as end of the body.
