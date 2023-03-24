@@ -8,19 +8,20 @@ template<typename T> class SmartPointer42
     T *pointer;
     
     public:
+    SmartPointer42() : pointer(NULL) { }
     //constructors and destructors
-    SmartPointer42(T * pointer) : pointer(pointer)
+    explicit SmartPointer42(T * pointer) : pointer(pointer)
     {
-        
+        std::cout << "instantiated smart pointer for add " << pointer << std::endl;
     }
-    SmartPointer42(const SmartPointer42& other)
-    {
-        *this = other;
-    }
+    //Do NOT implement the copy constructor as we don't want two SmartPointers that will eventually delete the same instance pointer twice.
     ~SmartPointer42()
     {
-        std::cout << "deleting pointer" << std::endl;
-        delete pointer;
+        if (pointer != NULL)
+        {
+            std::cout << "deleting pointer of adress " << pointer << std::endl;
+            delete pointer;
+        }
     }
     //operator overloads
     /*
@@ -28,6 +29,12 @@ template<typename T> class SmartPointer42
         We don't want to have two SmartPointer42 instances.
         Because when the second destructor gets called, it will (re)delete the pointer that has already been deleted.
     */
+    T operator=(T *new_pointer)
+    {
+        if (pointer != NULL)
+            delete pointer;
+        new_pointer = pointer;
+    }
     T operator*(void) const
     {
         return *pointer;

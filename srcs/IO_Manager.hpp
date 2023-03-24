@@ -1,10 +1,12 @@
 #ifndef IO_Manager_HPP
 # define IO_Manager_HPP
 # include <iostream>
-# include "sys_calls_warp_arounds.hpp"
 # include <string>
 # include <map>
 # include <vector>
+
+# include "sys_calls_warp_arounds.hpp"
+# include "SmartPointer42.hpp"
 
 # define CLOCKS_PER_MILLISECONDS CLOCKS_PER_SEC / 1000
 # define MAX_EPOLL_EVENTS_TO_HANDLE_AT_ONCE 64
@@ -86,14 +88,14 @@ class IO_Manager
             return last_io_in_mill + timeout_in_mill;
         }
     };
-    template<typename T>class TemplateIO_callbacks : public IO_callbacks
+    template<typename T>class Template_IO_callbacks : public IO_callbacks
     {
         void (T::*read_callback)(int);
         void (T::*write_callback)(int);
         void (T::*timeout_callback)(int);
         T* instance;
         public:
-        TemplateIO_callbacks(void (T::*read_callback)(int), void (T::*write_callback)(int), void (T::*timeout_callback)(int), time_t timeout_in_mill, timeout_mode_e timeout_mode, int fd, T* instance) :
+        Template_IO_callbacks(void (T::*read_callback)(int), void (T::*write_callback)(int), void (T::*timeout_callback)(int), time_t timeout_in_mill, timeout_mode_e timeout_mode, int fd, T* instance) :
         read_callback(read_callback),
         write_callback(write_callback), 
         timeout_callback(timeout_callback), 
@@ -102,7 +104,7 @@ class IO_Manager
         {
             std::cout << "template constructor called, read_callback = " << read_callback << ", write_callback = " <<  write_callback << std::endl;
         }
-        ~TemplateIO_callbacks() {}
+        ~Template_IO_callbacks() {}
         void call_event_callbacks(epoll_event event)
         {
             if ((event.events | EPOLLIN) && read_callback)
@@ -121,19 +123,19 @@ class IO_Manager
     //private fields
     private:
     time_t current_time_in_mill;
-    typedef std::map<int, IO_callbacks>::iterator interest_map_it_t;
-    std::map<int, IO_callbacks> interest_map;
+    typedef std::map<int, IO_callbacks * >::iterator interest_map_it_t;
+    std::map<int, IO_callbacks *> interest_map;
     std::vector<int> fds_to_close;
 
     //constructors and destructors
     IO_Manager() : interest_map(), fds_to_close()
     {
-        epoll_fd = ws_epoll_create1(EPOLL_CLOEXEC, "creating epoll instance for IO_Manager");
+        epoll_fd = ws_epoll_create1(EPOLL_CLOEXEC, "Creating epoll instance for IO_Manager.");
     }
     ~IO_Manager()
     {
         clear_all_fds();
-        ws_close(epoll_fd, "closing epoll_fd in IO_Manager destructor");
+        ws_close(epoll_fd, "Closing epoll_fd in IO_Manager destructor.");
     }
 
     //methods
@@ -143,12 +145,17 @@ class IO_Manager
         static IO_Manager singleton_instance;
         return singleton_instance;
     }
-    //Adds IO_callback if it doesn't already exists, or modifies it otherwise.
-    void non_static_set_interest(int fd, epoll_event event, IO_callbacks callbacks)
+    //Adds IO_callback if the key(fd) doesn't already exists, or modifies it otherwise.
+    void non_static_set_interest(int fd, epoll_event event, IO_callbacks * callbacks_ptr)
     {
+        int op = EPOLL_CTL_ADD;
         //interest_map.count(fd) allows us to check if the map contains the fd
-        int op = interest_map.count(fd) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD;
-        interest_map[fd] = callbacks;
+        if (interest_map.count(fd))
+        {
+            op = EPOLL_CTL_MOD;
+            delete interest_map[fd];
+        }
+        interest_map[fd] = callbacks_ptr;
         epoll_ctl(epoll_fd, op, fd, &event);
     }
     public:
@@ -168,9 +175,10 @@ class IO_Manager
             event.events |= EPOLLIN;
         if (write_callback)
             event.events |= EPOLLOUT;
-        singleton().non_static_set_interest(fd, event, IO_callbacks(read_callback, write_callback, timeout_calback, timeout_in_mill, timeout_mode, fd));
+        IO_callbacks * callbacks_ptr = new IO_callbacks(read_callback, write_callback, timeout_calback, timeout_in_mill, timeout_mode, fd);
+        singleton().non_static_set_interest(fd, event, callbacks_ptr);
     }
-    //static overload for static methods
+    //static overload of set_interest
     template <typename T> static void set_interest(int fd, void (T::*read_callback)(int), void (T::*write_callback)(int), T* instance)
     {
         set_interest<T>(fd, read_callback, write_callback, NULL, -1, no_timeout, instance);
@@ -184,7 +192,8 @@ class IO_Manager
             event.events |= EPOLLIN;
         if (write_callback)
             event.events |= EPOLLOUT;
-        singleton().non_static_set_interest(fd, event, TemplateIO_callbacks<T>(read_callback, write_callback, timeout_callback, timeout_in_mill, timeout_mode, fd, instance));
+        IO_callbacks * callbacks_ptr = new Template_IO_callbacks<T>(read_callback, write_callback, timeout_callback, timeout_in_mill, timeout_mode, fd, instance);
+        singleton().non_static_set_interest(fd, event, callbacks_ptr);
     }
     void non_static_remove_interest_and_close_fd(int fd)
     {
@@ -212,14 +221,14 @@ class IO_Manager
                 else for (int i = 0; i < nb_events; i++)
                 {
                     epoll_event event = events[i];
-                    interest_map[event.data.fd].call_event_callbacks(event, current_time_in_mill);
+                    interest_map[event.data.fd]->call_event_callbacks(event, current_time_in_mill);
                 }
                 clear_fds_to_close();
             } while (true);
         }
         catch(StopWaitLoop& e)
         {
-            std::cout << "stopped epoll_wait loop" << std::endl;
+            std::cout << "Stopped epoll_wait loop." << std::endl;
         }
     }
     static void wait_and_call_callbacks()
@@ -229,10 +238,10 @@ class IO_Manager
     int find_shortest_timeout_in_milliseconds()
     {
         interest_map_it_t i = interest_map.begin();
-        time_t timeout = i->second.get_timeout_in_mill();
+        time_t timeout = i->second->get_timeout_in_mill();
         for (; i != interest_map.end(); i++)
         {
-            time_t other_timeout = i->second.get_timeout_in_mill();
+            time_t other_timeout = i->second->get_timeout_in_mill();
             if (other_timeout != -1 && other_timeout > timeout)
                 timeout = other_timeout - current_time_in_mill;
         }
@@ -246,9 +255,9 @@ class IO_Manager
     {
         for (interest_map_it_t i = interest_map.begin(); i != interest_map.end(); i++)
         {
-            time_t interest_timeout_in_mill = i->second.get_timeout_in_mill();
+            time_t interest_timeout_in_mill = i->second->get_timeout_in_mill();
             if (interest_timeout_in_mill != -1 && interest_timeout_in_mill <= current_time_in_mill)
-                i->second.call_timeout_callback();
+                i->second->call_timeout_callback();
         }
     }
     void clear_fds_to_close()
@@ -258,6 +267,7 @@ class IO_Manager
             int fd = fds_to_close[i];
             ws_epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL, "removing fd from epoll instance in \"remove_interest_and_close_fd\"");
             ws_close(fd, "closing fd before removing it from interest_map");
+            delete interest_map[fd];
             interest_map.erase(fd);
         }
         fds_to_close.clear();
@@ -265,7 +275,10 @@ class IO_Manager
     void clear_all_fds()
     {
         for (interest_map_it_t i = interest_map.begin(); i != interest_map.end(); i++)
+        {
             ws_close(i->first, "closing fd at end of loop");
+            delete i->second;
+        }
     }
 };
 #endif

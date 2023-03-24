@@ -189,7 +189,7 @@ void epoll_wait (int __epfd, struct epoll_event *__events, int __maxevents, int 
 time_t ws_epoch_time_in_mill()
 {
     struct timeval time_now;
-    if (gettimeofday(&time_now, nullptr) == -1)
+    if (gettimeofday(&time_now, NULL) == -1)
         throw SystemCallException("gettimeofday");
     return (time_now.tv_sec * 1000) + (time_now.tv_usec / 1000);
 }

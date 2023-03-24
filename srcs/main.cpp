@@ -1,4 +1,4 @@
-// #include "Server.hpp"
+#include "Server.hpp"
 #include <iostream>
 #include <map>
 #include <string>
@@ -6,9 +6,14 @@
 
 int main()
 {
-    SmartPointer42<std::string> test(new std::string("salut ca va"));
-
-    std::cout << *test << std::endl;
-    test->append("| appeneded text");
-    std::cout << *test << std::endl;
+    try
+    {
+        Server server;
+        server.Run();
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+    }
+    
 }   
