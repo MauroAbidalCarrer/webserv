@@ -99,7 +99,9 @@ class IO_Manager
         timeout_callback(timeout_callback), 
         instance(instance),
         IO_callbacks(timeout_in_mill, timeout_mode, fd)
-        { }
+        {
+            std::cout << "template constructor called, read_callback = " << read_callback << ", write_callback = " <<  write_callback << std::endl;
+        }
         ~TemplateIO_callbacks() {}
         void call_event_callbacks(epoll_event event)
         {
@@ -171,7 +173,7 @@ class IO_Manager
     //static overload for static methods
     template <typename T> static void set_interest(int fd, void (T::*read_callback)(int), void (T::*write_callback)(int), T* instance)
     {
-        set_interest(fd, read_callback, write_callback, NULL, -1, no_timeout, instance);
+        set_interest<T>(fd, read_callback, write_callback, NULL, -1, no_timeout, instance);
     }
     template <typename T> static void set_interest(int fd, void (T::*read_callback)(int), void (T::*write_callback)(int), void (T::*timeout_callback)(int), time_t timeout_in_mill, timeout_mode_e timeout_mode, T* instance)
     {
@@ -182,7 +184,7 @@ class IO_Manager
             event.events |= EPOLLIN;
         if (write_callback)
             event.events |= EPOLLOUT;
-        singleton().non_static_set_interest(fd, event, TemplateIO_callbacks<T>(read_callback, write_callback, timeout_callback, timeout_in_mill, timeout_mode, instance));
+        singleton().non_static_set_interest(fd, event, TemplateIO_callbacks<T>(read_callback, write_callback, timeout_callback, timeout_in_mill, timeout_mode, fd, instance));
     }
     void non_static_remove_interest_and_close_fd(int fd)
     {
@@ -234,7 +236,10 @@ class IO_Manager
             if (other_timeout != -1 && other_timeout > timeout)
                 timeout = other_timeout - current_time_in_mill;
         }
-        std::cout << "shortest timeout in milliseconds = " << timeout << std::endl << std::endl;
+        if (timeout != -1)
+            std::cout << "shortest timeout in milliseconds = " << timeout << std::endl << std::endl;
+        else
+            std::cout << "shortest timeout in milliseconds = NO TIMEOUT" << std::endl << std::endl;
         return timeout;
     }
     void handle_timeout()

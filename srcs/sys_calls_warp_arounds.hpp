@@ -99,7 +99,6 @@ int ws_epoll_create1(int __flags, std::string context)
     int epoll_fd = epoll_create1(__flags);
     if (epoll_fd == -1)
         throw SystemCallException("epoll_create1", context);
-    std::cout << "new epoll_fd = " << epoll_fd << std::endl;
     return epoll_fd;
 }
 
