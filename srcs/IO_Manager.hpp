@@ -43,6 +43,7 @@ class IO_Manager
         timeout_mode_e timeout_mode; 
         time_t timeout_in_mill;
         time_t last_io_in_mill;
+        //constructors
         public:
         IO_callbacks(time_t timeout_in_mill, timeout_mode_e timeout_mode, int fd) :
         read_callback(NULL), write_callback(NULL), timeout_callback(NULL), fd(fd), timeout_mode(timeout_mode), timeout_in_mill(timeout_in_mill), last_io_in_mill(ws_epoch_time_in_mill())
@@ -61,6 +62,7 @@ class IO_Manager
         last_io_in_mill(ws_epoch_time_in_mill())
         { }
         ~IO_callbacks() {}
+        //methods
         virtual void call_event_callbacks(epoll_event event, time_t current_time_in_mill)
         {
             if ((event.events | EPOLLIN) && read_callback)
@@ -101,18 +103,16 @@ class IO_Manager
         timeout_callback(timeout_callback), 
         instance(instance),
         IO_callbacks(timeout_in_mill, timeout_mode, fd)
-        {
-            std::cout << "template constructor called, read_callback = " << read_callback << ", write_callback = " <<  write_callback << std::endl;
-        }
+        { }
         ~Template_IO_callbacks() {}
-        void call_event_callbacks(epoll_event event)
+        void virtual call_event_callbacks(epoll_event event, time_t current_time_in_mill)
         {
             if ((event.events | EPOLLIN) && read_callback)
                     (instance->*read_callback)(event.data.fd);
             if ((event.events | EPOLLOUT) && write_callback)
                     (instance->*write_callback)(event.data.fd);
         }
-        void call_timeout_callback(int fd)
+        void virtual call_timeout_callback()
         {
             if (timeout_callback)
                 (instance->*timeout_callback)(fd);

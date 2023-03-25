@@ -12,12 +12,13 @@ class HTTP_RequestHandler
     private:
     std::vector<HTTP_RequestHandler>& handlers_storage;
     typedef std::vector<HTTP_RequestHandler>::iterator storage_it_t;
-    HTTP_Request request;
+    //we need to this member variable to be a pointer to avoid slicing
+    HTTP_Request *request;
 
     public:
     //constructors and destructors
     HTTP_RequestHandler(int read_fd, char * already_read_request_text, std::vector<HTTP_RequestHandler>& messages_storage) :
-    handlers_storage(messages_storage), request(read_fd, already_read_request_text)
+    handlers_storage(messages_storage), request(new HTTP_Request(read_fd, already_read_request_text))
     {
         std::cout << "HTTP_RequestHandler constructor called" << std::endl;
     }
@@ -27,7 +28,7 @@ class HTTP_RequestHandler
     }
     ~HTTP_RequestHandler()
     {
-        
+        delete request;
     }
     //operator overloads
     HTTP_RequestHandler& operator=(const HTTP_RequestHandler& rhs)

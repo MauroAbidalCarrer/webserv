@@ -15,7 +15,9 @@ class HTTP_Request : public HTTP_Message
     }
     HTTP_Request(int read_fd, char *already_read_text) : HTTP_Message(read_fd, already_read_text)
     {
-        
+        std::cout << "-----------------HTT_Request constructor-----------------" << std::endl;
+        std::cout << message_as_text << std::endl;
+        std::cout << "---------------------------------------------------------" << std::endl;
     }
     HTTP_Request(const HTTP_Request& other)
     {

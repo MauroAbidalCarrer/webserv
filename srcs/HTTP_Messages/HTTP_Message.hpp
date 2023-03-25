@@ -8,9 +8,9 @@
 
 class HTTP_Message
 {
-    private:
+    protected:
     int read_fd;
-    std::string text_message;
+    std::string message_as_text;
     //desrialized header fields
     std::string host_name;
     int host_port;
@@ -25,9 +25,9 @@ class HTTP_Message
     //constructors and destructors
     HTTP_Message() { }
     HTTP_Message(int read_fd, char * already_read_text) :
-    read_fd(read_fd), text_message(already_read_text)
+    read_fd(read_fd), message_as_text(already_read_text)
     {
-        std::cout << "HTTP request:" << std::endl << text_message << std::endl;
+        std::cout << "HTTP request:" << std::endl << message_as_text << std::endl;
     }
     HTTP_Message(const HTTP_Message& other)
     {
