@@ -6,12 +6,11 @@
 # include <vector>
 
 # include "sys_calls_warp_arounds.hpp"
-# include "SmartPointer42.hpp"
 
 # define CLOCKS_PER_MILLISECONDS CLOCKS_PER_SEC / 1000
 # define MAX_EPOLL_EVENTS_TO_HANDLE_AT_ONCE 64
 
-typedef void (*fd_callback_t)(int);
+typedef void (*static_fd_callback_t)(int);
 enum timeout_mode_e
 {
     renew_after_IO_operation,//for connections, could also be no_timeout for connections
@@ -33,56 +32,36 @@ class IO_Manager
         }
     };
     
-    class IO_callbacks
+    public:
+    class FD_interest
     {
-        fd_callback_t read_callback;
-        fd_callback_t write_callback;
-        fd_callback_t timeout_callback;
+        //fields
         protected:
         int fd;
         timeout_mode_e timeout_mode; 
         time_t timeout_in_mill;
         time_t last_io_in_mill;
+
         //constructors
         public:
-        IO_callbacks(time_t timeout_in_mill, timeout_mode_e timeout_mode, int fd) :
-        read_callback(NULL), write_callback(NULL), timeout_callback(NULL), fd(fd), timeout_mode(timeout_mode), timeout_in_mill(timeout_in_mill), last_io_in_mill(ws_epoch_time_in_mill())
+        FD_interest(time_t timeout_in_mill, timeout_mode_e timeout_mode, int fd) :
+        fd(fd), timeout_mode(timeout_mode), timeout_in_mill(timeout_in_mill), last_io_in_mill(ws_epoch_time_in_mill())
         { }
         public:
-        IO_callbacks() : //This constructor is required by map.
-        read_callback(NULL), write_callback(NULL), timeout_callback(NULL), fd(-1), timeout_mode(), timeout_in_mill(0), last_io_in_mill(ws_epoch_time_in_mill())
+        FD_interest() : //This constructor is required by map.
+        fd(-1), timeout_mode(), timeout_in_mill(0), last_io_in_mill(ws_epoch_time_in_mill())
         { }
-        IO_callbacks(fd_callback_t read_callback, fd_callback_t write_callback, fd_callback_t timeout_callback, time_t timeout_in_mill, timeout_mode_e timeout_mode, int fd) : 
-        read_callback(read_callback), 
-        write_callback(write_callback), 
-        timeout_callback(timeout_callback),
-        fd(fd),
-        timeout_mode(timeout_mode),
-        timeout_in_mill(timeout_in_mill),
-        last_io_in_mill(ws_epoch_time_in_mill())
-        { }
-        ~IO_callbacks() {}
+        virtual ~FD_interest() {};
+
         //methods
-        virtual void call_event_callbacks(epoll_event event, time_t current_time_in_mill)
+        void call_event_callbacks(epoll_event event, time_t current_time_in_mill)
         {
-            if ((event.events | EPOLLIN) && read_callback)
-            {
-                if (timeout_mode == renew_after_IO_operation)
-                    last_io_in_mill = current_time_in_mill;
-                (*read_callback)(event.data.fd);
-            }
-            if ((event.events | EPOLLOUT) && write_callback)
-            {
-                if (timeout_mode == renew_after_IO_operation)
-                    last_io_in_mill = current_time_in_mill;
-                (*write_callback)(event.data.fd);
-            }
+            if (timeout_mode == renew_after_IO_operation)
+                last_io_in_mill = current_time_in_mill;
+            internal_call_event_callbacks(event);
         }
-        virtual void call_timeout_callback()
-        {
-            if (timeout_callback)
-                (*timeout_callback)(fd);
-        }
+        virtual void internal_call_event_callbacks(epoll_event event) = 0;
+        virtual void call_timeout_callback() = 0;
         time_t get_timeout_in_mill()
         {
             if (timeout_mode == no_timeout)
@@ -90,29 +69,67 @@ class IO_Manager
             return last_io_in_mill + timeout_in_mill;
         }
     };
-    template<typename T>class Template_IO_callbacks : public IO_callbacks
+    //fd intrest with static function callbacks
+    class static_FD_interest : public FD_interest
     {
+        //fields
+        static_fd_callback_t read_callback;
+        static_fd_callback_t write_callback;
+        static_fd_callback_t timeout_callback;
+        
+        //constructors
+        public:
+        static_FD_interest(static_fd_callback_t read_callback, static_fd_callback_t write_callback, static_fd_callback_t timeout_callback, time_t timeout_in_mill, timeout_mode_e timeout_mode, int fd) : 
+        FD_interest(timeout_in_mill, timeout_mode, fd),
+        read_callback(read_callback), 
+        write_callback(write_callback), 
+        timeout_callback(timeout_callback)
+        { }
+        ~static_FD_interest(){}
+        
+        //methods
+        void internal_call_event_callbacks(epoll_event event)
+        {
+            if ((event.events & EPOLLIN) && read_callback)
+                (*read_callback)(event.data.fd);
+            if ((event.events & EPOLLOUT) && write_callback)
+                (*write_callback)(event.data.fd);
+        }
+        void call_timeout_callback()
+        {
+            if (timeout_callback)
+                (*timeout_callback)(fd);
+        }
+    };
+    //fd_interest with member funciton callbacks
+    template<typename T>class Template_IO_interest : public FD_interest
+    {
+        //fields
         void (T::*read_callback)(int);
         void (T::*write_callback)(int);
         void (T::*timeout_callback)(int);
         T* instance;
+
+        //methods
         public:
-        Template_IO_callbacks(void (T::*read_callback)(int), void (T::*write_callback)(int), void (T::*timeout_callback)(int), time_t timeout_in_mill, timeout_mode_e timeout_mode, int fd, T* instance) :
+        Template_IO_interest(void (T::*read_callback)(int), void (T::*write_callback)(int), void (T::*timeout_callback)(int), time_t timeout_in_mill, timeout_mode_e timeout_mode, int fd, T* instance) :
+        FD_interest(timeout_in_mill, timeout_mode, fd),
         read_callback(read_callback),
         write_callback(write_callback), 
         timeout_callback(timeout_callback), 
-        instance(instance),
-        IO_callbacks(timeout_in_mill, timeout_mode, fd)
+        instance(instance)
         { }
-        ~Template_IO_callbacks() {}
-        void virtual call_event_callbacks(epoll_event event, time_t current_time_in_mill)
+        ~Template_IO_interest(){}
+
+        //methods
+        void internal_call_event_callbacks(epoll_event event)
         {
-            if ((event.events | EPOLLIN) && read_callback)
-                    (instance->*read_callback)(event.data.fd);
-            if ((event.events | EPOLLOUT) && write_callback)
-                    (instance->*write_callback)(event.data.fd);
+            if ((event.events & EPOLLIN) && read_callback)
+                (instance->*read_callback)(event.data.fd);
+            if ((event.events & EPOLLOUT) && write_callback)
+                (instance->*write_callback)(event.data.fd);
         }
-        void virtual call_timeout_callback()
+        void call_timeout_callback()
         {
             if (timeout_callback)
                 (instance->*timeout_callback)(fd);
@@ -123,8 +140,8 @@ class IO_Manager
     //private fields
     private:
     time_t current_time_in_mill;
-    typedef std::map<int, IO_callbacks * >::iterator interest_map_it_t;
-    std::map<int, IO_callbacks *> interest_map;
+    typedef std::map<int, FD_interest * >::iterator interest_map_it_t;
+    std::map<int, FD_interest *> interest_map;
     std::vector<int> fds_to_close;
 
     //constructors and destructors
@@ -145,8 +162,9 @@ class IO_Manager
         static IO_Manager singleton_instance;
         return singleton_instance;
     }
+    public:
     //Adds IO_callback if the key(fd) doesn't already exists, or modifies it otherwise.
-    void non_static_set_interest(int fd, epoll_event event, IO_callbacks * callbacks_ptr)
+    void non_static_set_interest(int fd, int epoll_event_mask, FD_interest * FD_interst_ptr)
     {
         int op = EPOLL_CTL_ADD;
         //interest_map.count(fd) allows us to check if the map contains the fd
@@ -155,28 +173,33 @@ class IO_Manager
             op = EPOLL_CTL_MOD;
             delete interest_map[fd];
         }
-        interest_map[fd] = callbacks_ptr;
-        epoll_ctl(epoll_fd, op, fd, &event);
+        epoll_event event;
+        event.events = epoll_event_mask;
+        event.data.fd = fd;
+        interest_map[fd] = FD_interst_ptr;
+        ws_epoll_ctl(epoll_fd, op, fd, &event, "setting fd interest");
     }
     public:
     class StopWaitLoop {};
     int epoll_fd;
     //static overload for static functions
-    static void set_interest(int fd, fd_callback_t read_callback, fd_callback_t write_callback)
+    static void set_interest(int fd, int epoll_event_mask, FD_interest * FD_interst_ptr)
+    {
+        singleton().non_static_set_interest(fd, epoll_event_mask, FD_interst_ptr);
+    }
+    static void set_interest(int fd, static_fd_callback_t read_callback, static_fd_callback_t write_callback)
     {
         set_interest(fd, read_callback, write_callback, NULL, -1, no_timeout);
     }
-    static void set_interest(int fd, fd_callback_t read_callback, fd_callback_t write_callback, fd_callback_t timeout_calback, time_t timeout_in_mill, timeout_mode_e timeout_mode)
+    static void set_interest(int fd, static_fd_callback_t read_callback, static_fd_callback_t write_callback, static_fd_callback_t timeout_calback, time_t timeout_in_mill, timeout_mode_e timeout_mode)
     {
-        epoll_event event;
-        event.data.fd = fd;
-        event.events = 0;
+        int epoll_event_mask = 0;
         if (read_callback)
-            event.events |= EPOLLIN;
+            epoll_event_mask |= EPOLLIN;
         if (write_callback)
-            event.events |= EPOLLOUT;
-        IO_callbacks * callbacks_ptr = new IO_callbacks(read_callback, write_callback, timeout_calback, timeout_in_mill, timeout_mode, fd);
-        singleton().non_static_set_interest(fd, event, callbacks_ptr);
+            epoll_event_mask |= EPOLLOUT;
+        FD_interest * callbacks_ptr = new static_FD_interest(read_callback, write_callback, timeout_calback, timeout_in_mill, timeout_mode, fd);
+        singleton().non_static_set_interest(fd, epoll_event_mask, callbacks_ptr);
     }
     //static overload of set_interest
     template <typename T> static void set_interest(int fd, void (T::*read_callback)(int), void (T::*write_callback)(int), T* instance)
@@ -185,16 +208,27 @@ class IO_Manager
     }
     template <typename T> static void set_interest(int fd, void (T::*read_callback)(int), void (T::*write_callback)(int), void (T::*timeout_callback)(int), time_t timeout_in_mill, timeout_mode_e timeout_mode, T* instance)
     {
-        epoll_event event;
-        event.data.fd = fd;
-        event.events = 0;
+        int epoll_event_mask = 0;
         if (read_callback)
-            event.events |= EPOLLIN;
+            epoll_event_mask |= EPOLLIN;
         if (write_callback)
-            event.events |= EPOLLOUT;
-        IO_callbacks * callbacks_ptr = new Template_IO_callbacks<T>(read_callback, write_callback, timeout_callback, timeout_in_mill, timeout_mode, fd, instance);
-        singleton().non_static_set_interest(fd, event, callbacks_ptr);
+            epoll_event_mask |= EPOLLOUT;
+        FD_interest * callbacks_ptr = new Template_IO_interest<T>(read_callback, write_callback, timeout_callback, timeout_in_mill, timeout_mode, fd, instance);
+        singleton().non_static_set_interest(fd, epoll_event_mask, callbacks_ptr);
     }
+    //change interest epoll_mask
+    void non_static_change_interest_epoll_mask(int fd, int epoll_event_mask)
+    {
+        epoll_event event;
+        event.events = epoll_event_mask;
+        event.data.fd = fd;
+        ws_epoll_ctl(epoll_fd, EPOLL_CTL_MOD, fd, &event, "changing FD interest");
+    }
+    static void change_interest_epoll_mask(int fd, int epoll_event_mask)
+    {
+        singleton().non_static_change_interest_epoll_mask(fd, epoll_event_mask);
+    }
+    //remove
     void non_static_remove_interest_and_close_fd(int fd)
     {
         fds_to_close.push_back(fd);

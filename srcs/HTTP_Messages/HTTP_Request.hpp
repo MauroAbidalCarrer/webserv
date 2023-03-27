@@ -4,34 +4,34 @@
 # include <string>
 
 # include "HTTP_Message.hpp"
+# include "../parsing.hpp"
+# include "../WSexception.hpp"
 
 class HTTP_Request : public HTTP_Message
 {
+    private:
+    //fields
+    parsing::line_of_tokens_t request_line;
     public:
-    //constructors and destructors
-    HTTP_Request()
+    std::string HTTP_method;
+    std::string target_URL;
+    
+    public:
+    HTTP_Request() {};
+    HTTP_Request(int read_fd, size_t buffer_size, int recv_flags = 0) : HTTP_Message(read_fd, buffer_size, recv_flags)
     {
-        
+        //do checks to make sure that the message is a properly formatted request
+        request_line = first_line;
+        HTTP_method = request_line[0];
+        target_URL = request_line[1];
     }
-    HTTP_Request(int read_fd, char *already_read_text) : HTTP_Message(read_fd, already_read_text)
+    //methods
+    parsing::line_of_tokens_t get_header_fields(std::string header_name)
     {
-        std::cout << "-----------------HTT_Request constructor-----------------" << std::endl;
-        std::cout << message_as_text << std::endl;
-        std::cout << "---------------------------------------------------------" << std::endl;
-    }
-    HTTP_Request(const HTTP_Request& other)
-    {
-        *this = other;
-    }
-    ~HTTP_Request()
-    {
-        
-    }
-    //operator overloads
-    HTTP_Request& operator=(const HTTP_Request& rhs)
-    {
-        (void)rhs;
-        return *this;
+        for (size_t i = 1; i < header.size(); i++)
+            if (header[i][0] == header_name)
+                return header[i];
+        throw WSexception("Header field " + header_name + " not found!");
     }
 };
 #endif

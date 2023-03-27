@@ -2,32 +2,43 @@
 # define HTTP_Message_HPP
 # include <iostream>
 # include <string>
-# include <vector>
-# include <algorithm>
 
+# include "../parsing.hpp"
+# include "../sys_calls_warp_arounds.hpp"
+
+#define FIRST_READ_BUFFER_SIZE 1000
 
 class HTTP_Message
 {
-    protected:
+    private:
     int read_fd;
-    std::string message_as_text;
-    //desrialized header fields
-    std::string host_name;
-    int host_port;
-    enum connection_type { keep_alive, close };
-    connection_type connection;
-    enum content_type_type { text };
-    content_type_type content_type;//classic OOP shit
-
+    int recv_flags;
+    protected:
+    parsing::line_of_tokens_t first_line;
+    public:
+    parsing::tokenized_text_t header; 
+    std::string body; 
 
     public:
-
     //constructors and destructors
-    HTTP_Message() { }
-    HTTP_Message(int read_fd, char * already_read_text) :
-    read_fd(read_fd), message_as_text(already_read_text)
+    HTTP_Message() : recv_flags(0) { }
+    HTTP_Message(int read_fd, size_t buffer_size, int recv_flags = 0) : read_fd(read_fd), recv_flags(recv_flags)
     {
-        std::cout << "HTTP request:" << std::endl << message_as_text << std::endl;
+        std::string msg_as_text = read_text_msg(buffer_size);
+        std::cout << "\"" << msg_as_text << "\"" << std::endl;
+        if (msg_as_text.length() == 0)
+            throw NoBytesToReadException();
+        parsing::tokenized_text_t tokenized_msg = parsing::tokenize_HTTP_message(msg_as_text);
+        // if (!msg_as_text.find("\r\n\\n"))
+            // throw bad request
+        //do parsing  checks
+        first_line = tokenized_msg[0];
+        parsing::tokenized_text_t::iterator it = tokenized_msg.begin() + 1;
+        while (it != tokenized_msg.end() && !it->empty())
+            it++;
+        //do parsing  checks
+        header = parsing::tokenized_text_t(tokenized_msg.begin(), it);
+        body = msg_as_text.substr(msg_as_text.find("\r\n\r\n"));
     }
     HTTP_Message(const HTTP_Message& other)
     {
@@ -40,5 +51,57 @@ class HTTP_Message
         (void)rhs;
         return *this;
     }
+    //methods
+    std::string read_text_msg(size_t buffer_size)
+    {
+        std::cout << " read_fd = " << read_fd << std::endl;
+        if (recv_flags == 0)
+        {
+            std::cout << "readig with ws_read" << std::endl;
+            return ws_read(read_fd, buffer_size);
+        }
+        else
+        {
+            std::cout << "readig with ws_recv" << std::endl;
+            return ws_recv(read_fd, buffer_size, recv_flags);
+        }
+    }
+    std::string deserialize()
+    {
+        std::string str;
+        for (size_t i = 0; i < first_line.size(); i++)
+            str.append(first_line[i]);
+        str.append(parsing::CLRF);
+        for (size_t i = 0; i < header.size(); i++)
+        {
+            str.append(header[i][0]);
+            str.append(":");
+            for (size_t j = 1; j < header[i].size(); j++)
+            {
+                str.append(" ");
+                str.append(header[i][j]);
+            }
+            str.append(parsing::CLRF);
+        }
+        str.append(parsing::CLRF);
+        // bod
+        // str.append(parsing::CLRF);
+        return str;
+    }
+    void clear()
+    {
+        first_line.clear();
+        header.clear();
+        body.clear();
+    }
+
+    //nested classes
+    class NoBytesToReadException : std::exception
+    {
+        const char * what() const throw()
+        {
+            return "NoBytesToReadException";
+        }
+    };
 };
 #endif

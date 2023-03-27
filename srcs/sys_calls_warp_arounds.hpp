@@ -162,13 +162,13 @@ void ws_close(int __fd, std::string context)
 
    This function is a cancellation point and therefore not marked with
    __THROW.  */
-ssize_t ws_send(int __fd, const void *__buf, size_t __n, int __flags, std::string context)
-{
-    ssize_t nb_sent_bytes = send(__fd, __buf, __n, __flags);
-    if (nb_sent_bytes == -1)
-        throw SystemCallException("send", context);
-    return nb_sent_bytes;
-}
+// ssize_t ws_send(int __fd, const void *__buf, size_t __n, int __flags, std::string context)
+// {
+//     ssize_t nb_sent_bytes = send(__fd, __buf, __n, __flags);
+//     if (nb_sent_bytes == -1)
+//         throw SystemCallException("send", context);
+//     return nb_sent_bytes;
+// }
 
 /* Wait for events on an epoll instance "epfd". Returns the number of
    triggered events returned in "events" buffer. Or -1 in case of
@@ -194,13 +194,37 @@ time_t ws_epoch_time_in_mill()
     return (time_now.tv_sec * 1000) + (time_now.tv_usec / 1000);
 }
 
-ssize_t ws_recv(int socket_fd, char *buffer, size_t buffer_size, int flags)
+std::string ws_recv(int socket_fd, int buffer_size, int flags)
 {
     ssize_t nb_read_bytes;
+    char buffer[buffer_size + 1];
     if ((nb_read_bytes = recv(socket_fd, buffer, buffer_size, flags)) == -1)
-    {
         throw SystemCallException("recv");
-    }
-    return nb_read_bytes;
+    buffer[nb_read_bytes] = 0;
+    return std::string(buffer);
+}
+
+std::string ws_read(int fd, int buffer_size)
+{
+    ssize_t nb_read_bytes;
+    char buffer[buffer_size + 1];
+    if ((nb_read_bytes = read(fd, buffer, buffer_size)) == -1)
+        throw SystemCallException("read");
+    buffer[nb_read_bytes] = 0;
+    return std::string(buffer);
+}
+
+int ws_open(std::string pathname, int flags)
+{
+    int fd = open(pathname.data(), flags);
+    if (fd == -1)
+        throw SystemCallException("open" ,"pathname: " + pathname);
+    return fd;
+}
+
+void ws_send(int socket_fd, std::string msg, int flags)
+{
+    if (send(socket_fd, msg.data(), msg.length(), flags) < (ssize_t)msg.length())
+        throw SystemCallException("send");
 }
 #endif

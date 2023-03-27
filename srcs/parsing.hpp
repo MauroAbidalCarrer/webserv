@@ -4,18 +4,19 @@
 # include <vector>
 # include <sstream>
 # include <iostream>
+# include <algorithm>
 
 namespace parsing
 {
-
+    typedef size_t (std::string::*next_pos_finder_t)(const std::string&, size_t) const;
     typedef std::vector<std::string> line_of_tokens_t;
-    line_of_tokens_t tokenize(std::string str, std::string delimiter, bool include_empty_tokens)
+    line_of_tokens_t tokenize(std::string str, next_pos_finder_t next_pos_finder, std::string delimiter, bool include_empty_tokens)
     {
         std::vector<std::string> tokens;
         size_t pos = 0;
         while (pos != str.length())
         {
-            size_t next_pos = str.find(delimiter, pos);
+            size_t next_pos = ((&str)->*next_pos_finder)(delimiter, pos);
             if (next_pos == std::string::npos)
             {
                 tokens.push_back(str.substr(pos));
@@ -29,22 +30,22 @@ namespace parsing
         return tokens;
     }
 
-    typedef std::vector<line_of_tokens_t> tokenized_file_t;
-    tokenized_file_t tokenize_file(std::string file_str, std::string line_delimiter, std::string word_delimiters, bool include_empty_lines)
+    typedef std::vector<line_of_tokens_t> tokenized_text_t;
+    tokenized_text_t tokenize_text(std::string file_str, std::string line_delimiter, std::string word_delimiters, bool include_empty_lines)
     {
-        tokenized_file_t tokenized_file;
-        line_of_tokens_t line_tokens = tokenize(file_str, line_delimiter, include_empty_lines);
+        tokenized_text_t tokenized_file;
+        line_of_tokens_t line_tokens = tokenize(file_str, &std::string::find, line_delimiter, include_empty_lines);
         for (size_t i = 0; i < line_tokens.size(); i++)
-            tokenized_file.push_back(tokenize(line_tokens[i], word_delimiters, false));
+            tokenized_file.push_back(tokenize(line_tokens[i], &std::string::find_first_of, word_delimiters, false));
         return tokenized_file;
     }
 
 
     const char * CLRF = "\r\n";
-    typedef tokenized_file_t tokenized_HTTP_message_t;
+    typedef tokenized_text_t tokenized_HTTP_message_t;
     tokenized_HTTP_message_t tokenize_HTTP_message(std::string message_text)
     {
-        return tokenize_file(message_text, CLRF, ": ", true);
+        return tokenize_text(message_text, CLRF, ": ", true);
     }
 }
 

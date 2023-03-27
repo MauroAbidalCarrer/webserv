@@ -7,33 +7,23 @@
 
 # include "IO_Manager.hpp"
 # include "sys_calls_warp_arounds.hpp"
-# include "HTTP_RequestHandler.hpp"
+# include "ClientConnexionHandler.hpp"
+# include "HTTP_Message.hpp"
 
 # define MAX_QUEUE_SIZE 10
 # define RECV_BUFFER_SIZE 1000
 # define LISTENING_PORT 8080
-# define IDLE_CLIENT_CONNEXION_TIMEOUT_IN_MILL 3000
 
 class Server
 {
-    private:
-    
     public:
-    std::vector<HTTP_RequestHandler> handlers_storage;
-    typedef std::vector<HTTP_RequestHandler>::iterator messages_iterator_t;
     //constructors and destructors
-    Server()
-    {
-        
-    }
+    Server() {}
     Server(const Server& other)
     {
         *this = other;
     }
-    ~Server()
-    {
-        
-    }
+    ~Server() {}
     //operator overloads
     Server& operator=(const Server& rhs)
     {
@@ -42,36 +32,11 @@ class Server
     }
 
     //methods
-
-    void handle_client_msg(int connexion_socket_fd)
-    {
-        char buffer[RECV_BUFFER_SIZE];
-        size_t nb_read_bytes = ws_recv(connexion_socket_fd, buffer, RECV_BUFFER_SIZE, 0);
-        buffer[nb_read_bytes] = 0;
-        if (nb_read_bytes == 0)
-        {
-            IO_Manager::remove_interest_and_close_fd(connexion_socket_fd);
-            std::cout << "Closed client connexion, connexion_socket_fd: " << connexion_socket_fd << std::endl;
-        }
-        else
-            HTTP_RequestHandler(connexion_socket_fd, buffer, handlers_storage);
-    }
-
-    // void close_idle_connexion(int connexion_fd)
-    // {
-    //     ws_send(connexion_fd, "connexion close, you've been idle for too long.", 47, 0, "sending idle connexion close msg");
-    //     IO_Manager::remove_interest_and_close_fd(connexion_fd);
-    // }
-    // void set_interest_to_close_idle_connexion(int connexion_fd)
-    // {
-    //     IO_Manager::set_interest<Server>(connexion_fd, NULL, &Server::close_idle_connexion, this);
-    // }
-
     void accept_client_connexion(int listening_socket_fd)
     {
         int connexion_socket_fd = ws_accept(listening_socket_fd, NULL, NULL, "accepting connexion... da");
-        std::cout << "accepted new client connexion, connexion_socket_fd: " << connexion_socket_fd << std::endl;
-        IO_Manager::set_interest<Server>(connexion_socket_fd,  &Server::handle_client_msg, NULL, this);
+        std::cout << "Accepted new client connexion, connexion_socket_fd: " << connexion_socket_fd << '.' << std::endl;
+        IO_Manager::set_interest(connexion_socket_fd, EPOLLIN, new ClientConnexionHandler(connexion_socket_fd));
     }
 
     //Creates a socket, binds it, listens to it and monitor it.
