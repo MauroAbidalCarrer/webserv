@@ -36,23 +36,29 @@
 //Exception thrown when a sys call fails.
 class SystemCallException : public std::exception
 {
-    private:
-    std::string errormsg;
+    public:
+    std::string sys_call_name;
+    std::string context;
+    std::string error_msg;
+    int system_call_errno;
+    std::string what_str;
 
     public:
-    SystemCallException(std::string sys_call_name)
-    {
-        errormsg = sys_call_name + ": " + std::string(strerror(errno));
+    SystemCallException(std::string sys_call_name) : 
+    sys_call_name(sys_call_name),  context(), error_msg(strerror(errno)), system_call_errno(errno)
+    { 
+        what_str = "System call \"" + sys_call_name + "\"" + ", strerror: " + error_msg;
     }
-    SystemCallException(std::string sys_call_name, std::string context)
+    SystemCallException(std::string sys_call_name, std::string context) : 
+    sys_call_name(sys_call_name), context(context), error_msg(strerror(errno)), system_call_errno(errno)
     {
-        errormsg = sys_call_name + ": \"" + std::string(strerror(errno)) + "\", context: \"" + context + "\".";
+        what_str = "System call \"" + sys_call_name + "\"" + ", strerror: " + error_msg;
     }
     ~SystemCallException() throw () {}
 
     const char* what() const throw()
     {
-        return errormsg.c_str();
+        return what_str.data();
     }
 };
 
@@ -109,7 +115,15 @@ int ws_epoll_create1(int __flags, std::string context)
 void ws_epoll_ctl(int __epfd, int __op, int __fd, struct epoll_event *__event, std::string context)
 {
     if (epoll_ctl(__epfd, __op, __fd, __event) == -1)
+    {
+        std::cerr << "errno = " << errno << std::endl;
+        std::cerr << "EINVAL "  << EINVAL << std::endl;
+        std::cerr << "EBADF "  << EBADF << std::endl;
+        std::cerr << "ELOOP "  << ELOOP << std::endl;
+        std::cerr << "ENOMEM "  << ENOMEM << std::endl;
+        std::cerr << "EEXIST "  << ENOMEM << std::endl;
         throw SystemCallException("epoll_ctl", context);
+    }
 }
 
 /* Wait for events on an epoll instance "epfd". Returns the number of

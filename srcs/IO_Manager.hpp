@@ -223,6 +223,7 @@ class IO_Manager
         event.events = epoll_event_mask;
         event.data.fd = fd;
         ws_epoll_ctl(epoll_fd, EPOLL_CTL_MOD, fd, &event, "changing FD interest");
+        std::cout << "                    set fd  " << fd << " event.events = " << event.events << std::endl;
     }
     static void change_interest_epoll_mask(int fd, int epoll_event_mask)
     {
@@ -246,7 +247,8 @@ class IO_Manager
             {
                 current_time_in_mill = ws_epoch_time_in_mill();
                 static epoll_event events[MAX_EPOLL_EVENTS_TO_HANDLE_AT_ONCE];
-                int nb_events = ws_epoll_wait(epoll_fd, events, MAX_EPOLL_EVENTS_TO_HANDLE_AT_ONCE, find_shortest_timeout_in_milliseconds(), "IO_manager wait loop");
+                int sortest_timeout_in_mill = find_shortest_timeout_in_milliseconds();
+                int nb_events = ws_epoll_wait(epoll_fd, events, MAX_EPOLL_EVENTS_TO_HANDLE_AT_ONCE, sortest_timeout_in_mill, "IO_manager wait loop");
                 current_time_in_mill = ws_epoch_time_in_mill();
                 //timeout
                 if (nb_events == 0)

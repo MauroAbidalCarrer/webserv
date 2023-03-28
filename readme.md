@@ -7,3 +7,7 @@ The server will follow the webserv [subject](/project_documentation_ressources/s
 Because the official school subject uses a lot of esoteric termes difficult to understand for newcomers I've made a [commented version](/project_documentation_ressources/commented_subject.md) of the subject.  
 
 I have also written a guide on how to [process a request](/project_documentation_ressources/Request_processing_guidelines.md) as well as [implementation guidelines](/project_documentation_ressources/high_level_implementation_guidelines.md).
+
+
+Ressources to get started on the project:
+- [response status codes](https://httpwg.org/specs/rfc9110.html#status.code.registration)

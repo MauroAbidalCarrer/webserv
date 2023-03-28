@@ -8,8 +8,8 @@
 class HTTP_Response : public HTTP_Message
 {
     public:
-    int status_code;
-    std::string status_msg;
+    // int status_code;
+    // std::string status_msg;
 
     public:
     //constructors and destructors
@@ -17,8 +17,13 @@ class HTTP_Response : public HTTP_Message
     HTTP_Response(int read_fd, size_t buffer_size) : HTTP_Message(read_fd, buffer_size)
     {
         //do checks
-        status_code = std::atoi(first_line[1].data());
-        status_msg = first_line[2];
+        // status_code = std::atoi(first_line[1].data());
+        // status_msg = first_line[2];
+    }
+    HTTP_Response(std::string status_code, std::string status_msg)
+    {
+        first_line.push_back(status_code);
+        first_line.push_back(status_msg);
     }
     HTTP_Response(const HTTP_Response& other)
     {
@@ -46,6 +51,19 @@ class HTTP_Response : public HTTP_Message
             }
         }
         header.push_back(header_fields);
+    }
+    void set_response_line(std::string status_code, std::string status_msg)
+    {
+        first_line.clear();
+        first_line.push_back("HTTP/1.1");
+        first_line.push_back(status_code);
+        first_line.push_back(status_msg);
+    }
+    void set_content_length()
+    {
+        std::ostringstream convert;
+        convert << body.length();
+        set_header_fields("Content-Length", convert.str());
     }
 };
 #endif

@@ -17,6 +17,7 @@ it will answer to all the requests that don’t belong to an other server).
     - Define a directory or a file from where the file should be searched (for example, if url /kapouet is rooted to /tmp/www, url /kapouet/pouic/toto/pouet is /tmp/www/pouic/toto/pouet).
     >means:Implement [root](https://nginx.org/en/docs/http/ngx_http_core_module.html#root) directive.
     - Turn on or off directory listing.
+    >means: implement the [auto_index](https://www.educba.com/nginx-autoindex/) directive.
     - Set a default file to answer if the request is a directory.
     - Execute CGI based on certain file extension (for example .php).
     - Make it work with POST and GET methods.

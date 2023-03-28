@@ -47,71 +47,96 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
         try
         {
             request = HTTP_Request(fd, MAXIMUM_HTTP_HEADER_SIZE);
+            
+            find_and_apply_contet_to_request();
+            /*if request requires CGI generate response
+                
+                fork, excve CGI, AND input request to CGI input AND read from CGI output, complete header fields AND send response
+            */
+            if (request.HTTP_method == "GET")
+                start_processing_Get_request();
+            //if method == POST
+                //if already exists overwrite or append?
+                //open target ressource AND write on it and construct response AND deserialize reuqest on connexion socket_fd
+            //if method == DELETE
+                //if file doesn't exist ?
+                //delete file and construct response AND deserialize reuqest on connexion socket_fd
+            response.set_header_fields("Connection", "Keep-Alive");
         }
-        catch (std::exception& e)
+        catch (HTTP_Message::NoBytesToReadException e)
         {
-            std::cerr << "Caught exception while construcintg client request, closing client connexion " << fd << std::endl;
+            std::cout << "No more bytes to read on client socket " << fd << ", closing client connexion " << fd << std::endl;
             close_connexion();
         }
+        catch(SystemCallException e)
+        {
+            response.clear();
+            response.first_line.push_back("500");
+            response.first_line.push_back("Internal Server Error");
+            // response = HTTP_Response("500", "Internal Server Error");
+            if (e.sys_call_name == "open")
+            {
+                if (e.system_call_errno & ENOENT)
+                    response = HTTP_Response("404", "Not Found");
+                else if (e.system_call_errno & EACCES)
+                    response = HTTP_Response("406", "Access to this resource on the server is denied");
+            }
+            std::cerr << "SystemCallException caught while starting to process request: " << std::endl;
+            std::cerr << "- " << e.what() << std::endl;
+            std::cerr << "- Response: " << std::endl;
+            std::cerr << response.deserialize();
+            std::cerr << "-----------" << std::endl;
+            IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
+        }
+    }
+    //methods
+    void  find_and_apply_contet_to_request()
+    {
         //find context
         //apply context
+        //apply root directive(for no it just adds .)
+        request.target_URL.insert(request.target_URL.begin(), '.');
+        //apply rewrite directive(not sure if it's the rewrite directive... the that completes target URLs finishing ini "/")(for no just index.html)
         if (*(request.target_URL.end() - 1) == '/')
             request.target_URL.append("index.html");
-        //if request requires CGI generate response
-            //fork, excve CGI, input request to CGI input AND read from CGI output, complete header fields
-        if (request.HTTP_method == "GET")
-            start_processing_Get_request();
-        //if method == POST
-            //if already exists overwrite or append?
-            //open target ressource AND write on it and construct response AND deserialize reuqest on connexion socket_fd
-        //if method == DELETE
-            //if file doesn't exist ?
-            //delete file and construct response AND deserialize reuqest on connexion socket_fd
-        parsing::line_of_tokens_t connection_header;
-        response.set_header_fields("Connection", "Keep-Alive");
     }
     //GET method
     //open content file AND consturct response from content AND deserialize reuqest on connexion socket_fd
     void start_processing_Get_request()
     {
         int content_fd = ws_open(request.target_URL, O_RDONLY);
-        //set response Content-Type
-        IO_Manager::change_interest_epoll_mask(fd, 0);
-        IO_Manager::set_interest<ClientConnexionHandler>(content_fd, &ClientConnexionHandler::append_to_GET_response_content, NULL, &ClientConnexionHandler::construct_GET_response_from_content, 0, do_not_renew, this);
-    }
-    void append_to_GET_response_content(int content_fd)
-    {
-        response.body.append(ws_read(content_fd, GET_RESPONSE_CONTENT_RAD_BUFFER_SIZE));
-    }
-    void construct_GET_response_from_content(int content_fd)
-    {
-        IO_Manager::remove_interest_and_close_fd(content_fd);
-        std::ostringstream convert;
-        convert << response.body.length();
-        response.set_header_fields("Content-Length", convert.str());
+        //set response correct Content-Type
+        //make read_full method
+        response.body = ws_read(content_fd, 10000);
+        response.body.append(parsing::CLRF);
+        response.set_content_length();
+        //Implement response method that defines response's Content-Type header field.
         response.set_header_fields("Content-Type", "text/html;");
+        response.set_response_line("200", "OK");
         IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
     }
-    
+
     void send_response()
     {
         ws_send(fd, response.deserialize(), 0);
+        response.clear();
+        request.clear();
         IO_Manager::change_interest_epoll_mask(fd, EPOLLIN);
-        
     }
 
     void internal_call_event_callbacks(epoll_event event)
     {
         if ((event.events & EPOLLIN) && (event.events & EPOLLOUT))
             std::cerr << "Warning: called ClientConnexionHandler::" << __func__ << " with both EPOLLIN and OUT, this is not supposed to happen!" << std::endl;
-        if (event.events & EPOLLIN)
-            handle_client_request();
+        std::cout << "ClientConnexionHandler::" << __func__ << ", event.events = " << event.events << ", fd = " << fd << std::endl;
         if (event.events & EPOLLOUT)
             send_response();
+        if (event.events & EPOLLIN)
+            handle_client_request();
     }
     void call_timeout_callback()
     {
-        std::cerr << "Warning: ClientConnexionHandler::" << __func__ << " called but client is not supposed to have timeout!" << std::endl;
+        std::cerr << "Warning: ClientConnexionHandler::" << __func__ << " called but client is not supposed to have timeout!(not closing connexion)" << std::endl;
     }
     void close_connexion()
     {

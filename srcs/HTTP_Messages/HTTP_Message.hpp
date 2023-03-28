@@ -13,9 +13,8 @@ class HTTP_Message
     private:
     int read_fd;
     int recv_flags;
-    protected:
-    parsing::line_of_tokens_t first_line;
     public:
+    parsing::line_of_tokens_t first_line;
     parsing::tokenized_text_t header; 
     std::string body; 
 
@@ -36,8 +35,8 @@ class HTTP_Message
         parsing::tokenized_text_t::iterator it = tokenized_msg.begin() + 1;
         while (it != tokenized_msg.end() && !it->empty())
             it++;
-        //do parsing  checks
-        header = parsing::tokenized_text_t(tokenized_msg.begin(), it);
+        //do parsing checks
+        header = parsing::tokenized_text_t(tokenized_msg.begin() + 1, it);
         body = msg_as_text.substr(msg_as_text.find("\r\n\r\n"));
     }
     HTTP_Message(const HTTP_Message& other)
@@ -48,29 +47,29 @@ class HTTP_Message
     //operator overloads
     HTTP_Message& operator=(const HTTP_Message& rhs)
     {
-        (void)rhs;
+        read_fd = rhs.read_fd;
+        recv_flags = rhs.recv_flags;
+        first_line = rhs.first_line;
+        header = rhs.header; 
+        body = rhs.body; 
         return *this;
     }
     //methods
     std::string read_text_msg(size_t buffer_size)
     {
-        std::cout << " read_fd = " << read_fd << std::endl;
         if (recv_flags == 0)
-        {
-            std::cout << "readig with ws_read" << std::endl;
             return ws_read(read_fd, buffer_size);
-        }
         else
-        {
-            std::cout << "readig with ws_recv" << std::endl;
             return ws_recv(read_fd, buffer_size, recv_flags);
-        }
     }
     std::string deserialize()
     {
         std::string str;
         for (size_t i = 0; i < first_line.size(); i++)
+        {
             str.append(first_line[i]);
+            str.append(" ");
+        }
         str.append(parsing::CLRF);
         for (size_t i = 0; i < header.size(); i++)
         {
@@ -84,8 +83,12 @@ class HTTP_Message
             str.append(parsing::CLRF);
         }
         str.append(parsing::CLRF);
-        // bod
-        // str.append(parsing::CLRF);
+        str.append(body);
+
+        std::cout << "deserialized HTTP message:" << std::endl;
+        std::cout << str;
+        std::cout << "--------------------------" << std::endl;
+        
         return str;
     }
     void clear()

@@ -70,7 +70,7 @@ class Server
             setup_connexion_queue(LISTENING_PORT);
             IO_Manager::wait_and_call_callbacks();
         }
-        catch(std::exception& e)
+        catch(const std::exception& e)
         {
             std::cerr << e.what() << std::endl;
         }
