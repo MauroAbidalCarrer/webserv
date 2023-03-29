@@ -241,4 +241,19 @@ void ws_send(int socket_fd, std::string msg, int flags)
     if (send(socket_fd, msg.data(), msg.length(), flags) < (ssize_t)msg.length())
         throw SystemCallException("send");
 }
+
+const size_t read_file_buffer_size = 10000;
+std::string read_file_content(const std::string& pathname)
+{
+    int file_fd = ws_open(pathname, O_RDONLY);
+    std::string file_content_string;
+    std::string buffer_string;
+    do
+    {
+        buffer_string = ws_read(file_fd, read_file_buffer_size);
+        file_content_string.append(buffer_string);
+    } while (buffer_string.length() == read_file_buffer_size);
+    ws_close(file_fd, "closing file in \"read_file_content\"");
+    return file_content_string;
+}
 #endif

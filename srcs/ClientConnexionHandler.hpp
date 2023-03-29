@@ -17,12 +17,16 @@
 # define CONNEXION_TIMEOUT_MODE no_timeout
 # define IDLE_CLIENT_CONNEXION_TIMEOUT_IN_MILL 3000
 
+# define WEB_RESSOURCES_DIRECTORY "./web_ressources/"
+# define DEFAULT_RESSOURCES_DIRECTORY "./web_ressources/default_pages/"
+
 class ClientConnexionHandler : public IO_Manager::FD_interest
 {
     private:
     HTTP_Request request;
     HTTP_Response response;
-
+    std::string default_HTTP_response_status_code;
+    
     public:
     //constructors and destructors
     ClientConnexionHandler() {}
@@ -50,7 +54,6 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
             
             find_and_apply_contet_to_request();
             /*if request requires CGI generate response
-                
                 fork, excve CGI, AND input request to CGI input AND read from CGI output, complete header fields AND send response
             */
             if (request.HTTP_method == "GET")
@@ -70,22 +73,17 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
         }
         catch(SystemCallException e)
         {
-            response.clear();
-            response.first_line.push_back("500");
-            response.first_line.push_back("Internal Server Error");
-            // response = HTTP_Response("500", "Internal Server Error");
+            default_HTTP_response_status_code = "500";
             if (e.sys_call_name == "open")
             {
                 if (e.system_call_errno & ENOENT)
-                    response = HTTP_Response("404", "Not Found");
+                    default_HTTP_response_status_code = "404";
                 else if (e.system_call_errno & EACCES)
-                    response = HTTP_Response("406", "Access to this resource on the server is denied");
+                    default_HTTP_response_status_code = "406";
             }
             std::cerr << "SystemCallException caught while starting to process request: " << std::endl;
             std::cerr << "- " << e.what() << std::endl;
-            std::cerr << "- Response: " << std::endl;
-            std::cerr << response.deserialize();
-            std::cerr << "-----------" << std::endl;
+            std::cerr << "- Response status code : " << default_HTTP_response_status_code << std::endl;
             IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
         }
     }
@@ -94,8 +92,8 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
     {
         //find context
         //apply context
-        //apply root directive(for no it just adds .)
-        request.target_URL.insert(request.target_URL.begin(), '.');
+        //apply root directive(for now just insert ".")
+        request.target_URL = std::string(WEB_RESSOURCES_DIRECTORY) + request.target_URL;
         //apply rewrite directive(not sure if it's the rewrite directive... the that completes target URLs finishing ini "/")(for no just index.html)
         if (*(request.target_URL.end() - 1) == '/')
             request.target_URL.append("index.html");
@@ -118,10 +116,37 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 
     void send_response()
     {
-        ws_send(fd, response.deserialize(), 0);
-        response.clear();
-        request.clear();
-        IO_Manager::change_interest_epoll_mask(fd, EPOLLIN);
+        try
+        {
+            if (default_HTTP_response_status_code.empty())
+            {
+                std::string serialized_response = response.serialize();
+                std::cout << "sending response:" << std::endl << serialized_response << "--------------------" << std::endl;
+                ws_send(fd, serialized_response, 0);
+            }
+            else
+                send_default_response();
+            response.clear();
+            request.clear();
+            default_HTTP_response_status_code.clear();
+            IO_Manager::change_interest_epoll_mask(fd, EPOLLIN);
+        }
+        catch(std::exception e)
+        {
+            std::cerr << "Exception caught in ClientConnexionHandler::" << __func__ << ", client connexion socket fd: " << fd << "." <<std::endl;
+            std::cerr << "default_HTTP_response_status_code: " << default_HTTP_response_status_code << "." <<std::endl;
+            std::cerr << "exception.what() = " << e.what() << std::endl;
+            std::cerr << "serialized response: " << response.serialize() << "-------------------" << std::endl;
+            std::cerr << "Closing client connexion." << std::endl;
+            close_connexion();
+        }
+    }
+    void send_default_response()
+    {
+        std::string default_response_pathname = DEFAULT_RESSOURCES_DIRECTORY + default_HTTP_response_status_code;
+        std::string default_response_str = read_file_content(default_response_pathname);
+        std::cout << "sending default response: " << std::endl << default_response_str << "-------------------" << std::endl;
+        ws_send(fd, default_response_str, 0);
     }
 
     void internal_call_event_callbacks(epoll_event event)

@@ -1,0 +1,7 @@
+HTTP/1.1 500 Internal Server Error
+Date: Mon, 28 Mar 2023 00:00:00 GMT
+Server: MyServer/1.0
+Content-Type: text/plain;charset=UTF-8
+Content-Length: 67
+
+Sorry, an internal server error occurred. Please try again later.

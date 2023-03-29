@@ -62,7 +62,7 @@ class HTTP_Message
         else
             return ws_recv(read_fd, buffer_size, recv_flags);
     }
-    std::string deserialize()
+    std::string serialize()
     {
         std::string str;
         for (size_t i = 0; i < first_line.size(); i++)
@@ -85,9 +85,9 @@ class HTTP_Message
         str.append(parsing::CLRF);
         str.append(body);
 
-        std::cout << "deserialized HTTP message:" << std::endl;
-        std::cout << str;
-        std::cout << "--------------------------" << std::endl;
+        // std::cout << "serialized HTTP message:" << std::endl;
+        // std::cout << str;
+        // std::cout << "--------------------------" << std::endl;
         
         return str;
     }

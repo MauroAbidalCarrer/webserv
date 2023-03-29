@@ -30,13 +30,15 @@ class HTTP_Response : public HTTP_Message
         *this = other;
     }
     ~HTTP_Response() { }
-    //operator overloads
-    HTTP_Response& operator=(const HTTP_Response& rhs)
-    {
-        (void)rhs;
-        return *this;
-    }
+    
     //methods
+    // static HTTP_Response Mk_default_response(std::string status_code)
+    // {
+    //     HTTP_Response response;
+    //     // std::string status_msg = 
+
+    //     // response.set
+    // }
     void set_header_fields(std::string header_str, std::string value)
     {
         parsing::line_of_tokens_t header_fields;
