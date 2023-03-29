@@ -3,8 +3,8 @@
 # include <iostream>
 # include <string>
 
-# include "../parsing.hpp"
-# include "../sys_calls_warp_arounds.hpp"
+# include "parsing.hpp"
+# include "sys_calls_warp_arounds.hpp"
 
 #define FIRST_READ_BUFFER_SIZE 1000
 

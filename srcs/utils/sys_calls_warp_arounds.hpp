@@ -30,6 +30,7 @@
 # include <sys/epoll.h>
 # include <time.h>
 # include <sys/time.h>
+# include <dirent.h>
 
 
 
@@ -255,5 +256,31 @@ std::string read_file_content(const std::string& pathname)
     } while (buffer_string.length() == read_file_buffer_size);
     ws_close(file_fd, "closing file in \"read_file_content\"");
     return file_content_string;
+}
+
+
+std::vector<std::string> list_directory(std::string path_to_directory, int DT_mask)
+{
+    std::vector<std::string> string_vec;
+    DIR *dir;
+    struct dirent *ent;
+    if ((dir = opendir (path_to_directory.data())) != NULL)
+    {
+        while ((ent = readdir (dir)) != NULL)
+            if (ent->d_type & DT_mask)
+                string_vec.push_back(ent->d_name);
+        closedir (dir);
+    }
+    else
+        throw SystemCallException("opendir");
+    return string_vec;
+}
+std::vector<std::string> list_files_in_directory(std::string path_to_directory)
+{
+    return list_directory(path_to_directory, DT_REG);
+}
+std::vector<std::string> list_files_and_directories_in_directory(std::string path_to_directory)
+{
+    return list_directory(path_to_directory, DT_REG | DT_DIR);
 }
 #endif

@@ -9,10 +9,14 @@
 # include "sys_calls_warp_arounds.hpp"
 # include "ClientConnexionHandler.hpp"
 # include "HTTP_Message.hpp"
+# include "typedefs.hpp"
 
 # define MAX_QUEUE_SIZE 10
 # define RECV_BUFFER_SIZE 1000
 # define LISTENING_PORT 8080
+
+# define CSVS_DIR_PATH "internal_server_ressources/CSVs/"
+extern std::map<std::string, std::map<std::string, std::string> > CSV_maps;
 
 class Server
 {
@@ -23,7 +27,7 @@ class Server
     {
         *this = other;
     }
-    ~Server() {}
+    ~Server() { }
     //operator overloads
     Server& operator=(const Server& rhs)
     {
@@ -32,11 +36,18 @@ class Server
     }
 
     //methods
-    void accept_client_connexion(int listening_socket_fd)
+    void Run()
     {
-        int connexion_socket_fd = ws_accept(listening_socket_fd, NULL, NULL, "accepting connexion... da");
-        std::cout << "Accepted new client connexion, connexion_socket_fd: " << connexion_socket_fd << '.' << std::endl;
-        IO_Manager::set_interest(connexion_socket_fd, EPOLLIN, new ClientConnexionHandler(connexion_socket_fd));
+        try
+        {
+            setup_CSV_maps();
+            setup_connexion_queue(LISTENING_PORT);
+            IO_Manager::wait_and_call_callbacks();
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << std::endl;
+        }
     }
 
     //Creates a socket, binds it, listens to it and monitor it.
@@ -62,17 +73,33 @@ class Server
         std::cout << "listening..." << std::endl;
         IO_Manager::set_interest<Server>(listen_socket_fd, &Server::accept_client_connexion, NULL, this);
     }
-
-    void Run()
+    void accept_client_connexion(int listening_socket_fd)
     {
-        try
+        int connexion_socket_fd = ws_accept(listening_socket_fd, NULL, NULL, "accepting connexion... da");
+        std::cout << "Accepted new client connexion, connexion_socket_fd: " << connexion_socket_fd << '.' << std::endl;
+        IO_Manager::set_interest(connexion_socket_fd, EPOLLIN, new ClientConnexionHandler(connexion_socket_fd));
+    }
+
+    void setup_CSV_maps()
+    {
+        string_vec_t CSVs_filenames = list_files_in_directory(CSVS_DIR_PATH);
+        for (size_t i = 0; i < CSVs_filenames.size(); i++)
         {
-            setup_connexion_queue(LISTENING_PORT);
-            IO_Manager::wait_and_call_callbacks();
-        }
-        catch(const std::exception& e)
-        {
-            std::cerr << e.what() << std::endl;
+            std::string CSVs_filename = CSVS_DIR_PATH + CSVs_filenames[i];
+            std::string CSV_content_as_text = read_file_content(CSVs_filename);
+            parsing::tokenized_text_t tokenized_CSV = parsing::tokenize_text(CSV_content_as_text, "\n", ",");
+            str_to_str_map_t CSV_map;
+            for (size_t j = 0; j < tokenized_CSV.size(); j++)
+            {
+                string_vec_t line = tokenized_CSV[j];
+                if (line.size() >= 2 && !line[0].empty() && !line[1].empty() && line[0] != "Name")
+                {
+                    // std::cout << "adding key = " << line[0] << ", value = " << line[1] << std::endl;
+                    CSV_map[line[0]] = line[1];
+                }
+            }
+            std::string CSV_filname_without_extension = CSVs_filenames[i].substr(0, CSVs_filenames[i].find(".csv"));
+            CSV_maps[CSV_filname_without_extension] = CSV_map;
         }
     }
 };

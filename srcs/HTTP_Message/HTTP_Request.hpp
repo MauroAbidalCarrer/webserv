@@ -4,8 +4,8 @@
 # include <string>
 
 # include "HTTP_Message.hpp"
-# include "../parsing.hpp"
-# include "../WSexception.hpp"
+# include "parsing.hpp"
+# include "WSexception.hpp"
 
 class HTTP_Request : public HTTP_Message
 {

@@ -25,10 +25,6 @@ class HTTP_Response : public HTTP_Message
         first_line.push_back(status_code);
         first_line.push_back(status_msg);
     }
-    HTTP_Response(const HTTP_Response& other)
-    {
-        *this = other;
-    }
     ~HTTP_Response() { }
     
     //methods
