@@ -86,7 +86,7 @@ class Server
         for (size_t i = 0; i < CSVs_filenames.size(); i++)
         {
             std::string CSVs_filename = CSVS_DIR_PATH + CSVs_filenames[i];
-            std::string CSV_content_as_text = read_file_content(CSVs_filename);
+            std::string CSV_content_as_text = read_file_into_string(CSVs_filename);
             parsing::tokenized_text_t tokenized_CSV = parsing::tokenize_text(CSV_content_as_text, "\n", ",");
             str_to_str_map_t CSV_map;
             for (size_t j = 0; j < tokenized_CSV.size(); j++)

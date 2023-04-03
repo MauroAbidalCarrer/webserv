@@ -10,6 +10,7 @@
 # include "HTTP_Request.hpp"
 # include "Server.hpp"
 # include "sys_calls_warp_arounds.hpp"
+# include "WSexception.hpp"
 
 # define MAXIMUM_HTTP_HEADER_SIZE 1024
 # define GET_RESPONSE_CONTENT_RAD_BUFFER_SIZE 10000
@@ -17,7 +18,7 @@
 # define CONNEXION_TIMEOUT_MODE no_timeout
 # define IDLE_CLIENT_CONNEXION_TIMEOUT_IN_MILL 3000
 
-# define WEB_RESSOURCES_DIRECTORY "./web_ressources/"
+# define WEB_RESSOURCES_DIRECTORY "web_ressources"
 # define DEFAULT_RESSOURCES_DIRECTORY "./web_ressources/default_pages/"
 
 class ClientConnexionHandler : public IO_Manager::FD_interest
@@ -25,7 +26,6 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
     private:
     HTTP_Request request;
     HTTP_Response response;
-    std::string default_HTTP_response_status_code;
     
     public:
     //constructors and destructors
@@ -66,24 +66,26 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
                 //delete file and construct response AND deserialize reuqest on connexion socket_fd
             response.set_header_fields("Connection", "Keep-Alive");
         }
-        catch (HTTP_Message::NoBytesToReadException e)
+        catch (const HTTP_Message::NoBytesToReadException& e)
         {
             std::cout << "No more bytes to read on client socket " << fd << ", closing client connexion " << fd << std::endl;
             close_connexion();
         }
-        catch(SystemCallException e)
+        //make sure to take a reference instead of a copy, otherwise the destructor will be called twice and will potentially call delete twice on the same pointer
+        catch(const WSexception& e)
         {
-            default_HTTP_response_status_code = "500";
-            if (e.sys_call_name == "open")
-            {
-                if (e.system_call_errno & ENOENT)
-                    default_HTTP_response_status_code = "404";
-                else if (e.system_call_errno & EACCES)
-                    default_HTTP_response_status_code = "406";
-            }
-            std::cerr << "SystemCallException caught while starting to process request: " << std::endl;
-            std::cerr << "- " << e.what() << std::endl;
-            std::cerr << "- Response status code : " << default_HTTP_response_status_code << std::endl;
+            response = e.response;
+            std::cout << "Error: Caught WSexception while processing client request." << std::endl;
+            std::cout << "e.what() = " << e.what() << std::endl;
+            std::cout << "response: " << std::endl;
+            std::cout << response.serialize();
+            std::cout << "-----------------------" << std::endl;
+        }
+        catch(const std::exception& e)
+        {
+            response = HTTP_Response::Mk_default_response("500");
+            std::cerr << "ERROR: Unexpected std::exception caught while starting to process request. Setting response to default 500 response. " << std::endl;
+            std::cerr << "e.what(): " << e.what() << std::endl;
             IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
         }
     }
@@ -102,15 +104,8 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
     //open content file AND consturct response from content AND deserialize reuqest on connexion socket_fd
     void start_processing_Get_request()
     {
-        int content_fd = ws_open(request.target_URL, O_RDONLY);
-        //set response correct Content-Type
-        //make read_full method
-        response.body = ws_read(content_fd, 10000);
-        response.body.append(parsing::CLRF);
-        response.set_content_length();
+        response = HTTP_Response::mk_from_file_and_status_code("200", request.target_URL);
         //Implement response method that defines response's Content-Type header field.
-        response.set_header_fields("Content-Type", "text/html;");
-        response.set_response_line("200", "OK");
         IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
     }
 
@@ -118,35 +113,21 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
     {
         try
         {
-            if (default_HTTP_response_status_code.empty())
-            {
-                std::string serialized_response = response.serialize();
-                std::cout << "sending response:" << std::endl << serialized_response << "--------------------" << std::endl;
-                ws_send(fd, serialized_response, 0);
-            }
-            else
-                send_default_response();
+            std::string serialized_response = response.serialize();
+            std::cout << "sending response:" << std::endl << serialized_response << "--------------------" << std::endl;
+            ws_send(fd, serialized_response, 0);
             response.clear();
             request.clear();
-            default_HTTP_response_status_code.clear();
             IO_Manager::change_interest_epoll_mask(fd, EPOLLIN);
         }
         catch(std::exception e)
         {
             std::cerr << "Exception caught in ClientConnexionHandler::" << __func__ << ", client connexion socket fd: " << fd << "." <<std::endl;
-            std::cerr << "default_HTTP_response_status_code: " << default_HTTP_response_status_code << "." <<std::endl;
             std::cerr << "exception.what() = " << e.what() << std::endl;
             std::cerr << "serialized response: " << response.serialize() << "-------------------" << std::endl;
             std::cerr << "Closing client connexion." << std::endl;
             close_connexion();
         }
-    }
-    void send_default_response()
-    {
-        std::string default_response_pathname = DEFAULT_RESSOURCES_DIRECTORY + default_HTTP_response_status_code;
-        std::string default_response_str = read_file_content(default_response_pathname);
-        std::cout << "sending default response: " << std::endl << default_response_str << "-------------------" << std::endl;
-        ws_send(fd, default_response_str, 0);
     }
 
     void internal_call_event_callbacks(epoll_event event)

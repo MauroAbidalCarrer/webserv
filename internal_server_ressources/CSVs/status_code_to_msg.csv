@@ -1,7 +1,6 @@
 100,Continue,[RFC2616]
 101,Switching Protocols,[RFC2616]
 102,Processing,[RFC2518]
-103-199,Unassigned,
 200,OK,[RFC2616]
 201,Created,[RFC2616]
 202,Accepted,[RFC2616]
@@ -11,9 +10,7 @@
 206,Partial Content,[RFC2616]
 207,Multi-Status,[RFC4918]
 208,Already Reported,[RFC5842]
-209-225,Unassigned,
 226,IM Used,[RFC3229]
-227-299,Unassigned,
 300,Multiple Choices,[RFC2616]
 301,Moved Permanently,[RFC2616]
 302,Found,[RFC2616]
@@ -23,7 +20,6 @@
 306,Reserved,[RFC2616]
 307,Temporary Redirect,[RFC2616]
 308,Permanent Redirect,[RFC-reschke-http-status-308-07]
-309-399,Unassigned,
 400,Bad Request,[RFC2616]
 401,Unauthorized,[RFC2616]
 402,Payment Required,[RFC2616]
@@ -45,14 +41,10 @@
 422,Unprocessable Entity,[RFC4918]
 423,Locked,[RFC4918]
 424,Failed Dependency,[RFC4918]
-425,Unassigned,
 426,Upgrade Required,[RFC2817]
-427,Unassigned,
 428,Precondition Required,[RFC6585]
 429,Too Many Requests,[RFC6585]
-430,Unassigned,
 431,Request Header Fields Too Large,[RFC6585]
-432-499,Unassigned,
 500,Internal Server Error,[RFC2616]
 501,Not Implemented,[RFC2616]
 502,Bad Gateway,[RFC2616]
@@ -62,7 +54,5 @@
 506,Variant Also Negotiates (Experimental),[RFC2295]
 507,Insufficient Storage,[RFC4918]
 508,Loop Detected,[RFC5842]
-509,Unassigned,
 510,Not Extended,[RFC2774]
 511,Network Authentication Required,[RFC6585]
-512-599,Unassigned,

@@ -8,6 +8,11 @@
 
 #define FIRST_READ_BUFFER_SIZE 1000
 
+//sys call functions declarations to avoid circular dependencies (-_-)
+std::string ws_read(int fd, int buffer_size);
+std::string ws_recv(int fd, int buffer_size, int recv_flags);
+
+
 class HTTP_Message
 {
     private:

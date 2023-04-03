@@ -31,6 +31,11 @@
 # include <time.h>
 # include <sys/time.h>
 # include <dirent.h>
+# include <fstream>
+# include <string>
+# include <sstream>
+
+# include "../WSexception.hpp"
 
 
 
@@ -167,23 +172,8 @@ int ws_accept(int __fd, __SOCKADDR_ARG __addr, socklen_t *__restrict __addr_len,
 void ws_close(int __fd, std::string context)
 {
     if (close(__fd) == -1)
-    {
-        std::cerr << SystemCallException("close", context).what() << std::endl;
-    }
+        throw SystemCallException("close", context).what();
 }
-
-
-/* Send N bytes of BUF to socket FD.  Returns the number sent or -1.
-
-   This function is a cancellation point and therefore not marked with
-   __THROW.  */
-// ssize_t ws_send(int __fd, const void *__buf, size_t __n, int __flags, std::string context)
-// {
-//     ssize_t nb_sent_bytes = send(__fd, __buf, __n, __flags);
-//     if (nb_sent_bytes == -1)
-//         throw SystemCallException("send", context);
-//     return nb_sent_bytes;
-// }
 
 /* Wait for events on an epoll instance "epfd". Returns the number of
    triggered events returned in "events" buffer. Or -1 in case of
@@ -243,21 +233,21 @@ void ws_send(int socket_fd, std::string msg, int flags)
         throw SystemCallException("send");
 }
 
-const size_t read_file_buffer_size = 10000;
-std::string read_file_content(const std::string& pathname)
+std::string read_file_into_string(const std::string& filename)
 {
-    int file_fd = ws_open(pathname, O_RDONLY);
-    std::string file_content_string;
-    std::string buffer_string;
-    do
+    std::ifstream file(filename.data(), std::ios_base::binary);
+    if (!file.is_open()) 
     {
-        buffer_string = ws_read(file_fd, read_file_buffer_size);
-        file_content_string.append(buffer_string);
-    } while (buffer_string.length() == read_file_buffer_size);
-    ws_close(file_fd, "closing file in \"read_file_content\"");
-    return file_content_string;
+        if (errno & ENOENT)
+            throw WSexception("404", SystemCallException("open"));
+        if (errno & EACCES)
+            throw WSexception("406", SystemCallException("open"));
+        throw WSexception("500", SystemCallException("open"));
+    }
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    return buffer.str();
 }
-
 
 std::vector<std::string> list_directory(std::string path_to_directory, int DT_mask)
 {

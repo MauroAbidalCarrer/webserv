@@ -5,7 +5,6 @@
 
 # include "HTTP_Message.hpp"
 # include "parsing.hpp"
-# include "WSexception.hpp"
 
 class HTTP_Request : public HTTP_Message
 {
@@ -31,7 +30,7 @@ class HTTP_Request : public HTTP_Message
         for (size_t i = 1; i < header.size(); i++)
             if (header[i][0] == header_name)
                 return header[i];
-        throw WSexception("Header field " + header_name + " not found!");
+        throw std::runtime_error("Header field " + header_name + " not found!");
     }
 };
 #endif
