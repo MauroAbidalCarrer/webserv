@@ -80,13 +80,6 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
             std::cout << "response: " << std::endl;
             std::cout << response.debug();
             std::cout << "-----------------------" << std::endl;
-            // std::cout << "response headers:" << std::endl;
-            // for (size_t i = 0; i < response.header.size(); i++)
-            // {
-            //     for (size_t j = 0; j < response.header[i].size(); j++)
-            //             std::cout << response.header[i][j] << " ";
-            //     std::cout << std::endl;
-            // }
             IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
         }
         catch(const std::exception& e)
@@ -142,7 +135,6 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
     {
         if ((event.events & EPOLLIN) && (event.events & EPOLLOUT))
             std::cerr << "Warning: called ClientConnexionHandler::" << __func__ << " with both EPOLLIN and OUT, this is not supposed to happen!" << std::endl;
-        // std::cout << "ClientConnexionHandler::" << __func__ << ", event.events = " << event.events << ", fd = " << fd << std::endl;
         if (event.events & EPOLLOUT)
             send_response();
         if (event.events & EPOLLIN)
