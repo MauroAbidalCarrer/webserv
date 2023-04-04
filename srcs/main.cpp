@@ -1,10 +1,12 @@
-#include "Server.hpp"
 #include <iostream>
 #include <map>
 #include <string>
 #include <cstring>
 
-std::map<std::string, std::map<std::string, std::string> > CSV_maps;
+#include "Server.hpp"
+#include "typedefs.hpp"
+
+CSV_maps_t CSV_maps;
 
 int main()
 {
@@ -18,6 +20,31 @@ int main()
         std::cerr << e.what() << '\n';
     }
 }   
+
+// int main()
+// {
+//     HTTP_Response response = HTTP_Response::mk_from_file_and_status_code("200" , "./web_ressources/7468015_800.jpg");
+//     // std::cout << response.debug() << std::endl;
+//     std::string str;
+//     try
+//     {
+//         parsing::line_of_tokens_t content_type = response.get_header_fields("Content-Type");
+//         if (content_type.size() >= 1 && content_type[1].find("text"))
+//         {
+//             std::cout << "content_type[0] = " << content_type[0] << std::endl;
+//             str.append(response.body);
+//             str.append(parsing::CLRF);
+//         }
+//         else
+//             str.append("HTTP message body was ommited because it is not text.");
+//     }
+//     catch(HTTP_Message::NoHeaderFieldFoundException e) 
+//     {  
+//         std::cout << "Could not found Content-Type header field while debugging response." << std::endl;
+//     }
+//     std::cout << str << std::endl;
+//     // std::cout << response.serialize() << std::endl;
+// }
 
 // #include "sys_calls_warp_arounds.hpp"
 // #include "parsing.hpp"

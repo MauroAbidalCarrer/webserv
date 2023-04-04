@@ -89,12 +89,53 @@ class HTTP_Message
         }
         str.append(parsing::CLRF);
         str.append(body);
-
-        // std::cout << "serialized HTTP message:" << std::endl;
-        // std::cout << str;
-        // std::cout << "--------------------------" << std::endl;
-        
+        str.append(parsing::CLRF);
         return str;
+    }
+    std::string debug()
+    {
+        std::string str;
+        for (size_t i = 0; i < first_line.size(); i++)
+        {
+            str.append(first_line[i]);
+            str.append(" ");
+        }
+        str.append(parsing::CLRF);
+        for (size_t i = 0; i < header.size(); i++)
+        {
+            str.append(header[i][0]);
+            str.append(":");
+            for (size_t j = 1; j < header[i].size(); j++)
+            {
+                str.append(" ");
+                str.append(header[i][j]);
+            }
+            str.append(parsing::CLRF);
+        }
+        str.append(parsing::CLRF);
+        try
+        {
+            parsing::line_of_tokens_t content_type = get_header_fields("Content-Type");
+            if (content_type.size() >= 2 && content_type[1].find("text") != std::string::npos)
+                str.append(body);
+            else
+                str.append("HTTP message body was ommited because it is not text.");
+        }
+        catch(NoHeaderFieldFoundException e) 
+        {  
+            std::cout << "Could not found Content-Type header field while debugging response." << std::endl;
+        }
+        str.append(parsing::CLRF);        
+        return str;
+    }
+    parsing::line_of_tokens_t get_header_fields(std::string header_name)
+    {
+        for (size_t i = 0; i < header.size(); i++)
+            if (header[i].size() > 1 && header[i][0] == header_name)
+                return header[i];
+        throw NoHeaderFieldFoundException();
+        // throw std::runtime_error("Header field " + header_name + " not found!");
+
     }
     void clear()
     {
@@ -109,6 +150,13 @@ class HTTP_Message
         const char * what() const throw()
         {
             return "NoBytesToReadException";
+        }
+    };
+    class NoHeaderFieldFoundException : std::exception
+    {
+        const char * what() const throw()
+        {
+            return "NoHeaderFieldFoundException";
         }
     };
 };
