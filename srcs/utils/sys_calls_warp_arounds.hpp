@@ -239,7 +239,11 @@ std::string read_file_into_string(const std::string& filename)
     if (!file.is_open()) 
     {
         if (errno & ENOENT)
-            throw WSexception("404", SystemCallException("open"));
+        {
+            WSexception e = WSexception("404", SystemCallException("open"));
+            std::cout << "e.response = " << e.response.serialize() << std::endl;
+            throw e;
+        }
         if (errno & EACCES)
             throw WSexception("406", SystemCallException("open"));
         throw WSexception("500", SystemCallException("open"));

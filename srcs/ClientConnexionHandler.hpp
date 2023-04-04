@@ -60,10 +60,10 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
                 start_processing_Get_request();
             //if method == POST
                 //if already exists overwrite or append?
-                //open target ressource AND write on it and construct response AND deserialize reuqest on connexion socket_fd
+                //open target ressource AND write on it and construct response AND dedebug reuqest on connexion socket_fd
             //if method == DELETE
                 //if file doesn't exist ?
-                //delete file and construct response AND deserialize reuqest on connexion socket_fd
+                //delete file and construct response AND dedebug reuqest on connexion socket_fd
             response.set_header_fields("Connection", "Keep-Alive");
         }
         catch (const HTTP_Message::NoBytesToReadException& e)
@@ -78,8 +78,16 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
             std::cout << "Error: Caught WSexception while processing client request." << std::endl;
             std::cout << "e.what() = " << e.what() << std::endl;
             std::cout << "response: " << std::endl;
-            std::cout << response.serialize();
+            std::cout << response.debug();
             std::cout << "-----------------------" << std::endl;
+            // std::cout << "response headers:" << std::endl;
+            // for (size_t i = 0; i < response.header.size(); i++)
+            // {
+            //     for (size_t j = 0; j < response.header[i].size(); j++)
+            //             std::cout << response.header[i][j] << " ";
+            //     std::cout << std::endl;
+            // }
+            IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
         }
         catch(const std::exception& e)
         {
@@ -101,7 +109,7 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
             request.target_URL.append("index.html");
     }
     //GET method
-    //open content file AND consturct response from content AND deserialize reuqest on connexion socket_fd
+    //open content file AND consturct response from content AND dedebug reuqest on connexion socket_fd
     void start_processing_Get_request()
     {
         response = HTTP_Response::mk_from_file_and_status_code("200", request.target_URL);
@@ -114,7 +122,7 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
         try
         {
             std::string serialized_response = response.serialize();
-            std::cout << "sending response:" << std::endl << serialized_response << "--------------------" << std::endl;
+            std::cout << "sending response:" << std::endl << response.debug() << "--------------------" << std::endl;
             ws_send(fd, serialized_response, 0);
             response.clear();
             request.clear();
@@ -124,7 +132,7 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
         {
             std::cerr << "Exception caught in ClientConnexionHandler::" << __func__ << ", client connexion socket fd: " << fd << "." <<std::endl;
             std::cerr << "exception.what() = " << e.what() << std::endl;
-            std::cerr << "serialized response: " << response.serialize() << "-------------------" << std::endl;
+            std::cerr << "debuged response: " << response.debug() << "-------------------" << std::endl;
             std::cerr << "Closing client connexion." << std::endl;
             close_connexion();
         }
@@ -134,7 +142,7 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
     {
         if ((event.events & EPOLLIN) && (event.events & EPOLLOUT))
             std::cerr << "Warning: called ClientConnexionHandler::" << __func__ << " with both EPOLLIN and OUT, this is not supposed to happen!" << std::endl;
-        std::cout << "ClientConnexionHandler::" << __func__ << ", event.events = " << event.events << ", fd = " << fd << std::endl;
+        // std::cout << "ClientConnexionHandler::" << __func__ << ", event.events = " << event.events << ", fd = " << fd << std::endl;
         if (event.events & EPOLLOUT)
             send_response();
         if (event.events & EPOLLIN)

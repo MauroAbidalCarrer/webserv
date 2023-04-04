@@ -24,13 +24,5 @@ class HTTP_Request : public HTTP_Message
         HTTP_method = request_line[0];
         target_URL = request_line[1];
     }
-    //methods
-    parsing::line_of_tokens_t get_header_fields(std::string header_name)
-    {
-        for (size_t i = 1; i < header.size(); i++)
-            if (header[i][0] == header_name)
-                return header[i];
-        throw std::runtime_error("Header field " + header_name + " not found!");
-    }
 };
 #endif

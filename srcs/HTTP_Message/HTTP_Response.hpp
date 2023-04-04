@@ -74,12 +74,12 @@ class HTTP_Response : public HTTP_Message
         //set content-Type
         response.set_header_fields("Content-Type", "text/plain;");
         //If file has an extension overwrite content-Type. Yes, this is ineffcient, but it's midnight I have to get things done.
-        std::cout << "pathname = " << pathname << std::endl;
-        std::cout << "pathname.find('.') = " << pathname.find('.') << ", std::string::npos = " << std::string::npos << std::endl;
+        // std::cout << "pathname = " << pathname << std::endl;
+        // std::cout << "pathname.find('.') = " << pathname.find('.') << ", std::string::npos = " << std::string::npos << std::endl;
         if (pathname.find('.') != std::string::npos && pathname.find('.') != pathname.length())
         {
             std::string file_extension = pathname.substr(pathname.find('.') + 1, std::string::npos);
-            std::cout << "--------------------------------------found file_extension = " << file_extension << std::endl;
+            // std::cout << "--------------------------------------found file_extension = " << file_extension << std::endl;
             if (CSV_maps["subtype_to_full_content_type"].count(file_extension))
                 response.set_header_fields("Content-Type", CSV_maps["subtype_to_full_content_type"][file_extension]);
         }
