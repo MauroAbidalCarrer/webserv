@@ -1,10 +1,12 @@
-#include "Server.hpp"
 #include <iostream>
 #include <map>
 #include <string>
 #include <cstring>
 
-std::map<std::string, std::map<std::string, std::string> > CSV_maps;
+#include "Server.hpp"
+#include "typedefs.hpp"
+
+CSV_maps_t CSV_maps;
 
 int main()
 {

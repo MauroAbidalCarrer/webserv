@@ -16,7 +16,7 @@
 # define LISTENING_PORT 8080
 
 # define CSVS_DIR_PATH "internal_server_ressources/CSVs/"
-extern std::map<std::string, std::map<std::string, std::string> > CSV_maps;
+extern CSV_maps_t CSV_maps;
 
 class Server
 {
@@ -50,7 +50,7 @@ class Server
         }
     }
 
-    //Creates a socket, binds it, listens to it and monitor it.
+    //Creates a socket, binds it, listens to it and monitors it.
     void setup_connexion_queue(int port)
     {
         //create socket
@@ -62,7 +62,7 @@ class Server
         ws_setsockopt(listen_socket_fd, SOL_SOCKET, SO_REUSEADDR, &dump, sizeof(int), "");
         //binding of socket to port
         sockaddr_in sock_addr_for_connexion;
-        //Using ft_memset before setting the variables we care about abeginllows us to set all the variable we don't care about to zero in one line.
+        //Using ft_memset before setting the variables we care about at the begining allows us to set all the variable we don't care about to zero in one line.
         memset(&sock_addr_for_connexion, 0, sizeof(sockaddr_in));
         sock_addr_for_connexion.sin_family = AF_INET;                       //define adress family, in this case, IPv4
         sock_addr_for_connexion.sin_addr.s_addr = htonl(INADDR_ANY);        //define IP adress, in this case, localhost
@@ -70,14 +70,16 @@ class Server
         ws_bind(listen_socket_fd, (const struct sockaddr *)&sock_addr_for_connexion, sizeof(sockaddr_in), "binding listening socket");
         //start listening for clients connexion requests
         ws_listen(listen_socket_fd, MAX_QUEUE_SIZE, "listen for listening socket... obviously");
-        std::cout << "listening..." << std::endl;
         IO_Manager::set_interest<Server>(listen_socket_fd, &Server::accept_client_connexion, NULL, this);
+        //debugging
+        std::cout << "listening..." << std::endl;
     }
     void accept_client_connexion(int listening_socket_fd)
     {
         int connexion_socket_fd = ws_accept(listening_socket_fd, NULL, NULL, "accepting connexion... da");
-        std::cout << "Accepted new client connexion, connexion_socket_fd: " << connexion_socket_fd << '.' << std::endl;
         IO_Manager::set_interest(connexion_socket_fd, EPOLLIN, new ClientConnexionHandler(connexion_socket_fd));
+        //debugging
+        std::cout << "Accepted new client connexion, connexion_socket_fd: " << connexion_socket_fd << '.' << std::endl;
     }
 
     void setup_CSV_maps()
