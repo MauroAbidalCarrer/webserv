@@ -134,8 +134,6 @@ class HTTP_Message
             if (header[i].size() > 1 && header[i][0] == header_name)
                 return header[i];
         throw NoHeaderFieldFoundException();
-        // throw std::runtime_error("Header field " + header_name + " not found!");
-
     }
     void clear()
     {

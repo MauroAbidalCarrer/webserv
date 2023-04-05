@@ -241,6 +241,12 @@ class IO_Manager
     
     void non_static_wait_and_call_callbacks()
     {
+        if (interest_map.size() == 0)
+        {
+            cout << "Warning:calling IO_Manager::" << __func__ << " with zero fd interests." << endl;
+            cout << "\tNot starting the epoll_wait lopp to avoid endless loop." << endl;
+            return ;
+        }
         try
         {
             do

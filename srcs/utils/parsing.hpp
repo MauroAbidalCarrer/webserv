@@ -92,10 +92,11 @@ namespace parsing
             if (it == end_it || *it != ";")
                 throw std::runtime_error("directive \"" + directive_keyword + "\" field is not terminated by a ';', previous token = " + *(it - 1));
             it++;
-            if (field_dsts.second != NULL)
-                std::cout << directive_keyword << " = " << field_dsts.first << " " << *field_dsts.second << std::endl;
-            else
-                std::cout << directive_keyword << " = " << field_dsts.first << std::endl;
+            //debugging
+            // if (field_dsts.second != NULL)
+            //     std::cout << directive_keyword << " = " << field_dsts.first << " " << *field_dsts.second << std::endl;
+            // else
+            //     std::cout << directive_keyword << " = " << field_dsts.first << std::endl;
             return true;
         }
         return false;

@@ -31,10 +31,7 @@ struct ServerContext
             parsed_a_directive |= parse_error_page_directive(it, server_context_end_it);
             parsed_a_directive |= parse_server_name_directive(it, server_context_end_it);
             if (!parsed_a_directive)
-            {
-                std::string error_msg = "invalid token: " + *it + ".";
-                throw std::runtime_error(error_msg);
-            }
+                throw std::runtime_error("invalid token in virtual server context : " + *it);
         }
     }
     //returns true if a server_name drective was parced
@@ -66,10 +63,12 @@ struct ServerContext
         if (parsing::set_directive_field("listen", directive_fields_dsts_t(listen_buffer, NULL), it, server_context_end_it))
         {
             size_t colon_pos = listen_buffer.find(':');
+            if (colon_pos == listen_buffer.size())
+                throw runtime_error("There is a colon in a listen field but there is no post after.");
             if (colon_pos != std::string::npos)
             {
                 listen_adress = listen_buffer.substr(0, colon_pos);
-                listen_port = listen_buffer.substr(colon_pos);
+                listen_port = listen_buffer.substr(colon_pos + 1);
             }
             else
             {
@@ -89,15 +88,32 @@ struct ServerContext
     {
         *this = other;
     }
-    ~ServerContext()
-    {
-        
-    }
+    ~ServerContext() { }
     //operator overloads
     ServerContext& operator=(const ServerContext& rhs)
     {
-        (void)rhs;
+        listen_adress = rhs.listen_adress;
+        listen_port = rhs.listen_port;
+        server_hostnames = rhs.server_hostnames;
+        error_codes_to_redirect_URLS = rhs.error_codes_to_redirect_URLS;
+        location_contexts = rhs.location_contexts;
         return *this;
+    }
+    //methods
+    void debug()
+    {
+        cout << "virtual server context:" << endl;
+        cout << "\tlisten_adress\t: " << listen_adress << endl;
+        cout << "\tlisten_port\t: " << listen_port << endl;
+        cout << "\tserver hostnames: ";
+        for (size_t i = 0; i < server_hostnames.size(); i++)
+            cout << server_hostnames[i] << endl;
+        cout << "\terror pages redirects:" << endl;
+        for (str_to_str_map_t::iterator it = error_codes_to_redirect_URLS.begin(); it != error_codes_to_redirect_URLS.end(); it++)
+            cout << "\t\t" << it->first << " => " << it->second << endl;
+        cout << "\tlocation contexts: " << endl;
+        for (size_t i = 0; i < location_contexts.size(); i++)
+            location_contexts[i].debug();
     }
 };
 #endif

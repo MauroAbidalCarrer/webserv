@@ -7,6 +7,9 @@
 using std::string;
 using std::vector;
 using std::runtime_error;
+using std::cout;
+using std::cerr;
+using std::endl;
 
 //parsing
 typedef std::vector<std::string> string_vec_t;
