@@ -6,7 +6,8 @@
 # include "HTTP_Response.hpp"
 # include "typedefs.hpp"
 
-extern CSV_maps_t CSV_maps;
+
+class HTTP_Response;
 
 class WSexception : public std::exception
 {

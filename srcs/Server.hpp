@@ -10,6 +10,7 @@
 # include "ClientConnexionHandler.hpp"
 # include "HTTP_Message.hpp"
 # include "typedefs.hpp"
+# include "VirtualServerContext.hpp"
 
 # define MAX_QUEUE_SIZE 10
 # define RECV_BUFFER_SIZE 1000
@@ -20,6 +21,10 @@ extern CSV_maps_t CSV_maps;
 
 class Server
 {
+    private:
+    //fields
+    vector<ServerContext> virtual_server_contexts;
+    
     public:
     //constructors and destructors
     Server() {}
@@ -36,11 +41,12 @@ class Server
     }
 
     //methods
-    void Run()
+    void Run(string config_file_path)
     {
         try
         {
             setup_CSV_maps();
+            setup_virtual_server_contexts(config_file_path);
             setup_connexion_queue(LISTENING_PORT);
             IO_Manager::wait_and_call_callbacks();
         }
@@ -102,6 +108,25 @@ class Server
             }
             std::string CSV_filname_without_extension = CSVs_filenames[i].substr(0, CSVs_filenames[i].find(".csv"));
             CSV_maps[CSV_filname_without_extension] = CSV_map;
+        }
+    }
+
+    void setup_virtual_server_contexts(std::string config_file_path)
+    {
+        std::string config_file_content = read_file_into_string(config_file_path);
+        string_vec_t config_file_tokens = parsing::tokenize_first_of(config_file_content, " \n\t\v\r", false);
+        string_vec_it_t end_it = config_file_tokens.end();
+        for (string_vec_it_t it = config_file_tokens.begin(); it != end_it; it++)
+        {
+            if (*it != "server")
+                throw runtime_error("invalid token in global context " + *it + "(expected \"server\").");
+            it++;
+            if (it == end_it || *it != "{")
+                throw std::runtime_error("virtual server context path is not followed by an openning bracket.");
+            it++;
+            string_vec_it_t server_context_end_it = parsing::find_closing_bracket_it(it, end_it);
+            virtual_server_contexts.push_back(ServerContext(it, server_context_end_it));
+            it = server_context_end_it;
         }
     }
 };
