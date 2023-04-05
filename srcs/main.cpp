@@ -1,19 +1,22 @@
-#include <iostream>
+// #include <iostream>
 #include <map>
 #include <string>
 #include <cstring>
 
+#include "sys_calls_warp_arounds.hpp"
 #include "Server.hpp"
 #include "typedefs.hpp"
+#include "LocationContext.hpp"
 
 CSV_maps_t CSV_maps;
 
-int main()
+int main(int ac, char **av)
 {
     try
     {
         Server server;
-        server.Run();
+        string config_file_path = ac >= 2 ? av[1] : "internal_server_ressources/default_config_file";
+        server.Run(config_file_path);
     }
     catch(const std::exception& e)
     {

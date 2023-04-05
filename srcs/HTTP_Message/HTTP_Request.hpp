@@ -10,7 +10,7 @@ class HTTP_Request : public HTTP_Message
 {
     private:
     //fields
-    parsing::line_of_tokens_t request_line;
+    vector<string> request_line;
     public:
     std::string HTTP_method;
     std::string target_URL;

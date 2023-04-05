@@ -35,7 +35,7 @@
 # include <string>
 # include <sstream>
 
-# include "../WSexception.hpp"
+# include "WSexception.hpp"
 
 
 

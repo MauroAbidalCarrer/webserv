@@ -91,7 +91,7 @@ class HTTP_Response : public HTTP_Message
     }
     void set_header_fields(std::string header_str, std::string value)
     {
-        parsing::line_of_tokens_t header_fields;
+        vector<string> header_fields;
         header_fields.push_back(header_str);
         header_fields.push_back(value);
         for (parsing::tokenized_text_t::iterator i = header.begin(); i != header.end(); i++)

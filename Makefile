@@ -1,6 +1,7 @@
 NAME	:= webserv
 INCS	=	-I srcs/HTTP_Message\
 			-I srcs/utils\
+			-I srcs/nginx_like_context\
 			-I srcs
 
 SRCS	:= srcs/main.cpp

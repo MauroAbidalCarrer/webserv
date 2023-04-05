@@ -19,7 +19,7 @@ class HTTP_Message
     int read_fd;
     int recv_flags;
     public:
-    parsing::line_of_tokens_t first_line;
+    vector<string> first_line;
     parsing::tokenized_text_t header; 
     std::string body; 
 
@@ -115,7 +115,7 @@ class HTTP_Message
         str.append(parsing::CLRF);
         try
         {
-            parsing::line_of_tokens_t content_type = get_header_fields("Content-Type");
+            vector<string> content_type = get_header_fields("Content-Type");
             if (content_type.size() >= 2 && content_type[1].find("text") != std::string::npos)
                 str.append(body);
             else
@@ -128,7 +128,7 @@ class HTTP_Message
         str.append(parsing::CLRF);        
         return str;
     }
-    parsing::line_of_tokens_t get_header_fields(std::string header_name)
+    vector<string> get_header_fields(std::string header_name)
     {
         for (size_t i = 0; i < header.size(); i++)
             if (header[i].size() > 1 && header[i][0] == header_name)
