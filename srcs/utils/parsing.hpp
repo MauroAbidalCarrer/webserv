@@ -78,8 +78,9 @@ namespace parsing
             it++;
             if (it == end_it || *it == ";")
                 throw std::runtime_error("directive \"" + directive_keyword + "\" not followed by a value.");
-            it++;
+            // it++;
             field_dsts.first = *it;
+            // std::cout << "field_dsts.first = " << field_dsts.first << std::endl;
             if (field_dsts.second != NULL)
             {
                 it++;
@@ -89,8 +90,12 @@ namespace parsing
             }
             it++;
             if (it == end_it || *it != ";")
-                throw std::runtime_error("directive \"" + directive_keyword + "\" field is not terminated by a ';'");
+                throw std::runtime_error("directive \"" + directive_keyword + "\" field is not terminated by a ';', previous token = " + *(it - 1));
             it++;
+            if (field_dsts.second != NULL)
+                std::cout << directive_keyword << " = " << field_dsts.first << " " << *field_dsts.second << std::endl;
+            else
+                std::cout << directive_keyword << " = " << field_dsts.first << std::endl;
             return true;
         }
         return false;
@@ -105,7 +110,7 @@ namespace parsing
     // }
     string_vec_it_t find_closing_bracket_it(string_vec_it_t it, string_vec_it_t& end_it)
     {
-        int sub_context_lvl = 1;
+        int sub_context_lvl = 0;
         while (it != end_it)
         {
             if (*it == "{")
@@ -114,6 +119,7 @@ namespace parsing
                 return it;
             it++;
         }
+        std::cerr << "sub lvl = " << sub_context_lvl << std::endl;
         throw runtime_error("Openning bracket never closed.");
     }
 }

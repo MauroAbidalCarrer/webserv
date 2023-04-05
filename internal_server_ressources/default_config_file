@@ -10,8 +10,3 @@ server
         default_file index.html;
     }
 }
-
-server
-{
-    server_name 
-}
