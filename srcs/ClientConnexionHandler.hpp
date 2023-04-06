@@ -156,7 +156,7 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 
 	void handle_cgi(string cgi_launcher)
 	{
-		
+		(void)cgi_launcher;
 	}
 
 	void send_response()
