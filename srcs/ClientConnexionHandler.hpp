@@ -68,7 +68,7 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
         }
         catch (const HTTP_Message::NoBytesToReadException& e)
         {
-            std::cout << "No more bytes to read on client socket " << fd << ", closing client connexion " << fd << std::endl;
+            std::cout << "\e[1mClosing client connexion " << fd << "." << std::endl;
             close_connexion();
         }
         //make sure to take a reference instead of a copy, otherwise the destructor will be called twice and will potentially call delete twice on the same pointer

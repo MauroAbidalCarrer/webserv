@@ -32,18 +32,15 @@ class HTTP_Message
         std::string msg_as_text = read_text_msg(buffer_size);
         if (msg_as_text.length() == 0)
             throw NoBytesToReadException();
-        // std::cout << "\"" << msg_as_text << "\"" << std::endl;
-        cout << "\e[1mRead new HTTP Message from fd " << read_fd << ":\e[0m" << endl;
-        cout << msg_as_text << "-------------------" << endl;
+        cout << "Read new HTTP Message from fd " << read_fd << ":" << endl;
+        cout << "\e[2m" << msg_as_text << "\e[0m" << "-------------------" << endl;
         parsing::tokenized_text_t tokenized_msg = parsing::tokenize_HTTP_message(msg_as_text);
-        // if (!msg_as_text.find("\r\n\\n"))
-            // throw bad request
-        //do parsing  checks
+        //do parsing checks?
         first_line = tokenized_msg[0];
         parsing::tokenized_text_t::iterator it = tokenized_msg.begin() + 1;
         while (it != tokenized_msg.end() && !it->empty())
             it++;
-        //do parsing checks
+        //do parsing checks?
         header = parsing::tokenized_text_t(tokenized_msg.begin() + 1, it);
         body = msg_as_text.substr(msg_as_text.find("\r\n\r\n"));
     }
