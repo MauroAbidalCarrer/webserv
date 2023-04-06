@@ -5,6 +5,7 @@
 
 # include "typedefs.hpp"
 # include "VirtualServerContext.hpp"
+# include "ClientConnexionHandler.hpp"
 
 class GlobalContext
 {
@@ -35,9 +36,9 @@ class GlobalContext
             it = server_context_end_it;
         }
         //debugging
-        // for (size_t i = 0; i < virtual_server_contexts.size(); i++)
-        //     virtual_server_contexts[i].debug();
-        // cout << endl;
+        for (size_t i = 0; i < virtual_server_contexts.size(); i++)
+            virtual_server_contexts[i].debug();
+        cout << endl;
     }
     ~GlobalContext() { }
     //operator overloads
@@ -64,9 +65,23 @@ class GlobalContext
         return config_file_tokens;
     }
     public:
-    // VirtualServerContext find_corresponding_virtualServerContext(const HTTP_Request& request)  
-    // {
-
-    // }
+    const VirtualServerContext& find_corresponding_virtualServerContext(const HTTP_Request& request, string listen_ip, string listen_port) 
+    {
+        // vector<VirtualServerContext> candidate_virtual_contexts = virtual_server_contexts;
+        // for (size_t i = 0; i < candidate_virtual_contexts.size(); i++)
+        // {
+        //     const VirtualServerContext& candidate = candidate_virtual_contexts[i];
+        //     if (candidate.listen_adress != connexion_handler.listening_ip || candidate.listen_port != connexion_handler.listen_port)
+        //     {
+        //         candidate_virtual_contexts.erase(candidate_virtual_contexts.begin() + i);
+        //         continue;
+        //     }
+        // }
+        // if (candidate_virtual_contexts.size() == )
+        (void)request;
+        (void)listen_ip;
+        (void)listen_port;
+        return virtual_server_contexts[0];
+    }
 };
 #endif

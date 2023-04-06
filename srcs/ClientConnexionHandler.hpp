@@ -12,6 +12,8 @@
 # include "sys_calls_warp_arounds.hpp"
 # include "WSexception.hpp"
 # include "typedefs.hpp"
+# include "GlobalContext.hpp"
+# include "VirtualServerContext.hpp"
 
 # define MAXIMUM_HTTP_HEADER_SIZE 1024
 # define GET_RESPONSE_CONTENT_RAD_BUFFER_SIZE 10000
@@ -22,11 +24,17 @@
 # define WEB_RESSOURCES_DIRECTORY "web_ressources"
 # define DEFAULT_RESSOURCES_DIRECTORY "./web_ressources/default_pages/"
 
+extern GlobalContext GlobalContextSingleton;
+
 class ClientConnexionHandler : public IO_Manager::FD_interest
 {
 	private:
 	HTTP_Request request;
 	HTTP_Response response;
+	VirtualServerContext virtualServerContext;
+	LocationContext locationContext;
+
+	public:
 	string listening_ip, listening_port;
 	
 	public:
@@ -56,19 +64,23 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 		try
 		{
 			request = HTTP_Request(fd, MAXIMUM_HTTP_HEADER_SIZE);
+			find_corresponding_contexts();
+			apply_context_to_request();
 			
-			find_and_apply_contexts_to_request();
-			/*if request requires CGI generate response
-				fork, excve CGI, AND input request to CGI input AND read from CGI output, complete header fields AND send response
-			*/
+			if (request_requires_cgi())
+				cout << BLUE_AINSI << "Request requires CGI" << END_AINSI << endl;
+
 			if (request.HTTP_method == "GET")
 				start_processing_Get_request();
+
 			//if method == POST
 				//if already exists overwrite or append?
 				//open target ressource AND write on it and construct response AND dedebug reuqest on connexion socket_fd
+
 			//if method == DELETE
 				//if file doesn't exist ?
 				//delete file and construct response AND dedebug reuqest on connexion socket_fd
+				
 			response.set_header_fields("Connection", "Keep-Alive");
 		}
 		catch (const HTTP_Message::NoBytesToReadException& e)
@@ -96,15 +108,19 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 		}
 	}
 	//methods
-	void  find_and_apply_contexts_to_request()
+	void find_corresponding_contexts()
 	{
-		// VirtualServerContext request_virtualServerContext = GlobalContextSingleton.virtual_server_contexts
-		//apply context
+		virtualServerContext = GlobalContextSingleton.find_corresponding_virtualServerContext(request, listening_ip, listening_port);
+		locationContext = virtualServerContext.find_corresponding_location_context(request);
+	}
+	void  apply_context_to_request()
+	{
+		find_corresponding_contexts();
 		//apply root directive(for now just insert ".")
-		request._path = std::string(WEB_RESSOURCES_DIRECTORY) + request._path;
+		request._path = locationContext.root + request._path;
 		//apply rewrite directive(not sure if it's the rewrite directive... the that completes target URLs finishing ini "/")(for no just index.html)
 		if (*(request._path.end() - 1) == '/')
-			request._path.append("index.html");
+			request._path.append(locationContext.default_file);
 	}
 	//GET method
 	//open content file AND consturct response from content AND dedebug reuqest on connexion socket_fd
@@ -114,6 +130,28 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 		//Implement response method that defines response's Content-Type header field.
 		IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
 	}
+	bool request_requires_cgi()
+	{
+		for (size_t i = 0; i < locationContext.cgi_extensions_and_launchers.size(); i++)
+		{
+			pair<string, string> cgi_extension_and_launcher = locationContext.cgi_extensions_and_launchers[i];
+			string extension = cgi_extension_and_launcher.first;
+			if (str_end_with(request._path, extension))
+				return true;
+		}
+		return false;
+	}
+	bool str_end_with(string const &fullString, string const &ending)
+	{
+		if (fullString.length() >= ending.length()) 
+			return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
+		return false;
+	}
+
+	// void handle_cgi(string cgi_launcher)
+	// {
+		
+	// }
 
 	void send_response()
 	{

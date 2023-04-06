@@ -27,6 +27,7 @@ typedef std::map<std::string, std::map<std::string, std::string> > CSV_maps_t;
 
 //ANISI codes
 # define RED_AINSI "\e[38;5;9m"
+# define BLUE_AINSI "\e[38;5;14m"
 # define BOLD_AINSI "\e[1m"
 # define FAINT_AINSI "\e[2m"
 # define END_AINSI "\e[0m"

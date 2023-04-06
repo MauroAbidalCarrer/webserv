@@ -12,8 +12,14 @@ struct LocationContext
     string location_path;
     string root;
     string default_file;
+    /*
+        first = cgi extension match
+        second = cgi launcher(like python3), may be empty if the cgi can be excutated as is
+    */
+    vector<pair<string, string> > cgi_extensions_and_launchers;
+
     //constructors and destructors
-    // LocationContext() { }
+    LocationContext() { }
     LocationContext(const LocationContext& other)
     {
         *this = other;
@@ -38,6 +44,7 @@ struct LocationContext
             bool parsed_directive = false;
             parsed_directive |= parsing::set_directive_field("default_file", directive_fields_dsts_t(default_file, NULL), it, location_context_end_it);
             parsed_directive |= parsing::set_directive_field("root", directive_fields_dsts_t(root, NULL), it, location_context_end_it);
+            parsed_directive |= parse_cgi_directive(it, location_context_end_it);
             if (!parsed_directive)
                 throw runtime_error("Invalid token in location context in config file: " + *it);
         }
@@ -49,10 +56,36 @@ struct LocationContext
         location_path = rhs.location_path;
         root = rhs.root;
         default_file = rhs.default_file;
+        cgi_extensions_and_launchers = rhs.cgi_extensions_and_launchers;
         return *this;
     }
     //methods
-
+    bool parse_cgi_directive(string_vec_it_t& it, string_vec_it_t& server_context_end_it)
+    {
+        if (*it == "cgi")
+        {
+            it++;
+            if (it == server_context_end_it || *it == ";" || *it == "}" || *it == "{")
+                throw std::runtime_error("location context keyword is not followed by a path.");
+            pair<string, string> extension_and_launcher;
+            extension_and_launcher.first = *it;
+            it++;
+            if (it == server_context_end_it || *it == "}" || *it == "{")
+                throw std::runtime_error("cgi directive is not terminated by a \";\".");
+            if (*it != ";")
+            {
+                extension_and_launcher.second = *it;
+                it++;
+            }
+            if (it == server_context_end_it || *it != ";")
+                throw std::runtime_error("cgi directive is not terminated by a \";\".");
+            it++;
+            cout << "Adding cgi extension: " << extension_and_launcher.first << ", launcher: " << extension_and_launcher.second << endl;
+            cgi_extensions_and_launchers.push_back(extension_and_launcher);
+            return true;
+        }
+        return false;
+    }
     static bool parse_location_context(string_vec_it_t& it, string_vec_it_t& server_context_end_it, std::vector<LocationContext>& locationContext_vec)
     {
         if (*it == "location")
@@ -77,6 +110,9 @@ struct LocationContext
         cout << "\t\tlocation path: " << location_path << endl;
         cout << "\t\troot: " << root << endl;
         cout << "\t\tdefault_file: " << default_file << endl;  
+        cout << "\t\tcgi extensions and launchers(optional):" << endl;
+        for (size_t i = 0; i < cgi_extensions_and_launchers.size(); i++)
+            cout << "\t\t\t" << cgi_extensions_and_launchers[i].first << " " << cgi_extensions_and_launchers[i].second << endl;
     }
 };
 #endif

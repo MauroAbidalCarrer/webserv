@@ -19,6 +19,7 @@ struct VirtualServerContext
     vector<LocationContext> location_contexts;
     
     //constructors and destructors
+    VirtualServerContext() {}
     VirtualServerContext(string_vec_it_t it, string_vec_it_t server_context_end_it)
     {
         listen_adress = "127.0.0.1";
@@ -114,6 +115,11 @@ struct VirtualServerContext
         cout << "\tlocation contexts: " << endl;
         for (size_t i = 0; i < location_contexts.size(); i++)
             location_contexts[i].debug();
+    }
+    const LocationContext& find_corresponding_location_context(const HTTP_Request& request) const
+    {
+        (void)request;
+        return location_contexts[0];
     }
 };
 #endif

@@ -8,5 +8,12 @@ server
     {
         root web_ressources;
         default_file index.html;
+        cgi .pl /usr/bin/sh;
+        cgi .cgi;
+        cgi .html;
+    }
+    location static/
+    {
+
     }
 }
