@@ -17,8 +17,8 @@ class HTTP_Response : public HTTP_Message
 
     public:
     //constructors and destructors
-    HTTP_Response() { }
-    HTTP_Response(int read_fd, size_t buffer_size) : HTTP_Message(read_fd, buffer_size)
+    HTTP_Response() : is_default_response(false) { }
+    HTTP_Response(int read_fd, size_t buffer_size) : HTTP_Message(read_fd, buffer_size), is_default_response(false)
     {
         //do checks
         // status_code = std::atoi(first_line[1].data());
