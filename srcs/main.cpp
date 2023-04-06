@@ -9,6 +9,7 @@
 #include "LocationContext.hpp"
 
 CSV_maps_t CSV_maps;
+GlobalContext GlobalContextSingleton;
 
 int main(int ac, char **av)
 {

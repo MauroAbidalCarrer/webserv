@@ -10,7 +10,7 @@ I have also written a guide on how to [process a request](/project_documentation
 
 
 Ressources to get started on the project:
-- [waht is a URL?](https://developer.mozilla.org/en-US/docs/Learn/Common_questions/Web_mechanics/What_is_a_URL#basics_anatomy_of_a_url)
+- [what is a URL?](https://developer.mozilla.org/en-US/docs/Learn/Common_questions/Web_mechanics/What_is_a_URL#basics_anatomy_of_a_url)
 - [How do server_names work?](http://nginx.org/en/docs/http/server_names.html)
 - [nginx config examles](https://github.com/JCluzet/webserv/blob/main/config/default.conf)
 - [response status codes](https://httpwg.org/specs/rfc9110.html#status.code.registration)

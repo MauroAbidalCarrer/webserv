@@ -39,20 +39,21 @@ struct LocationContext
             parsed_directive |= parsing::set_directive_field("default_file", directive_fields_dsts_t(default_file, NULL), it, location_context_end_it);
             parsed_directive |= parsing::set_directive_field("root", directive_fields_dsts_t(root, NULL), it, location_context_end_it);
             if (!parsed_directive)
-                throw runtime_error("Invalid token in location context in config file.");
+                throw runtime_error("Invalid token in location context in config file: " + *it);
         }
     }
     ~LocationContext() { }
     // //operator overloads
     LocationContext& operator=(const LocationContext& rhs)
     {
+        location_path = rhs.location_path;
         root = rhs.root;
         default_file = rhs.default_file;
         return *this;
     }
     //methods
 
-    static bool parse_location_context(string_vec_it_t it, string_vec_it_t& server_context_end_it, std::vector<LocationContext>& locationContext_vec)
+    static bool parse_location_context(string_vec_it_t& it, string_vec_it_t& server_context_end_it, std::vector<LocationContext>& locationContext_vec)
     {
         if (*it == "location")
         {
@@ -64,10 +65,18 @@ struct LocationContext
             if (it == server_context_end_it || *it != "{")
                 throw std::runtime_error("location context path is not followed by an openning bracket.");
             string_vec_it_t location_context_end_it = parsing::find_closing_bracket_it(it, server_context_end_it);
+            it++;
             locationContext_vec.push_back(LocationContext(location_path, it, location_context_end_it));
+            it++;
             return true;
         }
         return false;
+    }
+    void debug()
+    {
+        cout << "\t\tlocation path: " << location_path << endl;
+        cout << "\t\troot: " << root << endl;
+        cout << "\t\tdefault_file: " << default_file << endl;  
     }
 };
 #endif

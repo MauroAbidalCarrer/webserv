@@ -32,7 +32,7 @@ class WSexception : public std::exception
     WSexception(std::string status_code, const exception& exception)
     {
         response = HTTP_Response::Mk_default_response(status_code);
-        std::cout << "WSexception constructed default HTTP_response for status code " << status_code << std::endl;
+        std::cerr << "WSexception constructed default HTTP_response for status code " << status_code << std::endl;
         exception_what = exception.what();
     }
     WSexception(const WSexception& other)
@@ -45,7 +45,7 @@ class WSexception : public std::exception
         response = rhs.response;
         // exception_ptr = rhs.exception_ptr;
         exception_what = rhs.exception_what;
-        std::cout << "copied WS_exception, response = " << std::endl << response.serialize();
+        // std::cout << "copied WS_exception, response = " << std::endl << response.serialize();
         return *this;
     }
     ~WSexception() throw()

@@ -71,37 +71,37 @@ class SystemCallException : public std::exception
 /* Create a new socket of type TYPE in domain DOMAIN, using
    protocol PROTOCOL.  If PROTOCOL is zero, one is chosen automatically.
    Returns a file descriptor for the new socket, or -1 for errors.  */
-int ws_socket(int __domain, int __type, int __protocol, std::string context)
+int ws_socket(int __domain, int __type, int __protocol)
 {
     int socket_fd = socket(__domain, __type, __protocol);
     if (socket_fd == -1)
-        throw SystemCallException("socket", context);
+        throw SystemCallException("socket");
     return socket_fd;
 }
 
 /* Set socket FD's option OPTNAME at protocol level LEVEL
    to *OPTVAL (which is OPTLEN bytes long).
    Returns 0 on success, -1 for errors.  */
-void ws_setsockopt(int __fd, int __level, int __optname, const void *__optval, socklen_t __optlen, std::string context)
+void ws_setsockopt(int __fd, int __level, int __optname, const void *__optval, socklen_t __optlen)
 {
     if (setsockopt(__fd, __level, __optname, __optval, __optlen) == -1)
-        throw SystemCallException("setsockopt", context);
+        throw SystemCallException("setsockopt");
 }
 
 /* Give the socket FD the local address ADDR (which is LEN bytes long).  */
-void ws_bind(int __fd, __CONST_SOCKADDR_ARG __addr, socklen_t __len, std::string context)
+void ws_bind(int __fd, __CONST_SOCKADDR_ARG __addr, socklen_t __len)
 {
     if (bind(__fd, __addr, __len) == -1)
-        throw SystemCallException("bind", context);
+        throw SystemCallException("bind");
 }
 
 /* Prepare to accept connections on socket FD.
    N connection requests will be queued before further requests are refused.
    Returns 0 on success, -1 for errors.  */
-void ws_listen(int __fd, int __n, std::string context)
+void ws_listen(int __fd, int __n)
 {
     if (listen(__fd, __n) == -1)
-        throw SystemCallException("listen", context);
+        throw SystemCallException("listen");
 }
 
 /* Same as epoll_create but with an FLAGS parameter.  The unused SIZE
@@ -121,15 +121,7 @@ int ws_epoll_create1(int __flags, std::string context)
 void ws_epoll_ctl(int __epfd, int __op, int __fd, struct epoll_event *__event, std::string context)
 {
     if (epoll_ctl(__epfd, __op, __fd, __event) == -1)
-    {
-        std::cerr << "errno = " << errno << std::endl;
-        std::cerr << "EINVAL "  << EINVAL << std::endl;
-        std::cerr << "EBADF "  << EBADF << std::endl;
-        std::cerr << "ELOOP "  << ELOOP << std::endl;
-        std::cerr << "ENOMEM "  << ENOMEM << std::endl;
-        std::cerr << "EEXIST "  << ENOMEM << std::endl;
         throw SystemCallException("epoll_ctl", context);
-    }
 }
 
 /* Wait for events on an epoll instance "epfd". Returns the number of
@@ -157,11 +149,11 @@ int ws_epoll_wait(int __epfd, struct epoll_event *__events, int __maxevents, int
 
    This function is a cancellation point and therefore not marked with
    __THROW.  */
-int ws_accept(int __fd, __SOCKADDR_ARG __addr, socklen_t *__restrict __addr_len, std::string context)
+int ws_accept(int __fd, __SOCKADDR_ARG __addr, socklen_t *__restrict __addr_len)
 {
     int new_socket = accept(__fd, __addr, __addr_len);
     if (new_socket == -1)
-        throw SystemCallException("accept", context);
+        throw SystemCallException("accept");
     return new_socket;
 }
 
@@ -241,7 +233,7 @@ std::string read_file_into_string(const std::string& filename)
         if (errno & ENOENT)
         {
             WSexception e = WSexception("404", SystemCallException("open"));
-            std::cout << "e.response = " << e.response.serialize() << std::endl;
+            // std::cout << "e.response = " << e.response.serialize() << std::endl;
             throw e;
         }
         if (errno & EACCES)

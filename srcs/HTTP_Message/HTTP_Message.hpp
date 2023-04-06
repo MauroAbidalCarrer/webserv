@@ -4,6 +4,7 @@
 # include <string>
 
 # include "parsing.hpp"
+# include "typedefs.hpp"
 # include "sys_calls_warp_arounds.hpp"
 
 #define FIRST_READ_BUFFER_SIZE 1000
@@ -29,18 +30,17 @@ class HTTP_Message
     HTTP_Message(int read_fd, size_t buffer_size, int recv_flags = 0) : read_fd(read_fd), recv_flags(recv_flags)
     {
         std::string msg_as_text = read_text_msg(buffer_size);
-        std::cout << "\"" << msg_as_text << "\"" << std::endl;
         if (msg_as_text.length() == 0)
             throw NoBytesToReadException();
+        cout << "Read new HTTP Message from fd " << read_fd << ":" << endl;
+        cout << "\e[2m" << msg_as_text << "\e[0m" << "-------------------" << endl;
         parsing::tokenized_text_t tokenized_msg = parsing::tokenize_HTTP_message(msg_as_text);
-        // if (!msg_as_text.find("\r\n\\n"))
-            // throw bad request
-        //do parsing  checks
+        //do parsing checks?
         first_line = tokenized_msg[0];
         parsing::tokenized_text_t::iterator it = tokenized_msg.begin() + 1;
         while (it != tokenized_msg.end() && !it->empty())
             it++;
-        //do parsing checks
+        //do parsing checks?
         header = parsing::tokenized_text_t(tokenized_msg.begin() + 1, it);
         body = msg_as_text.substr(msg_as_text.find("\r\n\r\n"));
     }
@@ -92,7 +92,7 @@ class HTTP_Message
         str.append(parsing::CLRF);
         return str;
     }
-    std::string debug()
+    virtual string debug()
     {
         std::string str;
         for (size_t i = 0; i < first_line.size(); i++)
@@ -117,15 +117,17 @@ class HTTP_Message
         {
             vector<string> content_type = get_header_fields("Content-Type");
             if (content_type.size() >= 2 && content_type[1].find("text") != std::string::npos)
+            {
                 str.append(body);
+                str.append(parsing::CLRF);
+            }
             else
-                str.append("HTTP message body was ommited because it is not text.");
+                str.append("HTTP message body was ommited because body is not text.\n");
         }
         catch(NoHeaderFieldFoundException e) 
         {  
-            std::cout << "Could not found Content-Type header field while debugging response." << std::endl;
-        }
-        str.append(parsing::CLRF);        
+            // std::cout << "Could not found Content-Type header field while debugging response." << std::endl;
+        }        
         return str;
     }
     vector<string> get_header_fields(std::string header_name)
@@ -134,8 +136,6 @@ class HTTP_Message
             if (header[i].size() > 1 && header[i][0] == header_name)
                 return header[i];
         throw NoHeaderFieldFoundException();
-        // throw std::runtime_error("Header field " + header_name + " not found!");
-
     }
     void clear()
     {
