@@ -40,7 +40,7 @@ class HTTP_Request : public HTTP_Message
 		this->_hostname = this->get_header_fields("Host")[HOST];
 		if (this->get_header_fields("Host").size() > 2)
 			this->_ports = this->get_header_fields("Host")[PORT];
-		this->printContent();
+		// this->printContent();
 	}
 
 	void	URL_PRM(std::string s)	{

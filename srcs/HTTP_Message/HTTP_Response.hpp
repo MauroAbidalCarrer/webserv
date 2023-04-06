@@ -119,7 +119,7 @@ class HTTP_Response : public HTTP_Message
     virtual string debug()
     {
         if (is_default_response)
-            return "Default " + first_line[1] + " response.\n";
+            return "\e[2mDefault " + first_line[1] + " response.\n\e[0m";
         return HTTP_Message::debug();
     }
 };

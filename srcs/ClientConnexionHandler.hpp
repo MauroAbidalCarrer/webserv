@@ -68,15 +68,15 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
         }
         catch (const HTTP_Message::NoBytesToReadException& e)
         {
-            std::cout << "\e[1mClosing client connexion " << fd << "." << std::endl;
+            std::cout << "Client \e[1mclosed connexion " << fd << "\e[0m." << std::endl;
             close_connexion();
         }
         //make sure to take a reference instead of a copy, otherwise the destructor will be called twice and will potentially call delete twice on the same pointer
         catch(const WSexception& e)
         {
             response = e.response;
-            std::cout << "Error: Caught WSexception while processing client request." << std::endl;
-            std::cout << "e.what() = " << e.what() << std::endl;
+            std::cout << "Caught WSexception while processing client request." << std::endl;
+            std::cout << "e.what(): " << e.what() << std::endl;
             std::cout << "response: " << std::endl;
             std::cout << response.debug();
             std::cout << "-----------------------" << std::endl;
@@ -85,7 +85,7 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
         catch(const std::exception& e)
         {
             response = HTTP_Response::Mk_default_response("500");
-            std::cerr << "ERROR: Unexpected std::exception caught while starting to process request. Setting response to default 500 response. " << std::endl;
+            std::cerr << RED_AINSI << "ERROR" << END_AINSI << ": Unexpected std::exception caught while starting to process request. Setting response to default 500 response. " << std::endl;
             std::cerr << "e.what(): " << e.what() << std::endl;
             IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
         }
@@ -93,7 +93,7 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
     //methods
     void  find_and_apply_contet_to_request()
     {
-        //find context
+        // VirtualServerContext request_virtualServerContext = GlobalContextSingleton.virtual_server_contexts
         //apply context
         //apply root directive(for now just insert ".")
         request.target_URL = std::string(WEB_RESSOURCES_DIRECTORY) + request.target_URL;
@@ -115,7 +115,7 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
         try
         {
             std::string serialized_response = response.serialize();
-            std::cout << "sending response:" << std::endl << response.debug() << "--------------------" << std::endl;
+            std::cout << "sending response:" << std::endl << "\e[2m" << response.debug() << "\e[0m" << "--------------------" << std::endl;
             ws_send(fd, serialized_response, 0);
             response.clear();
             request.clear();
@@ -126,7 +126,7 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
             std::cerr << "Exception caught in ClientConnexionHandler::" << __func__ << ", client connexion socket fd: " << fd << "." <<std::endl;
             std::cerr << "exception.what() = " << e.what() << std::endl;
             std::cerr << "debuged response: " << response.debug() << "-------------------" << std::endl;
-            std::cerr << "Closing client connexion." << std::endl;
+            std::cerr << "\e[1mClosing\e[0m client connexion \e[1m" << fd << "\e[0m." << std::endl;
             close_connexion();
         }
     }

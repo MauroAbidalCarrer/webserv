@@ -9,7 +9,7 @@
 class GlobalContext
 {
     public:
-    vector<ServerContext> virtual_server_contexts;
+    vector<VirtualServerContext> virtual_server_contexts;
 
     public:
     //constructors and destructors
@@ -31,15 +31,13 @@ class GlobalContext
                 throw std::runtime_error("virtual server context path is not followed by an openning bracket.");
             string_vec_it_t server_context_end_it = parsing::find_closing_bracket_it(it, end_it);
             it++;
-            virtual_server_contexts.push_back(ServerContext(it, server_context_end_it));
+            virtual_server_contexts.push_back(VirtualServerContext(it, server_context_end_it));
             it = server_context_end_it;
         }
         //debugging
-        for (size_t i = 0; i < virtual_server_contexts.size(); i++)
-        {
-            virtual_server_contexts[i].debug();
-        }
-        cout << endl;
+        // for (size_t i = 0; i < virtual_server_contexts.size(); i++)
+        //     virtual_server_contexts[i].debug();
+        // cout << endl;
     }
     ~GlobalContext() { }
     //operator overloads
@@ -66,10 +64,9 @@ class GlobalContext
         return config_file_tokens;
     }
     public:
-    struct RequestContext
-    {
-        ServerContext serverContext;
-        LocationContext locationContext;
-    };  
+    // VirtualServerContext find_corresponding_virtualServerContext(const HTTP_Request& request)  
+    // {
+
+    // }
 };
 #endif

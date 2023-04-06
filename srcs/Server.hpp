@@ -53,7 +53,6 @@ class Server
         {
             setup_CSV_maps();
             GlobalContextSingleton = GlobalContext(config_file_path);
-            // setup_connexion_queue(LISTENING_PORT);
             setup_connexion_queues();
             IO_Manager::wait_and_call_callbacks();
         }
@@ -67,25 +66,36 @@ class Server
     typedef struct sockaddr sockaddr_t;
     void setup_connexion_queues()
     {
+        vector<pair<string, string> > network_interfaces_already_used;
         for (size_t i = 0; i < GlobalContextSingleton.virtual_server_contexts.size(); i++)
         {
-            ServerContext virtual_server_context = GlobalContextSingleton.virtual_server_contexts[i];
+            VirtualServerContext virtual_server_context = GlobalContextSingleton.virtual_server_contexts[i];
             //get address info
             string ip = virtual_server_context.listen_adress;
             string port = virtual_server_context.listen_port;
-            cout << "Trying " << ip << ":" << port << endl;
+            pair<string, string> network_interface = std::make_pair(ip, port);
+            if (std::count(network_interfaces_already_used.begin(), network_interfaces_already_used.end(), network_interface))
+            {
+                cout << "Already listenning to network interface " << ip << ":" << port << endl;
+                continue;
+            }
+            cout << "Trying to listen to any of the network interfaces for " << ip << ":" << port << endl;
             setup_connexion_queue(ip, port);
+            network_interfaces_already_used.push_back(network_interface);
         }
     }
     void setup_connexion_queue(string ip, string port)
     {
         addrinfo_t* addr_info = get_addrinfo(ip, port);
-        addrinfo_t *addr_info_it = addr_info;
-        for (; addr_info != NULL; addr_info_it = addr_info_it->ai_next)
+        addrinfo_t *addr_info_ptr = addr_info;
+        for (; addr_info_ptr != NULL; addr_info_ptr = addr_info_ptr->ai_next)
         {
             try
             {
-                setup_connexion_queue(*addr_info_it);
+                cout << "\tTrying to listen on ";
+                print_address_and_port(addr_info_ptr);
+                cout << endl;
+                setup_connexion_queue(*addr_info_ptr);
             }
             catch(const std::exception& e)
             {
@@ -97,9 +107,10 @@ class Server
         }
         freeaddrinfo(addr_info);
         //if we reached the end of the possible address info list it means that it is not possible to listen to 
-        if (addr_info == NULL)
+        // cout << "addr_info_ptr at end of for loop = " << addr_info_ptr << endl;
+        if (addr_info_ptr == NULL)
         {
-            string error_msg = "Could not listen to any of the adress infos related to " + ip + ":" + port;
+            string error_msg = string(RED_AINSI) + "Error" + END_AINSI + ": Could not listen to any of the adress infos related to " + ip + ":" + port;
             throw runtime_error(error_msg);
         }
     }
@@ -119,7 +130,7 @@ class Server
         ws_listen(listen_socket_fd, MAX_QUEUE_SIZE);
         IO_Manager::set_interest(listen_socket_fd, &Server::accept_client_connexion, NULL);
         //debugging
-        cout << "listening to ";
+        cout << "\tlistening to ";
         print_address_and_port(&addr_info);
         cout << endl;
     }
@@ -161,36 +172,12 @@ class Server
             cout << ip_str << ":"  << ntohs(ipv6_socket_addr->sin6_port);
         }
     }
-    // //Creates a socket, binds it, listens to it and monitors it.
-    // void setup_connexion_queue(int port)
-    // {
-    //     //create socket
-    //     int listen_socket_fd = ws_socket(AF_INET, SOCK_STREAM, 0, "creating listening socket");
-    //     //set socket to non blocking
-    //     // ws_fcntl(listen_socket_fd, F_SETFL, O_NONBLOCK);
-    //     //set sock option SO_REUSEADDR to prevent TCP related error 'Adress already in use' when restarting
-    //     int dump = 1;
-    //     ws_setsockopt(listen_socket_fd, SOL_SOCKET, SO_REUSEADDR, &dump, sizeof(int), "");
-    //     //binding of socket to port
-    //     sockaddr_in sock_addr_for_connexion;
-    //     //Using ft_memset before setting the variables we care about at the begining allows us to set all the variable we don't care about to zero in one line.
-    //     memset(&sock_addr_for_connexion, 0, sizeof(sockaddr_in));
-    //     sock_addr_for_connexion.sin_family = AF_INET;                       //define adress family, in this case, IPv4
-    //     sock_addr_for_connexion.sin_addr.s_addr = htonl(INADDR_ANY);        //define IP adress, in this case, localhost
-    //     sock_addr_for_connexion.sin_port = htons(port);                     //define port
-    //     ws_bind(listen_socket_fd, (const struct sockaddr *)&sock_addr_for_connexion, sizeof(sockaddr_in), "binding listening socket");
-    //     //start listening for clients connexion requests
-    //     ws_listen(listen_socket_fd, MAX_QUEUE_SIZE, "listen for listening socket... obviously");
-    //     IO_Manager::set_interest(listen_socket_fd, &Server::accept_client_connexion, NULL);
-    //     //debugging
-    //     std::cout << "listening..." << std::endl;
-    // }
     static void accept_client_connexion(int listening_socket_fd)
     {
         int connexion_socket_fd = ws_accept(listening_socket_fd, NULL, NULL);
         IO_Manager::set_interest(connexion_socket_fd, EPOLLIN, new ClientConnexionHandler(connexion_socket_fd));
         //debugging
-        std::cout << "Accepted new client connexion, connexion_socket_fd: " << connexion_socket_fd << '.' << std::endl;
+        std::cout << "New client connexion on socket " << connexion_socket_fd << '.' << std::endl;
     }
 
     void setup_CSV_maps()

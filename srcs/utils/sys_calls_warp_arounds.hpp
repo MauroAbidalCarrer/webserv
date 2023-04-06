@@ -216,7 +216,7 @@ int ws_open(std::string pathname, int flags)
     int fd = open(pathname.data(), flags);
     if (fd == -1)
         throw SystemCallException("open" ,"pathname: " + pathname);
-    return fd;
+    return fd; 
 }
 
 void ws_send(int socket_fd, std::string msg, int flags)

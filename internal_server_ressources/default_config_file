@@ -1,6 +1,18 @@
 server
 {
-    listen localhost:8080;
+    listen 0.0.0.0:8080;
+    server_name my_awesome_server;
+    error_page 404 https://http.cat/404;
+    error_page 406 https://http.cat/406;
+    location / 
+    {
+        root web_ressources;
+        default_file index.html;
+    }
+}
+server
+{
+    listen 0.0.0.0:8080;
     server_name my_awesome_server;
     error_page 404 https://http.cat/404;
     error_page 406 https://http.cat/406;

@@ -10,7 +10,7 @@
 
 //Whenever "server" is mentioned it is implied that it is "virtual server"
 
-struct ServerContext
+struct VirtualServerContext
 {
     //listen fields
     string listen_adress, listen_port;
@@ -19,7 +19,7 @@ struct ServerContext
     vector<LocationContext> location_contexts;
     
     //constructors and destructors
-    ServerContext(string_vec_it_t it, string_vec_it_t server_context_end_it)
+    VirtualServerContext(string_vec_it_t it, string_vec_it_t server_context_end_it)
     {
         listen_adress = "127.0.0.1";
         listen_port = "80";
@@ -84,13 +84,13 @@ struct ServerContext
         }
         return false;
     }
-    ServerContext(const ServerContext& other)
+    VirtualServerContext(const VirtualServerContext& other)
     {
         *this = other;
     }
-    ~ServerContext() { }
+    ~VirtualServerContext() { }
     //operator overloads
-    ServerContext& operator=(const ServerContext& rhs)
+    VirtualServerContext& operator=(const VirtualServerContext& rhs)
     {
         listen_adress = rhs.listen_adress;
         listen_port = rhs.listen_port;

@@ -7,6 +7,7 @@
 using std::string;
 using std::vector;
 using std::runtime_error;
+using std::pair;
 using std::cout;
 using std::cerr;
 using std::endl;
@@ -20,4 +21,9 @@ typedef std::pair<std::string&, std::string*> directive_fields_dsts_t;
 typedef std::map<std::string, std::string> str_to_str_map_t;
 typedef std::map<std::string, std::map<std::string, std::string> > CSV_maps_t;
 
+//ANISI codes
+# define RED_AINSI "\e[38;5;9m"
+# define BOLD_AINSI "\e[1m"
+# define FAINT_AINSI "\e[2m"
+# define END_AINSI "\e[0m"
 #endif
