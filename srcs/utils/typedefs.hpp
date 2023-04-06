@@ -17,6 +17,10 @@ typedef std::vector<std::string> string_vec_t;
 typedef string_vec_t::iterator string_vec_it_t;
 typedef std::pair<std::string&, std::string*> directive_fields_dsts_t;
 
+//networking
+typedef struct addrinfo addrinfo_t;
+typedef struct sockaddr sockaddr_t;
+
 //CSV maps
 typedef std::map<std::string, std::string> str_to_str_map_t;
 typedef std::map<std::string, std::map<std::string, std::string> > CSV_maps_t;
@@ -26,4 +30,8 @@ typedef std::map<std::string, std::map<std::string, std::string> > CSV_maps_t;
 # define BOLD_AINSI "\e[1m"
 # define FAINT_AINSI "\e[2m"
 # define END_AINSI "\e[0m"
+
+#include <sstream>
+#define SSTR( x ) static_cast< std::ostringstream & >( ( std::ostringstream() << std::dec << x ) ).str()
+
 #endif

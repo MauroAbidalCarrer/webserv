@@ -11,6 +11,7 @@
 # include "Server.hpp"
 # include "sys_calls_warp_arounds.hpp"
 # include "WSexception.hpp"
+# include "typedefs.hpp"
 
 # define MAXIMUM_HTTP_HEADER_SIZE 1024
 # define GET_RESPONSE_CONTENT_RAD_BUFFER_SIZE 10000
@@ -26,13 +27,17 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 	private:
 	HTTP_Request request;
 	HTTP_Response response;
+	string listening_ip, listening_port;
 	
 	public:
 	//constructors and destructors
 	ClientConnexionHandler() {}
-	ClientConnexionHandler(int socket_connexion_fd) :
-	FD_interest(IDLE_CLIENT_CONNEXION_TIMEOUT_IN_MILL, CONNEXION_TIMEOUT_MODE, socket_connexion_fd)
-	{ }
+	ClientConnexionHandler(int socket_connexion_fd, string listening_ip, string listening_port) :
+	FD_interest(IDLE_CLIENT_CONNEXION_TIMEOUT_IN_MILL, CONNEXION_TIMEOUT_MODE, socket_connexion_fd),
+	listening_ip(listening_ip), listening_port(listening_port)
+	{ 
+		cout << "ClientConnexionHandler.listening_ip = " << listening_ip << ", ClientConnexionHandler.listening_port" << listening_port << endl;
+	}
 	ClientConnexionHandler(const ClientConnexionHandler& other)
 	{
 		*this = other;

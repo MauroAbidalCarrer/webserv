@@ -269,4 +269,9 @@ std::vector<std::string> list_files_and_directories_in_directory(std::string pat
 {
     return list_directory(path_to_directory, DT_REG | DT_DIR);
 }
+
+// template <typename> string ft_to_string(const T& value)
+// {
+
+// }
 #endif

@@ -20,6 +20,7 @@
 # define MAX_QUEUE_SIZE 10
 # define RECV_BUFFER_SIZE 1000
 # define LISTENING_PORT 8080
+# define UNRECOGNIZED_IP_ADDESS_ERROR_MSG "Could not identify network interface from listening socket fd"
 
 # define CSVS_DIR_PATH "internal_server_ressources/CSVs/"
 extern CSV_maps_t CSV_maps;
@@ -130,9 +131,7 @@ class Server
         ws_listen(listen_socket_fd, MAX_QUEUE_SIZE);
         IO_Manager::set_interest(listen_socket_fd, &Server::accept_client_connexion, NULL);
         //debugging
-        cout << "listening to ";
-        print_socket_address_and_port(addr_info.ai_addr);
-        cout << endl;
+        cout << "listening to " << get_network_interface_as_string(addr_info.ai_addr) << endl;
     }
     struct addrinfo* get_addrinfo(string ip, string port)
     {
@@ -151,57 +150,80 @@ class Server
         //according to the man, addr_info_lst contains the list of possible address for the pair give ip:port pair... I believe
         return addr_info_lst;
     }
-    static void print_socket_address_and_port(sockaddr_t *ai_addr)
+    static void accept_client_connexion(int listening_socket_fd)
     {
-        // Cast the socket address information to a sockaddr_in or sockaddr_in6
-        // structure depending on the address family.
+        int connexion_socket_fd = ws_accept(listening_socket_fd, NULL, NULL);
+        sockaddr_storage local_addr = get_socket_addr_from_listening_queue_fd(listening_socket_fd);
+        string listening_ip_address = get_ip_address_as_string_from_socket_address(reinterpret_cast<sockaddr_t *>(&local_addr));
+        string listening_port = get_port_as_string_from_socket_addres(reinterpret_cast<sockaddr_t *>(&local_addr));
+        IO_Manager::set_interest(connexion_socket_fd, EPOLLIN, new ClientConnexionHandler(connexion_socket_fd, listening_ip_address, listening_port));
+        //debugging
+        cout << "New client connexion on socket " << connexion_socket_fd << ", listening interface= " << get_network_interface_as_string(reinterpret_cast<sockaddr_t *>(&local_addr)) << endl;
+    }
+    static string get_network_interface_as_string(sockaddr_t *ai_addr)
+    {
+        string network_interface;
+        network_interface.append(get_ip_address_as_string_from_socket_address(ai_addr));
+        network_interface.append(":");
+        network_interface.append(get_port_as_string_from_socket_addres(ai_addr));
+        return network_interface;
+    }
+    static string get_ip_address_as_string_from_socket_address(sockaddr_t *ai_addr)
+    {
+        //If address is IPV4
         if (ai_addr->sa_family == AF_INET) 
         {
             // IPv4 address
             struct sockaddr_in* ipv4_socket_addr = reinterpret_cast<struct sockaddr_in*>(ai_addr);
             // Access the IP address and port from the sockaddr_in structure.
-            cout << inet_ntoa(ipv4_socket_addr->sin_addr) << ":" << ntohs(ipv4_socket_addr->sin_port);
+            return inet_ntoa(ipv4_socket_addr->sin_addr);
+            //  << ":" << ntohs(ipv4_socket_addr->sin_port);
         }
-        else
+        //If address is IPV6
+        if (ai_addr->sa_family == AF_INET6)
         {
             // IPv6 address
             struct sockaddr_in6* ipv6_socket_addr = reinterpret_cast<struct sockaddr_in6*>(ai_addr);
             // Access the IP address and port from the sockaddr_in6 structure.
             char ip_str[INET6_ADDRSTRLEN];
             inet_ntop(AF_INET6, &(ipv6_socket_addr->sin6_addr), ip_str, INET6_ADDRSTRLEN);
-            cout << ip_str << ":"  << ntohs(ipv6_socket_addr->sin6_port);
+            // cout << ip_str << ":"  << ntohs(ipv6_socket_addr->sin6_port);
+            return string(ip_str);
         }
+        throw runtime_error(UNRECOGNIZED_IP_ADDESS_ERROR_MSG);
     }
-    static void accept_client_connexion(int listening_socket_fd)
+    static string get_port_as_string_from_socket_addres(sockaddr_t *ai_addr)
     {
-        int connexion_socket_fd = ws_accept(listening_socket_fd, NULL, NULL);
-        IO_Manager::set_interest(connexion_socket_fd, EPOLLIN, new ClientConnexionHandler(connexion_socket_fd));
-        //debugging
-        cout << "New client connexion on socket " << connexion_socket_fd << '.' << endl;
+        //If address is IPV4
+        if (ai_addr->sa_family == AF_INET) 
+        {
+            // IPv4 address
+            struct sockaddr_in* ipv4_socket_addr = reinterpret_cast<struct sockaddr_in*>(ai_addr);
+            return SSTR( "" << ntohs(ipv4_socket_addr->sin_port));
+        }
+        //If address is IPV6
+        if (ai_addr->sa_family == AF_INET6)
+        {
+            // IPv6 address
+            struct sockaddr_in6* ipv6_socket_addr = reinterpret_cast<struct sockaddr_in6*>(ai_addr);
+            // Access the IP address and port from the sockaddr_in6 structure.
+            char ip_str[INET6_ADDRSTRLEN];
+            inet_ntop(AF_INET6, &(ipv6_socket_addr->sin6_addr), ip_str, INET6_ADDRSTRLEN);
+            // cout << ip_str << ":"  << ntohs(ipv6_socket_addr->sin6_port);
+            return string(ip_str);
+        }
+        throw runtime_error(UNRECOGNIZED_IP_ADDESS_ERROR_MSG);
+    }
+    static sockaddr_storage get_socket_addr_from_listening_queue_fd(int listening_socket_fd)
+    {
         struct sockaddr_storage local_addr;
-
         socklen_t addr_len = sizeof(local_addr);
         if (getsockname(listening_socket_fd, (struct sockaddr*)&local_addr, &addr_len) == -1)
         {
             cout << "Failed to getsockname: " << strerror(errno) << endl;
-            return;
+            throw runtime_error(UNRECOGNIZED_IP_ADDESS_ERROR_MSG);
         }
-        // Determine the address family (IPv4 or IPv6)
-        if (local_addr.ss_family == AF_INET) {
-            struct sockaddr_in *addr_in = (struct sockaddr_in *)&local_addr;
-            cout << "Listening socket is binded to IPV4 network interface: ";
-            print_socket_address_and_port((sockaddr_t *)addr_in);
-            cout << endl;
-        }
-        else if (local_addr.ss_family == AF_INET6)
-        {
-            struct sockaddr_in6 *addr_in6 = (struct sockaddr_in6 *)&local_addr;
-            cout << "Listening socket is binded to IPV6 network interface: ";
-            print_socket_address_and_port((sockaddr_t *)addr_in6);
-            cout << endl;
-        }
-        else
-            cerr << "Error while getting socket address\n";
+        return local_addr;
     }
 
     void setup_CSV_maps()

@@ -8,6 +8,5 @@ server
     {
         root web_ressources;
         default_file index.html;
-        cgi_setup .php .cgi .py
     }
 }
