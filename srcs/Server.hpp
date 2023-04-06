@@ -76,10 +76,10 @@ class Server
             pair<string, string> network_interface = std::make_pair(ip, port);
             if (std::count(network_interfaces_already_used.begin(), network_interfaces_already_used.end(), network_interface))
             {
-                cout << "Already listenning to network interface " << ip << ":" << port << endl;
+                // cout << "Already listenning to network interface " << ip << ":" << port << endl;
                 continue;
             }
-            cout << "Trying to listen to any of the network interfaces for " << ip << ":" << port << endl;
+            // cout << "Trying to listen to any of the network interfaces for " << ip << ":" << port << endl;
             setup_connexion_queue(ip, port);
             network_interfaces_already_used.push_back(network_interface);
         }
@@ -92,9 +92,9 @@ class Server
         {
             try
             {
-                cout << "\tTrying to listen on ";
-                print_address_and_port(addr_info_ptr);
-                cout << endl;
+                // cout << "\tTrying to listen on ";
+                // print_socket_address_and_port(addr_info_ptr);
+                // cout << endl;
                 setup_connexion_queue(*addr_info_ptr);
             }
             catch(const std::exception& e)
@@ -130,8 +130,8 @@ class Server
         ws_listen(listen_socket_fd, MAX_QUEUE_SIZE);
         IO_Manager::set_interest(listen_socket_fd, &Server::accept_client_connexion, NULL);
         //debugging
-        cout << "\tlistening to ";
-        print_address_and_port(&addr_info);
+        cout << "listening to ";
+        print_socket_address_and_port(addr_info.ai_addr);
         cout << endl;
     }
     struct addrinfo* get_addrinfo(string ip, string port)
@@ -151,21 +151,21 @@ class Server
         //according to the man, addr_info_lst contains the list of possible address for the pair give ip:port pair... I believe
         return addr_info_lst;
     }
-    void print_address_and_port(addrinfo_t *addrinfo)
+    static void print_socket_address_and_port(sockaddr_t *ai_addr)
     {
         // Cast the socket address information to a sockaddr_in or sockaddr_in6
         // structure depending on the address family.
-        if (addrinfo->ai_addr->sa_family == AF_INET) 
+        if (ai_addr->sa_family == AF_INET) 
         {
             // IPv4 address
-            struct sockaddr_in* ipv4_socket_addr = reinterpret_cast<struct sockaddr_in*>(addrinfo->ai_addr);
+            struct sockaddr_in* ipv4_socket_addr = reinterpret_cast<struct sockaddr_in*>(ai_addr);
             // Access the IP address and port from the sockaddr_in structure.
             cout << inet_ntoa(ipv4_socket_addr->sin_addr) << ":" << ntohs(ipv4_socket_addr->sin_port);
         }
         else
         {
             // IPv6 address
-            struct sockaddr_in6* ipv6_socket_addr = reinterpret_cast<struct sockaddr_in6*>(addrinfo->ai_addr);
+            struct sockaddr_in6* ipv6_socket_addr = reinterpret_cast<struct sockaddr_in6*>(ai_addr);
             // Access the IP address and port from the sockaddr_in6 structure.
             char ip_str[INET6_ADDRSTRLEN];
             inet_ntop(AF_INET6, &(ipv6_socket_addr->sin6_addr), ip_str, INET6_ADDRSTRLEN);
@@ -177,7 +177,31 @@ class Server
         int connexion_socket_fd = ws_accept(listening_socket_fd, NULL, NULL);
         IO_Manager::set_interest(connexion_socket_fd, EPOLLIN, new ClientConnexionHandler(connexion_socket_fd));
         //debugging
-        std::cout << "New client connexion on socket " << connexion_socket_fd << '.' << std::endl;
+        cout << "New client connexion on socket " << connexion_socket_fd << '.' << endl;
+        struct sockaddr_storage local_addr;
+
+        socklen_t addr_len = sizeof(local_addr);
+        if (getsockname(listening_socket_fd, (struct sockaddr*)&local_addr, &addr_len) == -1)
+        {
+            cout << "Failed to getsockname: " << strerror(errno) << endl;
+            return;
+        }
+        // Determine the address family (IPv4 or IPv6)
+        if (local_addr.ss_family == AF_INET) {
+            struct sockaddr_in *addr_in = (struct sockaddr_in *)&local_addr;
+            cout << "Listening socket is binded to IPV4 network interface: ";
+            print_socket_address_and_port((sockaddr_t *)addr_in);
+            cout << endl;
+        }
+        else if (local_addr.ss_family == AF_INET6)
+        {
+            struct sockaddr_in6 *addr_in6 = (struct sockaddr_in6 *)&local_addr;
+            cout << "Listening socket is binded to IPV6 network interface: ";
+            print_socket_address_and_port((sockaddr_t *)addr_in6);
+            cout << endl;
+        }
+        else
+            cerr << "Error while getting socket address\n";
     }
 
     void setup_CSV_maps()
