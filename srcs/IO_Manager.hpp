@@ -223,7 +223,7 @@ class IO_Manager
         event.events = epoll_event_mask;
         event.data.fd = fd;
         ws_epoll_ctl(epoll_fd, EPOLL_CTL_MOD, fd, &event, "changing FD interest");
-        std::cout << "                    set fd  " << fd << " event.events = " << event.events << std::endl;
+        // std::cout << "                    set fd  " << fd << " event.events = " << event.events << std::endl;
     }
     static void change_interest_epoll_mask(int fd, int epoll_event_mask)
     {

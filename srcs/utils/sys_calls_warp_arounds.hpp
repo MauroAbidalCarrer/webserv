@@ -233,7 +233,7 @@ std::string read_file_into_string(const std::string& filename)
         if (errno & ENOENT)
         {
             WSexception e = WSexception("404", SystemCallException("open"));
-            std::cout << "e.response = " << e.response.serialize() << std::endl;
+            // std::cout << "e.response = " << e.response.serialize() << std::endl;
             throw e;
         }
         if (errno & EACCES)

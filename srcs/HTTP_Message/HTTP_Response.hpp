@@ -12,9 +12,8 @@ std::string read_file_into_string(const std::string& filename);
 
 class HTTP_Response : public HTTP_Message
 {
-    public:
-    // int status_code;
-    // std::string status_msg;
+    private:
+    bool is_default_response;
 
     public:
     //constructors and destructors
@@ -25,18 +24,18 @@ class HTTP_Response : public HTTP_Message
         // status_code = std::atoi(first_line[1].data());
         // status_msg = first_line[2];
     }
-    HTTP_Response(std::string status_code, std::string status_msg)
-    {
-        first_line.push_back(status_code);
-        first_line.push_back(status_msg);
-    }
+    // HTTP_Response(std::string status_code, std::string status_msg)
+    // {
+    //     first_line.push_back(status_code);
+    //     first_line.push_back(status_msg);
+    // }
     ~HTTP_Response() { }
     
     //methods
     static HTTP_Response Mk_default_response(std::string status_code)
     {
         HTTP_Response response;
-
+        response.is_default_response = true;
         std::string status_msg = CSV_maps["status_code_to_msg"][status_code];
         response.set_response_line(status_code, status_msg);
         response.body = "<!DOCTYPE html>\n"
@@ -116,6 +115,12 @@ class HTTP_Response : public HTTP_Message
         std::ostringstream convert;
         convert << body.length();
         set_header_fields("Content-Length", convert.str());
+    }
+    virtual string debug()
+    {
+        if (is_default_response)
+            return "Default " + first_line[1] + " response.\n";
+        return HTTP_Message::debug();
     }
 };
 #endif
