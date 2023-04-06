@@ -52,7 +52,7 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 		{
 			request = HTTP_Request(fd, MAXIMUM_HTTP_HEADER_SIZE);
 			
-			find_and_apply_contet_to_request();
+			find_and_apply_contexts_to_request();
 			/*if request requires CGI generate response
 				fork, excve CGI, AND input request to CGI input AND read from CGI output, complete header fields AND send response
 			*/
@@ -91,21 +91,21 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 		}
 	}
 	//methods
-	void  find_and_apply_contet_to_request()
+	void  find_and_apply_contexts_to_request()
 	{
 		// VirtualServerContext request_virtualServerContext = GlobalContextSingleton.virtual_server_contexts
 		//apply context
 		//apply root directive(for now just insert ".")
-		request.target_URL = std::string(WEB_RESSOURCES_DIRECTORY) + request.target_URL;
+		request._path = std::string(WEB_RESSOURCES_DIRECTORY) + request._path;
 		//apply rewrite directive(not sure if it's the rewrite directive... the that completes target URLs finishing ini "/")(for no just index.html)
-		if (*(request.target_URL.end() - 1) == '/')
-			request.target_URL.append("index.html");
+		if (*(request._path.end() - 1) == '/')
+			request._path.append("index.html");
 	}
 	//GET method
 	//open content file AND consturct response from content AND dedebug reuqest on connexion socket_fd
 	void start_processing_Get_request()
 	{
-		response = HTTP_Response::mk_from_file_and_status_code("200", request.target_URL);
+		response = HTTP_Response::mk_from_file_and_status_code("200", request._path);
 		//Implement response method that defines response's Content-Type header field.
 		IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
 	}

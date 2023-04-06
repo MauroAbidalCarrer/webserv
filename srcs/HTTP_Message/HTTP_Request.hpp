@@ -26,7 +26,7 @@ class HTTP_Request : public HTTP_Message
 	std::string	_hostname;
 
 	public:
-	HTTP_Request() {};
+	HTTP_Request() { }
 	HTTP_Request(int read_fd, size_t buffer_size, int recv_flags = 0) : HTTP_Message(read_fd, buffer_size, recv_flags)
 	{
 		//do checks to make sure that the message is a properly formatted request
@@ -40,7 +40,7 @@ class HTTP_Request : public HTTP_Message
 		this->_hostname = this->get_header_fields("Host")[HOST];
 		if (this->get_header_fields("Host").size() > 2)
 			this->_ports = this->get_header_fields("Host")[PORT];
-		// this->printContent();
+		this->printContent();
 	}
 
 	void	URL_PRM(std::string s)	{
@@ -57,7 +57,7 @@ class HTTP_Request : public HTTP_Message
 			p = s.find("&", 0);
 			rhs = s.substr(0, p);
 			s.erase(0, p + 1);
-			std::cout << " LHS:[" << lhs << "] " << "RHS:[" << rhs << "]" << std::endl;
+			// std::cout << " LHS:[" << lhs << "] " << "RHS:[" << rhs << "]" << std::endl;
 			this->_param.push_back(std::make_pair(lhs, rhs));
 		}
 	}
