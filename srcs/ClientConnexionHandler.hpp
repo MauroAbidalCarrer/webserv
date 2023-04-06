@@ -67,12 +67,15 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 			find_corresponding_contexts();
 			apply_context_to_request();
 			
+			
 			if (request_requires_cgi())
-				cout << BLUE_AINSI << "Request requires CGI" << END_AINSI << endl;
-
-			if (request.HTTP_method == "GET")
+			{
+				cout << BLUE_AINSI << "Calling CGI" << END_AINSI << endl;
+			}
+			else if (request.HTTP_method == "GET")
 				start_processing_Get_request();
-
+			else
+				throw WSexception("405");
 			//if method == POST
 				//if already exists overwrite or append?
 				//open target ressource AND write on it and construct response AND dedebug reuqest on connexion socket_fd
@@ -137,7 +140,10 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 			pair<string, string> cgi_extension_and_launcher = locationContext.cgi_extensions_and_launchers[i];
 			string extension = cgi_extension_and_launcher.first;
 			if (str_end_with(request._path, extension))
+			{
+				handle_cgi(cgi_extension_and_launcher.second);
 				return true;
+			}
 		}
 		return false;
 	}
@@ -148,10 +154,10 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 		return false;
 	}
 
-	// void handle_cgi(string cgi_launcher)
-	// {
+	void handle_cgi(string cgi_launcher)
+	{
 		
-	// }
+	}
 
 	void send_response()
 	{
