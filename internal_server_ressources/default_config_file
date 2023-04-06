@@ -4,12 +4,11 @@ server
     server_name my_awesome_server;
     error_page 404 https://http.cat/404;
     error_page 406 https://http.cat/406;
-    location / 
+    location /
     {
         root web_ressources;
         default_file index.html;
-        cgi .pl /usr/bin/sh;
+        cgi .pl;
         cgi .cgi;
-        cgi .html;
     }
 }
