@@ -30,7 +30,6 @@
 
 extern GlobalContext GlobalContextSingleton;
 extern std::vector<std::string>	g_env;
-extern char**	g_env2;
 
 class ClientConnexionHandler : public IO_Manager::FD_interest
 {
@@ -178,8 +177,8 @@ public:
 		char	**envCgi = new char *[g_env.size() + 1];
 		size_t i = 0;
 		for (; i < g_env.size(); i++)
-			envCgi[i] = const_cast<char*>(g_env[i].c_str());	//	[repare] cause: [Invalid write of size 8]
-		envCgi[i] = NULL;	//	[repare] cause: [Invalid write of size 8]
+			envCgi[i] = const_cast<char*>(g_env[i].c_str());
+		envCgi[i] = NULL;
 		return envCgi;
 	}
 

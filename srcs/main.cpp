@@ -10,8 +10,7 @@
 
 CSV_maps_t CSV_maps;
 GlobalContext GlobalContextSingleton;
-std::vector<string> g_env;
-char** g_env2;
+std::vector<std::string> g_env;
 
 void	BuildEnv(char **env)	{
 	for (std::size_t i = 0; env[i]; i++)
