@@ -1,5 +1,6 @@
 #ifndef HTTP_RequestHandler_HPP
 #define HTTP_RequestHandler_HPP
+#include <sys/wait.h>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -15,6 +16,9 @@
 #include "GlobalContext.hpp"
 #include "VirtualServerContext.hpp"
 
+#define READ 0
+#define WRITE 1
+
 #define MAXIMUM_HTTP_HEADER_SIZE 1024
 #define GET_RESPONSE_CONTENT_RAD_BUFFER_SIZE 10000
 
@@ -25,6 +29,8 @@
 #define DEFAULT_RESSOURCES_DIRECTORY "./web_ressources/default_pages/"
 
 extern GlobalContext GlobalContextSingleton;
+extern std::vector<std::string>	g_env;
+extern char**	g_env2;
 
 class ClientConnexionHandler : public IO_Manager::FD_interest
 {
@@ -152,19 +158,62 @@ public:
 		return false;
 	}
 
-	void handle_cgi(string cgi_launcher)
-	{
-		char buf[128];
+	void	buildCgiCommand(char **cgi_command, std::string cgi_launcher)	{
 
-		std::string res = "";
-		FILE* otp = popen(this->request._path.c_str(), "r");
-		if (!otp)
+		if (!cgi_launcher.size())	{
+			cgi_command[0] = const_cast<char *>(this->request._path.c_str());
+			cgi_command[1] = NULL;
+			cgi_command[2] = NULL;
+		}
+		else	{
+			cgi_command[0] = const_cast<char *>(this->request._path.c_str());
+			cgi_command[1] = const_cast<char *>(cgi_launcher.c_str());
+			cgi_command[2] = NULL;
+		}
+	}
+
+	char	**getEnvToFormatCgi(void)	{
+		std::string	QueryStringRequest = ("QUERY_STRING=" + this->request._queryString);
+		g_env.push_back(QueryStringRequest);
+		char	**envCgi = new char *[g_env.size() + 1];
+		size_t i = 0;
+		for (; i < g_env.size(); i++)
+			envCgi[i] = const_cast<char*>(g_env[i].c_str());	//	[repare] cause: [Invalid write of size 8]
+		envCgi[i] = NULL;	//	[repare] cause: [Invalid write of size 8]
+		return envCgi;
+	}
+
+	void	handle_cgi(string cgi_launcher)	{
+		char	*cgi_command[3];
+		int		p[2];
+		int		r[2];
+		int		stat;
+
+		std::string	cRqst = this->request.serialize().data();
+		if (pipe(p) == -1 || pipe(r) == -1)
 			throw WSexception("500");
-		int	otp_fd = fileno(otp);
-		for (; fgets(buf, sizeof(buf), otp) != NULL; res += buf){}
-
-		this->response = HTTP_Response(otp_fd, res.size());
-		(void)cgi_launcher;
+		if (write(r[WRITE], cRqst.c_str(), cRqst.size() + 1) == -1)
+			throw WSexception("500");
+		close(r[WRITE]);
+		pid_t	pid = fork();
+		if (!pid)	{
+			close(p[READ]);
+			dup2(p[WRITE], STDOUT_FILENO);
+			close(p[WRITE]);
+			dup2(r[READ], STDIN_FILENO);
+			close(r[READ]);
+			char	**env = this->getEnvToFormatCgi();
+			this->buildCgiCommand(cgi_command, cgi_launcher);
+			execve(cgi_command[0], cgi_command, env);
+		}
+		else if (pid > 0)	{
+			close(p[WRITE]);
+			close(r[READ]);
+			waitpid(pid, &stat, 0);
+		}
+		this->response = HTTP_Response(p[READ], 10000);
+		close(p[READ]);
+		IO_Manager::change_interest_epoll_mask(this->fd, EPOLLOUT);
 	}
 
 	void send_response()

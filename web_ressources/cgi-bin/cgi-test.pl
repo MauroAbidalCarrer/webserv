@@ -4,6 +4,14 @@ print STDOUT "HTTP/1.1 200 OK \r\n";
 print STDOUT "Content-Type: text/html;\r\n";
 print STDOUT "Connection: Keep-Alive\r\n";
 print STDOUT "\r\n";
+	foreach $key (sort keys(%ENV)) {
+		print STDOUT "$key = $ENV{$key}<p>";
+}
+	# $query = $ENV{'QUERY_STRING'};
+	# print STDOUT $query;
+print STDOUT "</pre>\n";
+# my $input = join("", <STDIN>);
+# print STDOUT $input;
 print STDOUT "<!DOCTYPE html>\r\n";
 print STDOUT "<html lang=\"en\">\r\n";
 print STDOUT "  <head>\r\n";

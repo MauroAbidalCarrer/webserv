@@ -24,6 +24,7 @@ class HTTP_Request : public HTTP_Message
 	std::string	_path;
 	std::string	_ports;
 	std::string	_hostname;
+	std::string	_queryString;
 
 	public:
 	HTTP_Request() { }
@@ -35,19 +36,22 @@ class HTTP_Request : public HTTP_Message
 		target_URL = request_line[1];
 		std::size_t	d = target_URL.find("?");
 		this->_path = target_URL.substr(0, d);
-		if (d != std::string::npos)
-			this->URL_PRM(std::string(target_URL));
+		if (d != std::string::npos)	{
+			this->_queryString = target_URL.substr(d, target_URL.size() - d);
+			std::cout << "Query String URL = [ " << this->_queryString << " ]" << std::endl;
+			this->URL_PRM(std::string(target_URL), d);
+		}
 		this->_hostname = this->get_header_fields("Host")[HOST];
 		if (this->get_header_fields("Host").size() > 2)
 			this->_ports = this->get_header_fields("Host")[PORT];
-		// this->printContent();
+		this->printContent();
 	}
 
-	void	URL_PRM(std::string s)	{
+	void	URL_PRM(std::string s, std::size_t d)	{
 		std::string lhs;
 		std::string rhs;
 		std::size_t	p;
-		s.erase(0, 2);
+		s.erase(0, d + 1);
 		while (true)	{
 			p = s.find("=");
 			if (p == std::string::npos)
@@ -57,11 +61,9 @@ class HTTP_Request : public HTTP_Message
 			p = s.find("&", 0);
 			rhs = s.substr(0, p);
 			s.erase(0, p + 1);
-			// std::cout << " LHS:[" << lhs << "] " << "RHS:[" << rhs << "]" << std::endl;
 			this->_param.push_back(std::make_pair(lhs, rhs));
 		}
 	}
-
 
 	void	printContent()	{
 		std::cout << "[++++++++++++++++ V*A*L*U*E*S +++++++++++++++++++]" << std::endl;
