@@ -9,7 +9,7 @@
 
 struct LocationContext
 {
-    string location_path;
+    string path;
     string root;
     string default_file;
     /*
@@ -19,26 +19,16 @@ struct LocationContext
     vector<pair<string, string> > cgi_extensions_and_launchers;
 
     //constructors and destructors
-    LocationContext() { }
-    LocationContext(const LocationContext& other)
+    LocationContext() : path(), root(), default_file(), cgi_extensions_and_launchers() { }
+    LocationContext(const LocationContext& other) :
+    path(), root(), default_file(), cgi_extensions_and_launchers()
     {
         *this = other;
     }
-    LocationContext(std::string location_path, string_vec_it_t& it, string_vec_it_t& location_context_end_it)
+    LocationContext(std::string path, string_vec_it_t& it, string_vec_it_t& location_context_end_it) :
+    path(), root(), default_file(), cgi_extensions_and_launchers()
     {
-        this->location_path = location_path;
-        // vector<string> keywords;
-        // keywords.push_back("root");
-        // keywords.push_back("default_file");
-        // vector<directive_fields_dsts_t> directive_field_dsts;
-        // directive_field_dsts.push_back(directive_fields_dsts_t(root, NULL));
-        // directive_field_dsts.push_back(directive_fields_dsts_t(default_file, NULL));
-        // while (it != location_context_end_it)
-        // {
-        //     //if no valid directive was found, it means that the token the iterator is pointing to is invalid
-        //     if (!parsing::set_directive_fields(keywords, directive_field_dsts, it, location_context_end_it))
-        //         throw std::runtime_error("invalid token in configuration file: " + *it);
-        // }
+        this->path = path;
         while (it != location_context_end_it)
         {
             bool parsed_directive = false;
@@ -53,7 +43,7 @@ struct LocationContext
     // //operator overloads
     LocationContext& operator=(const LocationContext& rhs)
     {
-        location_path = rhs.location_path;
+        path = rhs.path;
         root = rhs.root;
         default_file = rhs.default_file;
         cgi_extensions_and_launchers = rhs.cgi_extensions_and_launchers;
@@ -93,21 +83,30 @@ struct LocationContext
             it++;
             if (it == server_context_end_it || *it == ";" || *it == "}" || *it == "{")
                 throw std::runtime_error("location context keyword is not followed by a path.");
-            std::string location_path = *it;
+            std::string path = *it;
             it++;
             if (it == server_context_end_it || *it != "{")
                 throw std::runtime_error("location context path is not followed by an openning bracket.");
             string_vec_it_t location_context_end_it = parsing::find_closing_bracket_it(it, server_context_end_it);
             it++;
-            locationContext_vec.push_back(LocationContext(location_path, it, location_context_end_it));
+            locationContext_vec.push_back(LocationContext(path, it, location_context_end_it));
             it++;
             return true;
         }
         return false;
     }
+    void apply_to_path(string& path)
+    {
+		// apply root directive(for now just insert ".")
+		path = root + path;
+		// apply rewrite directive(not sure if it's the rewrite directive... the that completes target URLs finishing ini "/")(for no just index.html)
+		if (*(path.end() - 1) == '/')
+			path.append(default_file);
+		cout << "Path after applying context: " << path << endl;
+    }
     void debug()
     {
-        cout << "\t\tlocation path: " << location_path << endl;
+        cout << "\t\tlocation path: " << path << endl;
         cout << "\t\troot: " << root << endl;
         cout << "\t\tdefault_file: " << default_file << endl;  
         cout << "\t\tcgi extensions and launchers(optional):" << endl;

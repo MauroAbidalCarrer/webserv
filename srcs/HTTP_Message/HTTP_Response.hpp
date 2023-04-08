@@ -122,5 +122,16 @@ class HTTP_Response : public HTTP_Message
             return "\e[2mDefault " + first_line[1] + " response.\n\e[0m";
         return HTTP_Message::debug();
     }
+    const string& get_status_code() const
+    {
+        if (first_line.size() >= 2)
+            return first_line[1];
+        return "";
+    }
+    bool is_error() const
+    {
+		string response_status_code = get_status_code();
+		return (response_status_code[0] == '5' || response_status_code[0] == '4');
+    }
 };
 #endif

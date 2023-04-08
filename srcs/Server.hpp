@@ -72,7 +72,7 @@ class Server
         {
             VirtualServerContext virtual_server_context = GlobalContextSingleton.virtual_server_contexts[i];
             //get address info
-            string ip = virtual_server_context.listen_adress;
+            string ip = virtual_server_context.listen_ip;
             string port = virtual_server_context.listen_port;
             pair<string, string> network_interface = std::make_pair(ip, port);
             if (std::count(network_interfaces_already_used.begin(), network_interfaces_already_used.end(), network_interface))
@@ -158,7 +158,7 @@ class Server
         string listening_port = get_port_as_string_from_socket_addres(reinterpret_cast<sockaddr_t *>(&local_addr));
         IO_Manager::set_interest(connexion_socket_fd, EPOLLIN, new ClientConnexionHandler(connexion_socket_fd, listening_ip_address, listening_port));
         //debugging
-        cout << "New client connexion on socket " << connexion_socket_fd << ", listening interface= " << get_network_interface_as_string(reinterpret_cast<sockaddr_t *>(&local_addr)) << endl;
+        cout << "New client connexion on socket " << connexion_socket_fd << ", listening interface: " << get_network_interface_as_string(reinterpret_cast<sockaddr_t *>(&local_addr)) << endl;
     }
     static string get_network_interface_as_string(sockaddr_t *ai_addr)
     {

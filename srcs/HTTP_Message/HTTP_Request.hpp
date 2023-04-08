@@ -37,9 +37,17 @@ class HTTP_Request : public HTTP_Message
 		this->_path = target_URL.substr(0, d);
 		if (d != std::string::npos)
 			this->URL_PRM(std::string(target_URL));
-		this->_hostname = this->get_header_fields("Host")[HOST];
-		if (this->get_header_fields("Host").size() > 2)
-			this->_ports = this->get_header_fields("Host")[PORT];
+		try
+		{
+			this->_hostname = this->get_header_fields("Host")[HOST];
+			if (this->get_header_fields("Host").size() > 2)
+				this->_ports = this->get_header_fields("Host")[PORT];
+		}
+		catch(const NoHeaderFieldFoundException& e)
+		{
+			_hostname = "";
+			cout << YELLOW_WARNING << "request does not contain Host header field:" << endl << debug();
+		}
 		// this->printContent();
 	}
 

@@ -21,13 +21,13 @@ class WSexception : public std::exception
     {
         response = HTTP_Response::Mk_default_response(status_code);
         // exception_ptr = NULL;
-        exception_what = "WSexception created with satus_code " + status_code + CSV_maps["status_code_to_msg"][status_code];
+        exception_what = "WSexception created with satus_code \"" + status_code + " " + CSV_maps["status_code_to_msg"][status_code] + "\"";
     }
     WSexception()
     {
         response = HTTP_Response::Mk_default_response("500");
         // exception_ptr = NULL;
-        exception_what = "WSexception created with satus_code 500" + CSV_maps["status_code_to_msg"]["500"];
+        exception_what = "WSexception created with satus_code \"500 " + CSV_maps["status_code_to_msg"]["500"] + "\"";
     }
     WSexception(std::string status_code, const exception& exception)
     {

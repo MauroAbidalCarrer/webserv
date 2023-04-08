@@ -28,22 +28,22 @@ extern GlobalContext GlobalContextSingleton;
 
 class ClientConnexionHandler : public IO_Manager::FD_interest
 {
-private:
+	private:
 	HTTP_Request request;
 	HTTP_Response response;
 	VirtualServerContext virtualServerContext;
 	LocationContext locationContext;
 
-public:
+	public:
 	string listening_ip, listening_port;
 
-public:
+	public:
 	// constructors and destructors
 	ClientConnexionHandler() {}
-	ClientConnexionHandler(int socket_connexion_fd, string listening_ip, string listening_port) : FD_interest(IDLE_CLIENT_CONNEXION_TIMEOUT_IN_MILL, CONNEXION_TIMEOUT_MODE, socket_connexion_fd),
-																								  listening_ip(listening_ip), listening_port(listening_port)
+	ClientConnexionHandler(int socket_connexion_fd, string listening_ip, string listening_port) : 
+	FD_interest(IDLE_CLIENT_CONNEXION_TIMEOUT_IN_MILL, CONNEXION_TIMEOUT_MODE, socket_connexion_fd), listening_ip(listening_ip), listening_port(listening_port)
 	{
-		cout << "ClientConnexionHandler.listening_ip = " << listening_ip << ", ClientConnexionHandler.listening_port" << listening_port << endl;
+		// cout << "ClientConnexionHandler.listening_ip = " << listening_ip << ", ClientConnexionHandler.listening_port" << listening_port << endl;
 	}
 	ClientConnexionHandler(const ClientConnexionHandler &other)
 	{
@@ -62,16 +62,20 @@ public:
 	{
 		try
 		{
+			//set up meber variables
 			request = HTTP_Request(fd, MAXIMUM_HTTP_HEADER_SIZE);
-			find_corresponding_contexts();
-			apply_context_to_request();
-
+			cout << "New request from client on socket " << fd << ":" << endl;
+			cout << FAINT_AINSI << request.debug() << END_AINSI << endl;
+			virtualServerContext = GlobalContextSingleton.find_corresponding_virtualServerContext(request, listening_ip, listening_port);
+			locationContext = virtualServerContext.find_corresponding_location_context(request._path);
+			locationContext.apply_to_path();
+			//start processing request
 			if (request_requires_cgi())
 			{
 				cout << BLUE_AINSI << "Calling CGI" << END_AINSI << endl;
 			}
 			else if (request.HTTP_method == "GET")
-				start_processing_Get_request();
+				start_processing_Get_request("200", request._path);
 			else
 				throw WSexception("405");
 			// if method == POST
@@ -86,7 +90,7 @@ public:
 		}
 		catch (const HTTP_Message::NoBytesToReadException &e)
 		{
-			std::cout << "Client \e[1mclosed connexion " << fd << "\e[0m." << std::endl;
+			std::cout << "Client" << BOLD_AINSI << " closed connexion " << fd << END_AINSI << std::endl;
 			close_connexion();
 		}
 		// make sure to take a reference instead of a copy, otherwise the destructor will be called twice and will potentially call delete twice on the same pointer
@@ -97,37 +101,23 @@ public:
 			std::cout << "e.what(): " << e.what() << std::endl;
 			std::cout << "response: " << std::endl;
 			std::cout << response.debug();
-			std::cout << "-----------------------" << std::endl;
 			IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
 		}
 		catch (const std::exception &e)
 		{
 			response = HTTP_Response::Mk_default_response("500");
-			std::cerr << RED_AINSI << "ERROR" << END_AINSI << ": Unexpected std::exception caught while starting to process request. Setting response to default 500 response. " << std::endl;
+			std::cerr << RED_AINSI << "ERROR" << END_AINSI << ": Caught Unexpected exception processins request. Setting response to default 500 response. " << std::endl;
 			std::cerr << "e.what(): " << e.what() << std::endl;
 			IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
 		}
-	}
-	// methods
-	void find_corresponding_contexts()
-	{
-		virtualServerContext = GlobalContextSingleton.find_corresponding_virtualServerContext(request, listening_ip, listening_port);
-		locationContext = virtualServerContext.find_corresponding_location_context(request);
-	}
-	void apply_context_to_request()
-	{
-		find_corresponding_contexts();
-		// apply root directive(for now just insert ".")
-		request._path = locationContext.root + request._path;
-		// apply rewrite directive(not sure if it's the rewrite directive... the that completes target URLs finishing ini "/")(for no just index.html)
-		if (*(request._path.end() - 1) == '/')
-			request._path.append(locationContext.default_file);
+		if (response.is_error())
+			internally_redirect_error_response_to_default_page();
 	}
 	// GET method
 	// open content file AND consturct response from content AND dedebug reuqest on connexion socket_fd
-	void start_processing_Get_request()
+	void start_processing_Get_request(string status_code, string target_ressource_path)
 	{
-		response = HTTP_Response::mk_from_file_and_status_code("200", request._path);
+		response = HTTP_Response::mk_from_file_and_status_code(status_code, target_ressource_path);
 		// Implement response method that defines response's Content-Type header field.
 		IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
 	}
@@ -166,28 +156,47 @@ public:
 		this->response = HTTP_Response(otp_fd, res.size());
 		(void)cgi_launcher;
 	}
+	void internally_redirect_error_response_to_default_page()
+	{
+		//If the virtual server context contains an default error page for this
+		string response_status_code = response.get_status_code();
+		if (virtualServerContext.error_codes_to_default_error_page_path.count(response_status_code))
+		{
+			string redirected_path = virtualServerContext.error_codes_to_default_error_page_path[response_status_code];
+			try
+			{
+				locationContext = virtualServerContext.find_corresponding_location_context(redirected_path);
+				locationContext.apply_to_path(redirected_path);
+				start_processing_Get_request(redirected_path);
+			}
+			catch(const std::exception& e)
+			{
+				std::cerr << e.what() << '\n';
+			}
+		}
+	}
 
 	void send_response()
 	{
 		try
 		{
-			std::string serialized_response = response.serialize();
-			std::cout << "sending response:" << std::endl
-					  << "\e[2m" << response.debug() << "\e[0m"
-					  << "--------------------" << std::endl;
-			ws_send(fd, serialized_response, 0);
-			response.clear();
-			request.clear();
+			std::cout << "Sending response to client on socket " << fd << ":" << std::endl
+					  << FAINT_AINSI << response.debug() << END_AINSI << std::endl;
+			ws_send(fd, response.serialize(), 0);
 			IO_Manager::change_interest_epoll_mask(fd, EPOLLIN);
 		}
 		catch (std::exception e)
 		{
 			std::cerr << "Exception caught in ClientConnexionHandler::" << __func__ << ", client connexion socket fd: " << fd << "." << std::endl;
 			std::cerr << "exception.what() = " << e.what() << std::endl;
-			std::cerr << "debuged response: " << response.debug() << "-------------------" << std::endl;
-			std::cerr << "\e[1mClosing\e[0m client connexion \e[1m" << fd << "\e[0m." << std::endl;
+			std::cerr << "Response: " << response.debug() << std::endl;
+			std::cerr << BOLD_AINSI << "Closing" << FAINT_AINSI << " client connexion " << BOLD_AINSI << fd << END_AINSI << "." << std::endl;
 			close_connexion();
 		}
+		response.clear();
+		request.clear();
+		virtualServerContext = VirtualServerContext();
+		locationContext = LocationContext();
 	}
 
 	void internal_call_event_callbacks(epoll_event event)

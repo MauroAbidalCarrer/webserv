@@ -67,21 +67,30 @@ class GlobalContext
     public:
     const VirtualServerContext& find_corresponding_virtualServerContext(const HTTP_Request& request, string listen_ip, string listen_port) 
     {
-        // vector<VirtualServerContext> candidate_virtual_contexts = virtual_server_contexts;
-        // for (size_t i = 0; i < candidate_virtual_contexts.size(); i++)
-        // {
-        //     const VirtualServerContext& candidate = candidate_virtual_contexts[i];
-        //     if (candidate.listen_adress != connexion_handler.listening_ip || candidate.listen_port != connexion_handler.listen_port)
-        //     {
-        //         candidate_virtual_contexts.erase(candidate_virtual_contexts.begin() + i);
-        //         continue;
-        //     }
-        // }
-        // if (candidate_virtual_contexts.size() == )
-        (void)request;
-        (void)listen_ip;
-        (void)listen_port;
-        return virtual_server_contexts[0];
+        VirtualServerContext* default_server_context = NULL;
+        // cout << endl;
+        // cout << "request._hostname: " << request._hostname << endl;
+        for (vector<VirtualServerContext>::iterator candidate_it = virtual_server_contexts.begin(); candidate_it != virtual_server_contexts.end(); candidate_it++)
+        {
+            // cout << "Comparing candidate_it->listen_ip(" << candidate_it->listen_ip <<  ") with listen_ip(" << listen_ip << ")." << endl;
+            if ((candidate_it->listen_ip == listen_ip || candidate_it->listen_ip == "0.0.0.0") && candidate_it->listen_port == listen_port)
+            {   //Erase the candidate_it from the vector
+                if (default_server_context == NULL)
+                {
+                    // cout << "\tSetting defualt server." << endl;
+                    default_server_context = &(*candidate_it);
+                }
+                for (vector<string>::iterator hostname_it = candidate_it->hostnames.begin(); hostname_it != candidate_it->hostnames.end(); hostname_it++)
+                {
+                    // cout << "\tComparing request hostname(" << request._hostname << ") server hostname(" << *hostname_it << ")" << endl;
+                    if (request._hostname == *hostname_it)
+                        return *candidate_it;
+                }
+            }
+        }
+        if (default_server_context == NULL)
+            throw WSexception("404");
+        return *default_server_context;
     }
 };
 #endif

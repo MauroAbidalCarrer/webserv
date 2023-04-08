@@ -13,16 +13,16 @@
 struct VirtualServerContext
 {
     //listen fields
-    string listen_adress, listen_port;
-    vector<string> server_hostnames;
-    str_to_str_map_t error_codes_to_redirect_URLS;
+    string listen_ip, listen_port;
+    vector<string> hostnames;
+    str_to_str_map_t error_codes_to_default_error_page_path;
     vector<LocationContext> location_contexts;
     
     //constructors and destructors
     VirtualServerContext() {}
     VirtualServerContext(string_vec_it_t it, string_vec_it_t server_context_end_it)
     {
-        listen_adress = "127.0.0.1";
+        listen_ip = "127.0.0.1";
         listen_port = "80";
         while (it != server_context_end_it)
         {
@@ -41,7 +41,7 @@ struct VirtualServerContext
         std::string server_hostname_buffer;
         if (parsing::set_directive_field("server_name", directive_fields_dsts_t(server_hostname_buffer, NULL), it, server_context_end_it))
         {
-            server_hostnames.push_back(server_hostname_buffer);
+            hostnames.push_back(server_hostname_buffer);
             return true;
         }
         return false;
@@ -52,7 +52,7 @@ struct VirtualServerContext
         std::string error_status_code_buffer, redirect_URL_buffer;
         if (parsing::set_directive_field("error_page", directive_fields_dsts_t(error_status_code_buffer, &redirect_URL_buffer), it, server_context_end_it))
         {
-            error_codes_to_redirect_URLS[error_status_code_buffer] = redirect_URL_buffer;
+            error_codes_to_default_error_page_path[error_status_code_buffer] = redirect_URL_buffer;
             return true;
         }
         return false;
@@ -68,7 +68,7 @@ struct VirtualServerContext
                 throw runtime_error("There is a colon in a listen field but there is no post after.");
             if (colon_pos != std::string::npos)
             {
-                listen_adress = listen_buffer.substr(0, colon_pos);
+                listen_ip = listen_buffer.substr(0, colon_pos);
                 listen_port = listen_buffer.substr(colon_pos + 1);
             }
             else
@@ -76,7 +76,7 @@ struct VirtualServerContext
                 int nb_dots = std::count(listen_buffer.begin(), listen_buffer.end(), '.');
                 //if the listen value contains three dots, it is a ip address
                 if (nb_dots == 3)
-                    listen_adress = listen_buffer;
+                    listen_ip = listen_buffer;
                 //otherwise, it's (most likely) a port
                 else
                     listen_port = listen_buffer;
@@ -93,33 +93,50 @@ struct VirtualServerContext
     //operator overloads
     VirtualServerContext& operator=(const VirtualServerContext& rhs)
     {
-        listen_adress = rhs.listen_adress;
+        listen_ip = rhs.listen_ip;
         listen_port = rhs.listen_port;
-        server_hostnames = rhs.server_hostnames;
-        error_codes_to_redirect_URLS = rhs.error_codes_to_redirect_URLS;
+        hostnames = rhs.hostnames;
+        error_codes_to_default_error_page_path = rhs.error_codes_to_default_error_page_path;
         location_contexts = rhs.location_contexts;
         return *this;
     }
     //methods
     void debug()
     {
-        cout << "virtual server context:" << endl;
-        cout << "\tlisten_adress\t: " << listen_adress << endl;
+        cout << BOLD_AINSI << "Virtual server context:" << END_AINSI << endl;
+        cout << "\tlisten_adress\t: " << listen_ip << endl;
         cout << "\tlisten_port\t: " << listen_port << endl;
         cout << "\tserver hostnames: ";
-        for (size_t i = 0; i < server_hostnames.size(); i++)
-            cout << server_hostnames[i] << endl;
+        for (size_t i = 0; i < hostnames.size(); i++)
+            cout << hostnames[i] << endl;
         cout << "\terror pages redirects:" << endl;
-        for (str_to_str_map_t::iterator it = error_codes_to_redirect_URLS.begin(); it != error_codes_to_redirect_URLS.end(); it++)
+        for (str_to_str_map_t::iterator it = error_codes_to_default_error_page_path.begin(); it != error_codes_to_default_error_page_path.end(); it++)
             cout << "\t\t" << it->first << " => " << it->second << endl;
-        cout << "\tlocation contexts: " << endl;
+        cout << BOLD_AINSI << "\tlocation contexts: " << END_AINSI << endl;
         for (size_t i = 0; i < location_contexts.size(); i++)
             location_contexts[i].debug();
     }
-    const LocationContext& find_corresponding_location_context(const HTTP_Request& request) const
+    const LocationContext& find_corresponding_location_context(string path)
     {
-        (void)request;
-        return location_contexts[0];
+        LocationContext* best_location_context_match = NULL;//location with highest char match count
+        size_t best_nb_char_match = 0;
+        for (vector<LocationContext>::iterator location_it = location_contexts.begin(); location_it != location_contexts.end(); location_it++)
+        {
+            if (string_starts_by(path, location_it->path) && location_it->path.length() > best_nb_char_match)
+            {
+                best_location_context_match = &(*location_it);
+                best_nb_char_match = location_it->path.length();
+            }
+        }
+        if (best_location_context_match == NULL)
+            throw WSexception("404");
+        return *best_location_context_match;
+    }
+    bool string_starts_by(string a, string b)
+    {
+		if (a.length() >= b.length())
+			return (a.compare(0, b.length(), b) == 0);
+		return false;
     }
 };
 #endif
