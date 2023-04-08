@@ -86,22 +86,8 @@ class HTTP_Response : public HTTP_Message
             std::cout << "--------------------------------------DID NOT found file_extension = " << std::endl;
         response.set_response_line(status_code, CSV_maps["status_code_to_msg"][status_code]);
         response.set_content_length();
+		response.set_header_fields("Connection", "Keep-Alive");
         return response;
-    }
-    void set_header_fields(std::string header_str, std::string value)
-    {
-        vector<string> header_fields;
-        header_fields.push_back(header_str);
-        header_fields.push_back(value);
-        for (parsing::tokenized_text_t::iterator i = header.begin(); i != header.end(); i++)
-        {
-            if ((*i)[0] == header_str)
-            {
-                *i = header_fields;
-                return ;
-            }
-        }
-        header.push_back(header_fields);
     }
     void set_response_line(std::string status_code, std::string status_msg)
     {
@@ -122,7 +108,7 @@ class HTTP_Response : public HTTP_Message
             return "\e[2mDefault " + first_line[1] + " response.\n\e[0m";
         return HTTP_Message::debug();
     }
-    const string& get_status_code() const
+    string get_status_code() const
     {
         if (first_line.size() >= 2)
             return first_line[1];

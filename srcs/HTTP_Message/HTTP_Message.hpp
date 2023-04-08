@@ -130,6 +130,7 @@ class HTTP_Message
         }        
         return str;
     }
+    protected:
     vector<string> get_header_fields(std::string header_name)
     {
         for (size_t i = 0; i < header.size(); i++)
@@ -137,6 +138,39 @@ class HTTP_Message
                 return header[i];
         throw NoHeaderFieldFoundException();
     }
+    void set_header_fields(std::string header_str, std::string value)
+    {
+        vector<string> header_fields;
+        header_fields.push_back(header_str);
+        header_fields.push_back(value);
+        for (parsing::tokenized_text_t::iterator i = header.begin(); i != header.end(); i++)
+        {
+            if (i->size() > 0 && (*i)[0] == header_str)
+            {
+                *i = header_fields;
+                return ;
+            }
+        }
+        header.push_back(header_fields);
+    }
+    void set_header_fields(vector<string> header_fields)
+    {
+        if (header_fields.size() == 0)
+        {
+            cout << YELLOW_WARNING << "HTTP_Message::set_header_fields called with empty header_fields." << endl;
+            return;
+        }
+        for (parsing::tokenized_text_t::iterator i = header.begin(); i != header.end(); i++)
+        {
+            if (i->size() > 0 && (*i)[0] == header_fields[0])
+            {
+                *i = header_fields;
+                return ;
+            }
+        }
+        header.push_back(header_fields);
+    }
+    public:
     void clear()
     {
         first_line.clear();

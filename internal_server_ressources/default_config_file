@@ -2,8 +2,8 @@ server
 {
     listen 0.0.0.0:8080;
     server_name my_awesome_server;
-    error_page 404 https://http.cat/404;
-    error_page 406 https://http.cat/406;
+    error_page 404 /cat_HTTP_Responsasdqweqwees/404;
+    error_page 406 /cat_HTTP_Responses/406;
     location /
     {
         root web_ressources;

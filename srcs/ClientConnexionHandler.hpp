@@ -58,17 +58,16 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 	}
 
 	// methods
-	void handle_client_request()
+	void handle_request()
 	{
 		try
 		{
 			//set up meber variables
-			request = HTTP_Request(fd, MAXIMUM_HTTP_HEADER_SIZE);
 			cout << "New request from client on socket " << fd << ":" << endl;
 			cout << FAINT_AINSI << request.debug() << END_AINSI << endl;
 			virtualServerContext = GlobalContextSingleton.find_corresponding_virtualServerContext(request, listening_ip, listening_port);
 			locationContext = virtualServerContext.find_corresponding_location_context(request._path);
-			locationContext.apply_to_path();
+			locationContext.apply_to_path(request._path);
 			//start processing request
 			if (request_requires_cgi())
 			{
@@ -86,12 +85,6 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 			// if file doesn't exist ?
 			// delete file and construct response AND dedebug reuqest on connexion socket_fd
 
-			response.set_header_fields("Connection", "Keep-Alive");
-		}
-		catch (const HTTP_Message::NoBytesToReadException &e)
-		{
-			std::cout << "Client" << BOLD_AINSI << " closed connexion " << fd << END_AINSI << std::endl;
-			close_connexion();
 		}
 		// make sure to take a reference instead of a copy, otherwise the destructor will be called twice and will potentially call delete twice on the same pointer
 		catch (const WSexception &e)
@@ -102,6 +95,11 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 			std::cout << "response: " << std::endl;
 			std::cout << response.debug();
 			IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
+			if (request.is_redirected)
+			{
+				cerr << RED_ERROR << "Caught WSexception while handling redirected request, restting response to default 500." << endl;
+				response = HTTP_Response::Mk_default_response("500");
+			}
 		}
 		catch (const std::exception &e)
 		{
@@ -110,8 +108,6 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 			std::cerr << "e.what(): " << e.what() << std::endl;
 			IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
 		}
-		if (response.is_error())
-			internally_redirect_error_response_to_default_page();
 	}
 	// GET method
 	// open content file AND consturct response from content AND dedebug reuqest on connexion socket_fd
@@ -156,34 +152,21 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 		this->response = HTTP_Response(otp_fd, res.size());
 		(void)cgi_launcher;
 	}
-	void internally_redirect_error_response_to_default_page()
-	{
-		//If the virtual server context contains an default error page for this
-		string response_status_code = response.get_status_code();
-		if (virtualServerContext.error_codes_to_default_error_page_path.count(response_status_code))
-		{
-			string redirected_path = virtualServerContext.error_codes_to_default_error_page_path[response_status_code];
-			try
-			{
-				locationContext = virtualServerContext.find_corresponding_location_context(redirected_path);
-				locationContext.apply_to_path(redirected_path);
-				start_processing_Get_request(redirected_path);
-			}
-			catch(const std::exception& e)
-			{
-				std::cerr << e.what() << '\n';
-			}
-		}
-	}
 
 	void send_response()
 	{
-		try
+		if (response.is_error() && !request.is_redirected && virtualServerContext.error_codes_to_default_error_page_path.count(response.get_status_code()))
+			internally_redirect_error_response_to_default_page();
+		else try
 		{
 			std::cout << "Sending response to client on socket " << fd << ":" << std::endl
 					  << FAINT_AINSI << response.debug() << END_AINSI << std::endl;
 			ws_send(fd, response.serialize(), 0);
 			IO_Manager::change_interest_epoll_mask(fd, EPOLLIN);
+			request.clear();
+			response.clear();
+			virtualServerContext = VirtualServerContext();
+			locationContext = LocationContext();
 		}
 		catch (std::exception e)
 		{
@@ -193,10 +176,18 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 			std::cerr << BOLD_AINSI << "Closing" << FAINT_AINSI << " client connexion " << BOLD_AINSI << fd << END_AINSI << "." << std::endl;
 			close_connexion();
 		}
+	}
+	void internally_redirect_error_response_to_default_page()
+	{
+		//If the virtual server context contains an default error page for this
+		string redirected_path = virtualServerContext.error_codes_to_default_error_page_path[response.get_status_code()];
+		request = HTTP_Request(redirected_path, request);
 		response.clear();
-		request.clear();
 		virtualServerContext = VirtualServerContext();
 		locationContext = LocationContext();
+		IO_Manager::change_interest_epoll_mask(fd, EPOLLIN);
+		cout << BLUE_AINSI << "Handling redirected request" << END_AINSI << endl;
+		handle_request();
 	}
 
 	void internal_call_event_callbacks(epoll_event event)
@@ -206,11 +197,22 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 		if (event.events & EPOLLOUT)
 			send_response();
 		if (event.events & EPOLLIN)
-			handle_client_request();
+		{
+			try
+			{
+				request = HTTP_Request(fd, MAXIMUM_HTTP_HEADER_SIZE);
+				handle_request();
+			}
+			catch (const HTTP_Message::NoBytesToReadException &e)
+			{
+				std::cout << "Client" << BOLD_AINSI << " closed connexion " << fd << END_AINSI << std::endl;
+				close_connexion();
+			}
+		}
 	}
 	void call_timeout_callback()
 	{
-		std::cerr << "Warning: ClientConnexionHandler::" << __func__ << " called but client is not supposed to have timeout!(not closing connexion)" << std::endl;
+		cerr << YELLOW_WARNING << "ClientConnexionHandler::" << __func__ << " called but client is not supposed to have timeout!(not closing connexion)" << endl;
 	}
 	void close_connexion()
 	{

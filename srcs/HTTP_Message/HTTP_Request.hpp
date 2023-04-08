@@ -17,17 +17,20 @@ class HTTP_Request : public HTTP_Message
 	//fields
 	vector<string> request_line;
 	public:
-	std::string HTTP_method;
-	std::string target_URL;
+	string HTTP_method;
+	string target_URL;
 
 	PRM			_param;
 	std::string	_path;
 	std::string	_ports;
 	std::string	_hostname;
+	public:
+	bool is_redirected;
 
 	public:
 	HTTP_Request() { }
-	HTTP_Request(int read_fd, size_t buffer_size, int recv_flags = 0) : HTTP_Message(read_fd, buffer_size, recv_flags)
+	HTTP_Request(int read_fd, size_t buffer_size, int recv_flags = 0) : 
+	HTTP_Message(read_fd, buffer_size, recv_flags), is_redirected(false)
 	{
 		//do checks to make sure that the message is a properly formatted request
 		request_line = first_line;
@@ -50,6 +53,29 @@ class HTTP_Request : public HTTP_Message
 		}
 		// this->printContent();
 	}
+	//construct redirected GET request
+	HTTP_Request(string redirected_path, HTTP_Request initial_request) : 
+	HTTP_method("GET"), _path(redirected_path), is_redirected(true)
+	{
+		first_line.push_back("GET");
+		first_line.push_back(_path);
+		first_line.push_back("HTTP/1.1");
+		try
+		{
+			vector<string> initial_host_header_fields = initial_request.get_header_fields("Host");
+			// cout << "initial_host_header_fields.size() = " << initial_host_header_fields.size() << endl;
+			set_header_fields(initial_host_header_fields);
+			if (initial_host_header_fields.size() > 12)
+				_hostname = initial_host_header_fields[1];
+			if (initial_host_header_fields.size() > 2)
+				_ports = initial_host_header_fields[2];
+		}
+		catch(const NoHeaderFieldFoundException& e)
+		{
+			cout << YELLOW_WARNING << "no \"Host\" field found in initial_request while constructing redirected request." << endl;
+		}
+		// cout << "redirected request:" << endl << debug() << endl;
+	}
 
 	void	URL_PRM(std::string s)	{
 		std::string lhs;
@@ -69,7 +95,6 @@ class HTTP_Request : public HTTP_Message
 			this->_param.push_back(std::make_pair(lhs, rhs));
 		}
 	}
-
 
 	void	printContent()	{
 		std::cout << "[++++++++++++++++ V*A*L*U*E*S +++++++++++++++++++]" << std::endl;

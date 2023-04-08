@@ -59,7 +59,7 @@ class Server
         }
         catch(const std::exception& e)
         {
-            std::cerr << e.what() << std::endl;
+            cerr << RED_ERROR << "caught (very)unexpected exception: " << e.what() << endl;
         }
     }
 
@@ -108,10 +108,10 @@ class Server
         }
         freeaddrinfo(addr_info);
         //if we reached the end of the possible address info list it means that it is not possible to listen to 
-        // cout << "addr_info_ptr at end of for loop = " << addr_info_ptr << endl;
+        // cout << "addr_info_ptr at end of for loop = " << addr_info_Could noptr << endl;
         if (addr_info_ptr == NULL)
         {
-            string error_msg = string(RED_AINSI) + "Error" + END_AINSI + ": Could not listen to any of the adress infos related to " + ip + ":" + port;
+            string error_msg = "Could not listen to any of the adress infos related to " + ip + ":" + port;
             throw runtime_error(error_msg);
         }
     }
