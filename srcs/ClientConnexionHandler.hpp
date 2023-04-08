@@ -176,10 +176,33 @@ public:
 		g_env.push_back(QueryStringRequest);
 		char	**envCgi = new char *[g_env.size() + 1];
 		size_t i = 0;
-		for (; i < g_env.size(); i++)
-			envCgi[i] = const_cast<char*>(g_env[i].c_str());
+		for (; i < g_env.size(); i++)	{
+			envCgi[i] = const_cast<char *>(g_env[i].c_str());
+		}
 		envCgi[i] = NULL;
 		return envCgi;
+	}
+
+	void	endCommunicationServerCgi(int *p)	{
+		int res = read(p[READ], NULL, 0);(void)res;
+		if (errno == EBADF)	{
+			close(p[READ]);
+			throw WSexception("403");
+		}
+		this->response = HTTP_Response(p[READ], 10000);
+		close(p[READ]);
+	}
+
+	void	cgiChild(char **cgi_command, std::string cgi_launcher, int *p, int *r)	{
+		close(p[READ]);
+		dup2(p[WRITE], STDOUT_FILENO);
+		close(p[WRITE]);
+		dup2(r[READ], STDIN_FILENO);
+		close(r[READ]);
+		char	**env = this->getEnvToFormatCgi();
+		this->buildCgiCommand(cgi_command, cgi_launcher);
+		execve(cgi_command[0], cgi_command, env);
+		delete [] env;
 	}
 
 	void	handle_cgi(string cgi_launcher)	{
@@ -188,30 +211,23 @@ public:
 		int		r[2];
 		int		stat;
 
-		std::string	cRqst = this->request.serialize().data();
-		if (pipe(p) == -1 || pipe(r) == -1)
+		std::string	cRqst = this->request.serialize().c_str();
+		if (pipe(p) == -1)
+			throw WSexception("500");
+		if (pipe(r) == -1)
 			throw WSexception("500");
 		if (write(r[WRITE], cRqst.c_str(), cRqst.size() + 1) == -1)
 			throw WSexception("500");
 		close(r[WRITE]);
 		pid_t	pid = fork();
-		if (!pid)	{
-			close(p[READ]);
-			dup2(p[WRITE], STDOUT_FILENO);
-			close(p[WRITE]);
-			dup2(r[READ], STDIN_FILENO);
-			close(r[READ]);
-			char	**env = this->getEnvToFormatCgi();
-			this->buildCgiCommand(cgi_command, cgi_launcher);
-			execve(cgi_command[0], cgi_command, env);
-		}
+		if (!pid)
+			this->cgiChild(cgi_command, cgi_launcher, p, r);
 		else if (pid > 0)	{
 			close(p[WRITE]);
 			close(r[READ]);
 			waitpid(pid, &stat, 0);
 		}
-		this->response = HTTP_Response(p[READ], 10000);
-		close(p[READ]);
+		this->endCommunicationServerCgi(p);
 		IO_Manager::change_interest_epoll_mask(this->fd, EPOLLOUT);
 	}
 

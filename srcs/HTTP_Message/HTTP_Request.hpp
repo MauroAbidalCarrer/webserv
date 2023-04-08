@@ -37,14 +37,13 @@ class HTTP_Request : public HTTP_Message
 		std::size_t	d = target_URL.find("?");
 		this->_path = target_URL.substr(0, d);
 		if (d != std::string::npos)	{
-			this->_queryString = target_URL.substr(d, target_URL.size() - d);
-			std::cout << "Query String URL = [ " << this->_queryString << " ]" << std::endl;
+			this->_queryString = target_URL.substr(d + 1, target_URL.size() - d);
 			this->URL_PRM(std::string(target_URL), d);
 		}
 		this->_hostname = this->get_header_fields("Host")[HOST];
 		if (this->get_header_fields("Host").size() > 2)
 			this->_ports = this->get_header_fields("Host")[PORT];
-		this->printContent();
+		// this->printContent();
 	}
 
 	void	URL_PRM(std::string s, std::size_t d)	{

@@ -4,14 +4,7 @@ print STDOUT "HTTP/1.1 200 OK \r\n";
 print STDOUT "Content-Type: text/html;\r\n";
 print STDOUT "Connection: Keep-Alive\r\n";
 print STDOUT "\r\n";
-	foreach $key (sort keys(%ENV)) {
-		print STDOUT "$key = $ENV{$key}<p>";
-}
-	# $query = $ENV{'QUERY_STRING'};
-	# print STDOUT $query;
 print STDOUT "</pre>\n";
-# my $input = join("", <STDIN>);
-# print STDOUT $input;
 print STDOUT "<!DOCTYPE html>\r\n";
 print STDOUT "<html lang=\"en\">\r\n";
 print STDOUT "  <head>\r\n";
@@ -27,3 +20,11 @@ print STDOUT "                  https://media1.giphy.com/media/yJFeycRK2DB4c/200
 print STDOUT "                </p>\r\n";
 print STDOUT "  </body>\r\n";
 print STDOUT "</html>\r\n";
+
+# 	foreach $key (sort keys(%ENV)) {
+# 		print STDOUT "$key = $ENV{$key}<p>";
+# }
+# $query = $ENV{'QUERY_STRING'};
+# print STDOUT $query;
+# my $input = join("", <STDIN>);
+# print STDOUT $input;
