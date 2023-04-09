@@ -103,18 +103,20 @@ class IO_Manager
     template<typename T>class Template_IO_interest : public FD_interest
     {
         //fields
-        void (T::*read_callback)(int);
-        void (T::*write_callback)(int);
-        void (T::*timeout_callback)(int);
+        void (T::*read_cb)(int);
+        void (T::*write_cb)(int);
+        void (T::*timeout_cb)(int);
+        void (T::*hungup_cb)(int);
         T* instance;
 
         //methods
         public:
-        Template_IO_interest(void (T::*read_callback)(int), void (T::*write_callback)(int), void (T::*timeout_callback)(int), time_t timeout_in_mill, timeout_mode_e timeout_mode, int fd, T* instance) :
+        Template_IO_interest(void (T::*read_cb)(int), void (T::*write_cb)(int), void (T::*timeout_cb)(int), void (T::*hungup_cb)(int), time_t timeout_in_mill, timeout_mode_e timeout_mode, int fd, T* instance) :
         FD_interest(timeout_in_mill, timeout_mode, fd),
-        read_callback(read_callback),
-        write_callback(write_callback), 
-        timeout_callback(timeout_callback), 
+        read_cb(read_cb),
+        write_cb(write_cb), 
+        timeout_cb(timeout_cb), 
+        hungup_cb(hungup_cb),
         instance(instance)
         { }
         ~Template_IO_interest(){}
@@ -122,15 +124,21 @@ class IO_Manager
         //methods
         void internal_call_event_callbacks(epoll_event event)
         {
-            if ((event.events & EPOLLIN) && read_callback)
-                (instance->*read_callback)(event.data.fd);
-            if ((event.events & EPOLLOUT) && write_callback)
-                (instance->*write_callback)(event.data.fd);
+            if ((event.events & EPOLLIN) && read_cb)
+                (instance->*read_cb)(event.data.fd);
+            if ((event.events & EPOLLOUT) && write_cb)
+                (instance->*write_cb)(event.data.fd);
+            if ((event.events & EPOLLHUP) && hungup_cb)
+            {
+                (instance->*hungup_cb)(event.data.fd);
+                // cout << YELLOW_WARNING << "EPOLLHUP flag set on fd " << fd << ", closing fd." << endl;
+                // remove_interest_and_close_fd(fd);
+            }
         }
         void call_timeout_callback()
         {
-            if (timeout_callback)
-                (instance->*timeout_callback)(fd);
+            if (timeout_cb)
+                (instance->*timeout_cb)(fd);
         }
     };
   
@@ -201,16 +209,16 @@ class IO_Manager
     //static overload of set_interest
     template <typename T> static void set_interest(int fd, void (T::*read_callback)(int), void (T::*write_callback)(int), T* instance)
     {
-        set_interest<T>(fd, read_callback, write_callback, NULL, -1, no_timeout, instance);
+        set_interest<T>(fd, read_callback, write_callback, NULL, NULL, -1, no_timeout, instance);
     }
-    template <typename T> static void set_interest(int fd, void (T::*read_callback)(int), void (T::*write_callback)(int), void (T::*timeout_callback)(int), time_t timeout_in_mill, timeout_mode_e timeout_mode, T* instance)
+    template <typename T> static void set_interest(int fd, void (T::*read_cb)(int), void (T::*write_cb)(int), void (T::*timeout_cb)(int), void (T::*hungup_cb)(int), time_t timeout_in_mill, timeout_mode_e timeout_mode, T* instance)
     {
         int epoll_event_mask = 0;
-        if (read_callback)
+        if (read_cb)
             epoll_event_mask |= EPOLLIN;
-        if (write_callback)
+        if (write_cb)
             epoll_event_mask |= EPOLLOUT;
-        FD_interest * callbacks_ptr = new Template_IO_interest<T>(read_callback, write_callback, timeout_callback, timeout_in_mill, timeout_mode, fd, instance);
+        FD_interest * callbacks_ptr = new Template_IO_interest<T>(read_cb, write_cb, timeout_cb, hungup_cb, timeout_in_mill, timeout_mode, fd, instance);
         singleton().non_static_set_interest(fd, epoll_event_mask, callbacks_ptr);
     }
     //change interest epoll_mask
@@ -244,9 +252,9 @@ class IO_Manager
             cout << "\tNot starting the epoll_wait lopp to avoid endless loop." << endl;
             return ;
         }
-        try
+        try 
         {
-            do
+            while (true)
             {
                 current_time_in_mill = ws_epoch_time_in_mill();
                 static epoll_event events[MAX_EPOLL_EVENTS_TO_HANDLE_AT_ONCE];
@@ -260,10 +268,11 @@ class IO_Manager
                 else for (int i = 0; i < nb_events; i++)
                 {
                     epoll_event event = events[i];
+                    // cout << "fd = " << event.data.fd << ", read: " << (event.events & EPOLLIN) << ", write: " << (event.events & EPOLLOUT) << ", events: " << event.events << endl;
                     interest_map[event.data.fd]->call_event_callbacks(event, current_time_in_mill);
                 }
                 clear_fds_to_close();
-            } while (true);
+            }
         }
         catch(StopWaitLoop& e)
         {
@@ -305,7 +314,7 @@ class IO_Manager
         {
             int fd = fds_to_close[i];
             ws_epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL, "removing fd from epoll instance in \"remove_interest_and_close_fd\"");
-            ws_close(fd, "closing fd before removing it from interest_map");
+            ws_close(fd, "Closing fd before removing it from interest_map.");
             delete interest_map[fd];
             interest_map.erase(fd);
         }

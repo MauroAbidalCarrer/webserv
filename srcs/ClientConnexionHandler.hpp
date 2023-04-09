@@ -164,16 +164,25 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 		}
 		envCgi[i] = NULL;
 		return envCgi;
-	}
+	}	
 
-	void	closeChannelServerCgi(int *p)	{
-		int res = read(p[READ], NULL, 0);(void)res;
-		if (errno == EBADF)	{
-			close(p[READ]);
+	void	closeChannelServerCgi(int p_read)	{
+		// cout << YELLOW_AINSI << "closeChannelServerCgi called" << END_AINSI << endl;
+		int res = read(p_read, NULL, 0);;
+		if (res == -1 && errno == EBADF)	{
+			close(p_read);
 			throw WSexception("403");
 		}
-		this->response = HTTP_Response(p[READ], 10000);
-		close(p[READ]);
+		this->response = HTTP_Response(p_read, 10000);
+		IO_Manager::remove_interest_and_close_fd(p_read);
+		IO_Manager::change_interest_epoll_mask(this->fd, EPOLLOUT);
+	}
+	void handle_pipe_read_hungup(int p_read)
+	{
+		cout << YELLOW_WARNING << "EPOLLHUP flag set on fd " << fd << ", closing fd." << endl;
+		IO_Manager::remove_interest_and_close_fd(p_read);
+		response = HTTP_Response::Mk_default_response("500");
+		IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
 	}
 
 	void	cgiChild(char **cgi_command, std::string cgi_launcher, int *p, int *r)	{
@@ -208,19 +217,19 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 		char	*cgi_command[3];
 		int		p[2];
 		int		r[2];
-		int		stat;
+		// int		stat;
 
 		this->prepareChannelServerCgi(p, r);
 		pid_t	pid = fork();
 		if (!pid)
 			this->cgiChild(cgi_command, cgi_launcher, p, r);
 		else if (pid > 0)	{
-			close(p[WRITE]);
 			close(r[READ]);
-			waitpid(pid, &stat, 0);
+			close(p[WRITE]);
+			// waitpid(pid, &stat, 0);
+    // template <typename T> static void set_interest(int fd, void (T::*read_cb)(int), void (T::*write_cb)(int), void (T::*timeout_cb)(int), void (T::*hungup_cb)(int), time_t timeout_in_mill, timeout_mode_e timeout_mode, T* instance)
+			IO_Manager::set_interest<ClientConnexionHandler>(p[READ], &ClientConnexionHandler::closeChannelServerCgi, NULL, NULL, &ClientConnexionHandler::handle_pipe_read_hungup, -1, no_timeout, this);
 		}
-		this->closeChannelServerCgi(p);
-		IO_Manager::change_interest_epoll_mask(this->fd, EPOLLOUT);
 	}
 
 	void send_response()

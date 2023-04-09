@@ -53,6 +53,10 @@
         "ranges": "cpp",
         "span": "cpp",
         "*.hpp": "cpp",
-        "*.h": "cpp"
+        "*.h": "cpp",
+        "bitset": "cpp",
+        "csignal": "cpp",
+        "ctime": "cpp",
+        "iomanip": "cpp"
     }
 }
