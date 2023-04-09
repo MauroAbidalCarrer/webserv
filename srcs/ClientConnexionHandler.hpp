@@ -63,8 +63,6 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 		try
 		{
 			//set up meber variables
-			cout << "New request from client on socket " << fd << ":" << endl;
-			cout << FAINT_AINSI << request.debug() << END_AINSI << endl;
 			virtualServerContext = GlobalContextSingleton.find_corresponding_virtualServerContext(request, listening_ip, listening_port);
 			locationContext = virtualServerContext.find_corresponding_location_context(request._path);
 			locationContext.apply_to_path(request._path);
@@ -97,7 +95,8 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 			IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
 			if (request.is_redirected)
 			{
-				cerr << RED_ERROR << "Caught WSexception while handling redirected request, restting response to default 500." << endl;
+				cerr << RED_ERROR << "\tCaught WSexception while handling redirected request, restting response to default 500." << endl;
+				cerr << "\tYou probably misstyped the default error page, path pf redirected request: " << request._path << endl;
 				response = HTTP_Response::Mk_default_response("500");
 			}
 		}
@@ -186,7 +185,7 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 		virtualServerContext = VirtualServerContext();
 		locationContext = LocationContext();
 		IO_Manager::change_interest_epoll_mask(fd, EPOLLIN);
-		cout << BLUE_AINSI << "Handling redirected request" << END_AINSI << endl;
+		cout << BLUE_AINSI << "Handling redirected request, new request is GET " << request._path << END_AINSI << endl;
 		handle_request();
 	}
 
@@ -201,6 +200,8 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 			try
 			{
 				request = HTTP_Request(fd, MAXIMUM_HTTP_HEADER_SIZE);
+				cout << "New request from client on socket " << fd << ":" << endl;
+				cout << FAINT_AINSI << request.debug() << END_AINSI << endl;
 				handle_request();
 			}
 			catch (const HTTP_Message::NoBytesToReadException &e)
