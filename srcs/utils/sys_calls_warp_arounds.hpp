@@ -34,6 +34,7 @@
 # include <fstream>
 # include <string>
 # include <sstream>
+class StopWaitLoop {};
 
 # include "WSexception.hpp"
 
@@ -118,9 +119,9 @@ int ws_epoll_create1(int __flags, std::string context)
    constants defined above. The "fd" parameter is the target of the
    operation. The "event" parameter describes which events the caller
    is interested in and any associated user data.  */
-void ws_epoll_ctl(int __epfd, int __op, int __fd, struct epoll_event *__event, std::string context)
+void ws_epoll_ctl(int __epfd, int __op, int __fd, struct epoll_event *_event, std::string context)
 {
-    if (epoll_ctl(__epfd, __op, __fd, __event) == -1)
+    if (epoll_ctl(__epfd, __op, __fd, _event) == -1)
         throw SystemCallException("epoll_ctl", context);
 }
 
@@ -133,11 +134,11 @@ void ws_epoll_ctl(int __epfd, int __op, int __fd, struct epoll_event *__event, s
 
    This function is a cancellation point and therefore not marked with
    __THROW.  */
-int ws_epoll_wait(int __epfd, struct epoll_event *__events, int __maxevents, int __timeout, std::string context)
+int ws_epoll_wait(int __epfd, struct epoll_event *__events, int __maxevents, int __timeout)
 {
     int nb_events = epoll_wait(__epfd, __events, __maxevents, __timeout);
     if (nb_events == -1)
-        throw SystemCallException("epoll_wait", context);
+        throw StopWaitLoop();
     return nb_events;
 }
 

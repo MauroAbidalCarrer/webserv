@@ -3,10 +3,6 @@
 
 	my $query = $ENV{ "QUERY_STRING" };
 	my @pairs = split("&", $query);
-	# for (@pairs)	{
-	# 	print STDOUT "$_";
-	# 	print STDOUT "\n";
-	# }
 	print STDOUT "HTTP/1.1 200 OK \r\n";
 	print STDOUT "Content-type: text/html\r\n";
 	print STDOUT "Connection: Keep-Alive\r\n";
@@ -23,9 +19,16 @@
 	print STDOUT "  <body>\r\n";
 	print STDOUT "                <h1>CGI response</h1>\r\n";
 	print STDOUT "                <p>\r\n";
+	print STDOUT "                <a href=\"index.html\"\r\n";
 	print STDOUT "                Votre nom est: \r\n";
 	print STDOUT "                </p>\r\n";
+	print STDOUT "                <pre>\r\n";
+	for (@pairs)	{
+		print STDOUT "$_";
+		print STDOUT "<br>";
+	print STDOUT "                </pre>\r\n";
 	print STDOUT "                <p>\r\n";
+	}
 	print STDOUT "                  <img src=\"https://media1.giphy.com/media/yJFeycRK2DB4c/200w.gif?cid=6c09b9521topw98b14svvcch9l4sgej4xpy0xw6qa399t41e&rid=200w.gif&ct=g\r\n\">";
 	print STDOUT "                </p>\r\n";
 	print STDOUT "  </body>\r\n";

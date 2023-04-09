@@ -18,8 +18,6 @@ enum timeout_mode_e
     no_timeout//for listening sockets
 };
 
-
-
 class IO_Manager
 {
     private:
@@ -180,7 +178,6 @@ class IO_Manager
         ws_epoll_ctl(epoll_fd, op, fd, &event, "setting fd interest");
     }
     public:
-    class StopWaitLoop {};
     int epoll_fd;
     //static overload for static functions
     static void set_interest(int fd, int epoll_event_mask, FD_interest * FD_interst_ptr)
@@ -254,7 +251,7 @@ class IO_Manager
                 current_time_in_mill = ws_epoch_time_in_mill();
                 static epoll_event events[MAX_EPOLL_EVENTS_TO_HANDLE_AT_ONCE];
                 int sortest_timeout_in_mill = find_shortest_timeout_in_milliseconds();
-                int nb_events = ws_epoll_wait(epoll_fd, events, MAX_EPOLL_EVENTS_TO_HANDLE_AT_ONCE, sortest_timeout_in_mill, "IO_manager wait loop");
+                int nb_events = ws_epoll_wait(epoll_fd, events, MAX_EPOLL_EVENTS_TO_HANDLE_AT_ONCE, sortest_timeout_in_mill);
                 current_time_in_mill = ws_epoch_time_in_mill();
                 //timeout
                 if (nb_events == 0)

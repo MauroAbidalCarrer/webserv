@@ -27,6 +27,9 @@ extern CSV_maps_t CSV_maps;
 
 extern GlobalContext GlobalContextSingleton;
 
+# include <csignal>
+extern bool received_SIGINT;
+
 class Server
 {
     private:
@@ -52,6 +55,8 @@ class Server
     {
         try
         {
+            cout << "SIG_ERR = " << SIG_ERR << endl;
+            signal(SIGINT, &Server::handle_SIGINT);
             setup_CSV_maps();
             GlobalContextSingleton = GlobalContext(config_file_path);
             setup_connexion_queues();
@@ -247,6 +252,13 @@ class Server
             std::string CSV_filname_without_extension = CSVs_filenames[i].substr(0, CSVs_filenames[i].find(".csv"));
             CSV_maps[CSV_filname_without_extension] = CSV_map;
         }
+    }
+
+    static void handle_SIGINT(int signal)
+    {
+        (void)signal;
+        cout << BLUE_AINSI << "Received SIGINT, stopping server." << END_AINSI << endl;
+        received_SIGINT = true;
     }
 };
 #endif
