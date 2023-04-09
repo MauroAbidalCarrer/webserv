@@ -9,8 +9,6 @@
 # define HOST 1
 # define PORT 2
 
-typedef	std::vector<std::pair<std::string, std::string> >	PRM;
-
 class HTTP_Request : public HTTP_Message
 {
 	private:
@@ -20,7 +18,6 @@ class HTTP_Request : public HTTP_Message
 	std::string HTTP_method;
 	std::string target_URL;
 
-	PRM			_param;
 	std::string	_path;
 	std::string	_ports;
 	std::string	_hostname;
@@ -36,32 +33,11 @@ class HTTP_Request : public HTTP_Message
 		target_URL = request_line[1];
 		std::size_t	d = target_URL.find("?");
 		this->_path = target_URL.substr(0, d);
-		if (d != std::string::npos)	{
+		if (d != std::string::npos)
 			this->_queryString = target_URL.substr(d + 1, target_URL.size() - d);
-			this->URL_PRM(std::string(target_URL), d);
-		}
 		this->_hostname = this->get_header_fields("Host")[HOST];
 		if (this->get_header_fields("Host").size() > 2)
 			this->_ports = this->get_header_fields("Host")[PORT];
-		// this->printContent();
-	}
-
-	void	URL_PRM(std::string s, std::size_t d)	{
-		std::string lhs;
-		std::string rhs;
-		std::size_t	p;
-		s.erase(0, d + 1);
-		while (true)	{
-			p = s.find("=");
-			if (p == std::string::npos)
-				break ;
-			lhs = s.substr(0, p);
-			s.erase(0, p + 1);
-			p = s.find("&", 0);
-			rhs = s.substr(0, p);
-			s.erase(0, p + 1);
-			this->_param.push_back(std::make_pair(lhs, rhs));
-		}
 	}
 
 	void	printContent()	{
@@ -69,10 +45,9 @@ class HTTP_Request : public HTTP_Message
 		std::cout << "HTPP_Serveur: Port: " << this->_ports << std::endl;
 		std::cout << "HTPP_Serveur: Path: " << this->_path << std::endl;
 		std::cout << "HTPP_Serveur: Hostname: " << this->_hostname << std::endl;
-		std::cout << "HTPP_Serveur: PARAM: ";
-		for (PRM::iterator it = this->_param.begin(); it != this->_param.end(); it++)
-			std::cout << " LHS:[" << it->first << "] " << "RHS:[" << it->second << "]" << std::endl;
+		std::cout << "HTPP_Serveur: QueryString: " << this->_queryString << std::endl;
 		std::cout << "[++++++++++++++++++++++++++++++++++++++++++++++++]" << std::endl;
 	}
 };
+
 #endif
