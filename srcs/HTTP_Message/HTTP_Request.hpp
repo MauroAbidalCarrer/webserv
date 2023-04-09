@@ -9,8 +9,6 @@
 # define HOST 1
 # define PORT 2
 
-typedef	std::vector<std::pair<std::string, std::string> >	PRM;
-
 class HTTP_Request : public HTTP_Message
 {
 	private:
@@ -20,12 +18,12 @@ class HTTP_Request : public HTTP_Message
 	string HTTP_method;
 	string target_URL;
 
-	PRM			_param;
 	std::string	_path;
 	std::string	_ports;
 	std::string	_hostname;
 	public:
 	bool is_redirected;
+	std::string	_queryString;
 
 	public:
 	HTTP_Request() { }
@@ -39,19 +37,10 @@ class HTTP_Request : public HTTP_Message
 		std::size_t	d = target_URL.find("?");
 		this->_path = target_URL.substr(0, d);
 		if (d != std::string::npos)
-			this->URL_PRM(std::string(target_URL));
-		try
-		{
-			this->_hostname = this->get_header_fields("Host")[HOST];
-			if (this->get_header_fields("Host").size() > 2)
-				this->_ports = this->get_header_fields("Host")[PORT];
-		}
-		catch(const NoHeaderFieldFoundException& e)
-		{
-			_hostname = "";
-			cout << YELLOW_WARNING << "request does not contain Host header field:" << endl << debug();
-		}
-		// this->printContent();
+			this->_queryString = target_URL.substr(d + 1, target_URL.size() - d);
+		this->_hostname = this->get_header_fields("Host")[HOST];
+		if (this->get_header_fields("Host").size() > 2)
+			this->_ports = this->get_header_fields("Host")[PORT];
 	}
 	//construct redirected GET request
 	HTTP_Request(string redirected_path, HTTP_Request initial_request) : 
@@ -77,34 +66,14 @@ class HTTP_Request : public HTTP_Message
 		// cout << "redirected request:" << endl << debug() << endl;
 	}
 
-	void	URL_PRM(std::string s)	{
-		std::string lhs;
-		std::string rhs;
-		std::size_t	p;
-		s.erase(0, 2);
-		while (true)	{
-			p = s.find("=");
-			if (p == std::string::npos)
-				break ;
-			lhs = s.substr(0, p);
-			s.erase(0, p + 1);
-			p = s.find("&", 0);
-			rhs = s.substr(0, p);
-			s.erase(0, p + 1);
-			// std::cout << " LHS:[" << lhs << "] " << "RHS:[" << rhs << "]" << std::endl;
-			this->_param.push_back(std::make_pair(lhs, rhs));
-		}
-	}
-
 	void	printContent()	{
 		std::cout << "[++++++++++++++++ V*A*L*U*E*S +++++++++++++++++++]" << std::endl;
 		std::cout << "HTPP_Serveur: Port: " << this->_ports << std::endl;
 		std::cout << "HTPP_Serveur: Path: " << this->_path << std::endl;
 		std::cout << "HTPP_Serveur: Hostname: " << this->_hostname << std::endl;
-		std::cout << "HTPP_Serveur: PARAM: ";
-		for (PRM::iterator it = this->_param.begin(); it != this->_param.end(); it++)
-			std::cout << " LHS:[" << it->first << "] " << "RHS:[" << it->second << "]" << std::endl;
+		std::cout << "HTPP_Serveur: QueryString: " << this->_queryString << std::endl;
 		std::cout << "[++++++++++++++++++++++++++++++++++++++++++++++++]" << std::endl;
 	}
 };
+
 #endif
