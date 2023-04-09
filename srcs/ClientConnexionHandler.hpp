@@ -38,6 +38,7 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 	HTTP_Response response;
 	VirtualServerContext virtualServerContext;
 	LocationContext locationContext;
+	std::map<int, pid_t> pipe_fds_to_cgi_pids;
 
 	public:
 	string listening_ip, listening_port;
@@ -87,7 +88,6 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 			// if method == DELETE
 			// if file doesn't exist ?
 			// delete file and construct response AND dedebug reuqest on connexion socket_fd
-
 		}
 		// make sure to take a reference instead of a copy, otherwise the destructor will be called twice and will potentially call delete twice on the same pointer
 		catch (const WSexception &e)
@@ -174,15 +174,25 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 			throw WSexception("403");
 		}
 		this->response = HTTP_Response(p_read, 10000);
+		cout << BLUE_AINSI << "Read CGI response, closing pipe read " << p_read << END_AINSI << endl; 
 		IO_Manager::remove_interest_and_close_fd(p_read);
 		IO_Manager::change_interest_epoll_mask(this->fd, EPOLLOUT);
+		wait_cgi(p_read);
 	}
-	void handle_pipe_read_hungup(int p_read)
+	void handle_cgi_pipe_hungup(int pipe_fd)
 	{
 		cout << YELLOW_WARNING << "EPOLLHUP flag set on fd " << fd << ", closing fd." << endl;
-		IO_Manager::remove_interest_and_close_fd(p_read);
+		IO_Manager::remove_interest_and_close_fd(pipe_fd);
 		response = HTTP_Response::Mk_default_response("500");
 		IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
+		wait_cgi(pipe_fd);
+	}
+	void wait_cgi(int pipe_fd)
+	{
+		int cgi_status_code = 0;
+		waitpid(pipe_fds_to_cgi_pids[pipe_fd], &cgi_status_code, 0);
+		cout << "cgi_status_code: " << cgi_status_code << endl;
+		pipe_fds_to_cgi_pids.erase(pipe_fd);
 	}
 
 	void	cgiChild(char **cgi_command, std::string cgi_launcher, int *p, int *r)	{
@@ -217,7 +227,6 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 		char	*cgi_command[3];
 		int		p[2];
 		int		r[2];
-		// int		stat;
 
 		this->prepareChannelServerCgi(p, r);
 		pid_t	pid = fork();
@@ -226,9 +235,9 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 		else if (pid > 0)	{
 			close(r[READ]);
 			close(p[WRITE]);
-			// waitpid(pid, &stat, 0);
-    // template <typename T> static void set_interest(int fd, void (T::*read_cb)(int), void (T::*write_cb)(int), void (T::*timeout_cb)(int), void (T::*hungup_cb)(int), time_t timeout_in_mill, timeout_mode_e timeout_mode, T* instance)
-			IO_Manager::set_interest<ClientConnexionHandler>(p[READ], &ClientConnexionHandler::closeChannelServerCgi, NULL, NULL, &ClientConnexionHandler::handle_pipe_read_hungup, -1, no_timeout, this);
+			pipe_fds_to_cgi_pids[p[READ]] = pid;
+			pipe_fds_to_cgi_pids[r[WRITE]] = pid;
+			IO_Manager::set_interest<ClientConnexionHandler>(p[READ], &ClientConnexionHandler::closeChannelServerCgi, NULL, NULL, &ClientConnexionHandler::handle_cgi_pipe_hungup, -1, no_timeout, this);
 		}
 	}
 

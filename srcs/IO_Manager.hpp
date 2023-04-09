@@ -128,12 +128,8 @@ class IO_Manager
                 (instance->*read_cb)(event.data.fd);
             if ((event.events & EPOLLOUT) && write_cb)
                 (instance->*write_cb)(event.data.fd);
-            if ((event.events & EPOLLHUP) && hungup_cb)
-            {
+            if ((event.events & EPOLLHUP) && hungup_cb && !(event.events & EPOLLOUT) && !(event.events & EPOLLIN))
                 (instance->*hungup_cb)(event.data.fd);
-                // cout << YELLOW_WARNING << "EPOLLHUP flag set on fd " << fd << ", closing fd." << endl;
-                // remove_interest_and_close_fd(fd);
-            }
         }
         void call_timeout_callback()
         {
@@ -237,7 +233,10 @@ class IO_Manager
     //remove
     void non_static_remove_interest_and_close_fd(int fd)
     {
-        fds_to_close.push_back(fd);
+        if (std::count(fds_to_close.begin(), fds_to_close.end(), fd) == 0)
+            fds_to_close.push_back(fd);
+        else
+            cout << YELLOW_WARNING << "trying to add fd to fds_to_close twice" << endl;
     }
     static void remove_interest_and_close_fd(int fd)
     {

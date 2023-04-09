@@ -59,7 +59,7 @@ class SystemCallException : public std::exception
     SystemCallException(std::string sys_call_name, std::string context) : 
     sys_call_name(sys_call_name), context(context), error_msg(strerror(errno)), system_call_errno(errno)
     {
-        what_str = "System call \"" + sys_call_name + "\"" + ", strerror: \"" + error_msg + "\"";
+        what_str = "System call \"" + sys_call_name + "\"" + ", strerror: \"" + error_msg + "\", context: " + context;
     }
     ~SystemCallException() throw () {}
 
