@@ -158,17 +158,15 @@ public:
 	}
 
 	void	buildCgiCommand(char **cgi_command, std::string cgi_launcher)	{
-
 		if (!cgi_launcher.size())	{
 			cgi_command[0] = const_cast<char *>(this->request._path.c_str());
 			cgi_command[1] = NULL;
 			cgi_command[2] = NULL;
+			return;
 		}
-		else	{
-			cgi_command[0] = const_cast<char *>(this->request._path.c_str());
-			cgi_command[1] = const_cast<char *>(cgi_launcher.c_str());
-			cgi_command[2] = NULL;
-		}
+		cgi_command[0] = const_cast<char *>(cgi_launcher.c_str());
+		cgi_command[1] = const_cast<char *>(this->request._path.c_str());
+		cgi_command[2] = NULL;
 	}
 
 	char	**getEnvToFormatCgi(void)	{
@@ -183,7 +181,7 @@ public:
 		return envCgi;
 	}
 
-	void	endCommunicationServerCgi(int *p)	{
+	void	closeChannelServerCgi(int *p)	{
 		int res = read(p[READ], NULL, 0);(void)res;
 		if (errno == EBADF)	{
 			close(p[READ]);
@@ -205,20 +203,29 @@ public:
 		delete [] env;
 	}
 
+	void	prepareChannelServerCgi(int *p, int *r)	{
+		std::string	cRqst = this->request.serialize().c_str();
+		if (access(this->request._path.c_str(), X_OK))
+			throw WSexception("403");
+		if (pipe(p) == -1)
+			throw WSexception("500");
+		if (pipe(r) == -1)	{
+			close(p[READ]);
+			close(p[WRITE]);
+			throw WSexception("500");
+		}
+		if (write(r[WRITE], cRqst.c_str(), cRqst.size() + 1) == -1)
+			throw WSexception("500");
+		close(r[WRITE]);
+	}
+
 	void	handle_cgi(string cgi_launcher)	{
 		char	*cgi_command[3];
 		int		p[2];
 		int		r[2];
 		int		stat;
 
-		std::string	cRqst = this->request.serialize().c_str();
-		if (pipe(p) == -1)
-			throw WSexception("500");
-		if (pipe(r) == -1)
-			throw WSexception("500");
-		if (write(r[WRITE], cRqst.c_str(), cRqst.size() + 1) == -1)
-			throw WSexception("500");
-		close(r[WRITE]);
+		this->prepareChannelServerCgi(p, r);
 		pid_t	pid = fork();
 		if (!pid)
 			this->cgiChild(cgi_command, cgi_launcher, p, r);
@@ -227,7 +234,7 @@ public:
 			close(r[READ]);
 			waitpid(pid, &stat, 0);
 		}
-		this->endCommunicationServerCgi(p);
+		this->closeChannelServerCgi(p);
 		IO_Manager::change_interest_epoll_mask(this->fd, EPOLLOUT);
 	}
 
