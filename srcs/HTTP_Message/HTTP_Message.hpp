@@ -21,8 +21,8 @@ class HTTP_Message
     int recv_flags;
     public:
     vector<string> first_line;
-    parsing::tokenized_text_t header; 
-    std::string body; 
+    parsing::tokenized_text_t header;
+    std::string body;
 
     public:
     //constructors and destructors

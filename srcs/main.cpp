@@ -10,19 +10,26 @@
 
 CSV_maps_t CSV_maps;
 GlobalContext GlobalContextSingleton;
+std::vector<std::string> g_env;
 
-int main(int ac, char **av)
+void	BuildEnv(char **env)	{
+	for (std::size_t i = 0; env[i]; i++)
+		g_env.push_back(env[i]);
+}
+
+int main(int ac, char **av, char **env)
 {
-    try
-    {
-        Server server;
-        string config_file_path = ac >= 2 ? av[1] : "internal_server_ressources/default_config_file";
-        server.Run(config_file_path);
-    }
-    catch(const std::exception& e)
-    {
-        std::cerr << e.what() << '\n';
-    }
+	try
+	{
+		Server server;
+		BuildEnv(env);
+		string config_file_path = ac >= 2 ? av[1] : "internal_server_ressources/default_config_file";
+		server.Run(config_file_path);
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+	}
 }   
 
 // int main()
