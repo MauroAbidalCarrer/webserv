@@ -8,6 +8,7 @@
 
 # define HOST 1
 # define PORT 2
+# define RECV_FLAGS 0
 
 
 class HTTP_Request : public HTTP_Message
@@ -28,7 +29,9 @@ class HTTP_Request : public HTTP_Message
 	std::string	_queryString;
 
 	public:
-	HTTP_Request() { }
+	HTTP_Request() :
+	HTTP_Message(), request_line(), HTTP_method(), target_URL(), _path(), _ports(), _hostname(), is_redirected(false), _queryString()
+	{ }
 	// HTTP_Request(int read_fd) : /* HTTP_Message(read_fd, buffer_size), */ is_redirected(false)
 	// {
 	// 	//do checks to make sure that the message is a properly formatted request
@@ -66,6 +69,32 @@ class HTTP_Request : public HTTP_Message
 		}
 		// cout << "redirected request:" << endl << debug() << endl;
 	}
+	void construct_from_socket(int socket_fd)
+	{
+		HTTP_Message::partial_constructor(socket_fd, RECV_FLAGS);
+		if (is_fully_constructed)
+		{
+			request_line = first_line;
+			HTTP_method = request_line[0];
+			target_URL = request_line[1];
+			std::size_t	d = target_URL.find("?");
+			this->_path = target_URL.substr(0, d);			
+			try
+			{
+				if (d != std::string::npos)
+				this->_queryString = target_URL.substr(d + 1, target_URL.size() - d);
+				this->_hostname = this->get_header_fields("Host")[HOST];
+				if (this->get_header_fields("Host").size() > 2)
+					this->_ports = this->get_header_fields("Host")[PORT];
+			}
+			catch(const std::exception& e)
+			{
+				string error_msg = "Caught exception while trying to get headers" + string(e.what());
+				PRINT_ERROR(error_msg);
+			}
+			
+		}
+	}
 
 	void	printContent()	{
 		std::cout << "[++++++++++++++++ V*A*L*U*E*S +++++++++++++++++++]" << std::endl;
@@ -87,7 +116,7 @@ class HTTP_Request : public HTTP_Message
 	// 	_hostname.clear();
 	// 	is_redirected = false;
 	// 	std::string	_queryString;
-	// 	bool is_completed;
+	// 	bool is_fully_constructed;
 	// }
 };
 #endif

@@ -120,7 +120,7 @@ class ClientHandler : public IO_Manager::FD_interest
 	// open content file AND consturct response from content AND dedebug reuqest on connexion socket_fd
 	void start_processing_Get_request(string status_code, string target_ressource_path)
 	{
-		response = HTTP_Response::mk_from_file_and_status_code(status_code, target_ressource_path);
+		response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);
 		// Implement response method that defines response's Content-Type header field.
 		IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
 	}
@@ -174,7 +174,8 @@ class ClientHandler : public IO_Manager::FD_interest
 			close(p_read);
 			throw WSexception("403");
 		}
-		this->response = HTTP_Response(p_read, 10000);
+		// this->response = HTTP_Response(p_read, 10000);
+		// response = HTTP_Response::mk_response_from_fd();
 		cout << BLUE_AINSI << "Read CGI response, closing pipe read " << p_read << END_AINSI << endl; 
 		IO_Manager::remove_interest_and_close_fd(p_read);
 		IO_Manager::change_interest_epoll_mask(this->fd, EPOLLOUT);
@@ -219,15 +220,15 @@ class ClientHandler : public IO_Manager::FD_interest
 	}
 	void write_request_on_cgi_stdin(int write_pipe)
 	{
-		try
-		{
+		// try
+		// {
 			std::string	cRqst = this->request.serialize().c_str();
 			if (write(write_pipe, cRqst.c_str(), cRqst.size() + 1) == -1)
 				throw WSexception("500");
 			IO_Manager::remove_interest_and_close_fd(write_pipe);
-		}
-		catch (const WSexception& e) { handle_WS_exception(e); }
-		catch (const std::exception& e) { handle_std_exception(e); }
+		// }
+		// catch (const WSexception& e) { handle_WS_exception(e); }
+		// catch (const std::exception& e) { handle_std_exception(e); }
 	}
 	void	handle_cgi(const string& cgi_launcher)	{
 		char	*cgi_command[3];
@@ -298,10 +299,15 @@ class ClientHandler : public IO_Manager::FD_interest
 		{
 			try
 			{
-				request = HTTP_Request(fd, MAXIMUM_HTTP_HEADER_SIZE);
-				cout << "New request from client on socket " << fd << ":" << endl;
-				cout << FAINT_AINSI << request.debug() << END_AINSI << endl;
-				handle_request();
+				// request = HTTP_Request(fd, MAXIMUM_HTTP_HEADER_SIZE);
+				cout << "Constructing request..." << endl;
+				request.construct_from_socket(fd);
+				if (request.is_fully_constructed)
+				{
+					cout << "New request from client on socket " << fd << ":" << endl;
+					cout << FAINT_AINSI << request.debug() << END_AINSI << endl;
+					handle_request();
+				}
 			}
 			catch (const HTTP_Message::NoBytesToReadException &e)
 			{

@@ -192,23 +192,27 @@ time_t ws_epoch_time_in_mill()
     return (time_now.tv_sec * 1000) + (time_now.tv_usec / 1000);
 }
 
-std::string ws_recv(int socket_fd, int buffer_size, int flags)
+std::string ws_recv(int socket_fd, int buffer_size, int flags, size_t* nb_read_bytes_ptr = NULL)
 {
     ssize_t nb_read_bytes;
     char buffer[buffer_size + 1];
     if ((nb_read_bytes = recv(socket_fd, buffer, buffer_size, flags)) == -1)
         throw SystemCallException("recv");
     buffer[nb_read_bytes] = 0;
+    if (nb_read_bytes_ptr != NULL)
+        *nb_read_bytes_ptr = nb_read_bytes;
     return std::string(buffer);
 }
 
-std::string ws_read(int fd, int buffer_size)
+std::string ws_read(int fd, int buffer_size, size_t* nb_read_bytes_ptr = NULL)
 {
     ssize_t nb_read_bytes;
     char buffer[buffer_size + 1];
     if ((nb_read_bytes = read(fd, buffer, buffer_size)) == -1)
         throw SystemCallException("read");
     buffer[nb_read_bytes] = 0;
+    if (nb_read_bytes_ptr != NULL)
+        *nb_read_bytes_ptr = nb_read_bytes;
     return std::string(buffer);
 }
 

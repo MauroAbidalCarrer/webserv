@@ -18,12 +18,12 @@ class HTTP_Response : public HTTP_Message
     public:
     //constructors and destructors
     HTTP_Response() : is_default_response(false) { }
-    HTTP_Response(int read_fd, size_t buffer_size) : HTTP_Message(read_fd, buffer_size), is_default_response(false)
-    {
-        //do checks
-        // status_code = std::atoi(first_line[1].data());
-        // status_msg = first_line[2];
-    }
+    // HTTP_Response(int read_fd, size_t buffer_size) : HTTP_Message(read_fd, buffer_size), is_default_response(false)
+    // {
+    //     //do checks
+    //     // status_code = std::atoi(first_line[1].data());
+    //     // status_msg = first_line[2];
+    // }
     // HTTP_Response(std::string status_code, std::string status_msg)
     // {
     //     first_line.push_back(status_code);
@@ -62,7 +62,7 @@ class HTTP_Response : public HTTP_Message
         response.set_content_length();
         return response;
     }
-    static HTTP_Response mk_from_file_and_status_code(std::string status_code, std::string pathname)
+    static HTTP_Response mk_from_regualr_file_and_status_code(std::string status_code, std::string pathname)
     {
         HTTP_Response response;
         

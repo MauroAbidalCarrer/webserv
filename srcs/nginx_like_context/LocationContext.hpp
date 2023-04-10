@@ -70,7 +70,7 @@ struct LocationContext
             if (it == server_context_end_it || *it != ";")
                 throw std::runtime_error("cgi directive is not terminated by a \";\".");
             it++;
-            cout << "Adding cgi extension: " << extension_and_launcher.first << ", launcher: " << extension_and_launcher.second << endl;
+            // cout << "Adding cgi extension: " << extension_and_launcher.first << ", launcher: " << extension_and_launcher.second << endl;
             cgi_extensions_and_launchers.push_back(extension_and_launcher);
             return true;
         }
