@@ -13,37 +13,76 @@
 std::string ws_read(int fd, int buffer_size);
 std::string ws_recv(int fd, int buffer_size, int recv_flags);
 
+# define READ_BUFFER_SIZE 10
+# define RECV_FLAGS 0
 
 class HTTP_Message
 {
     private:
+	bool header_is_parsed;
     int read_fd;
     int recv_flags;
     public:
     vector<string> first_line;
     parsing::tokenized_text_t header;
     std::string body;
+	bool is_completed;
 
     public:
     //constructors and destructors
-    HTTP_Message() : recv_flags(0) { }
-    HTTP_Message(int read_fd, size_t buffer_size, int recv_flags = 0) : read_fd(read_fd), recv_flags(recv_flags)
+    HTTP_Message() { }
+    // HTTP_Message(int read_fd, size_t buffer_size, int recv_flags = 0) : read_fd(read_fd), recv_flags(recv_flags)
+    // {
+    //     std::string msg_as_text = read_text_msg(buffer_size);
+    //     if (msg_as_text.length() == 0)
+    //         throw NoBytesToReadException();
+    //     // cout << "Read new HTTP Message from fd " << read_fd << ":" << endl;
+    //     // cout << "\e[2m" << msg_as_text << "\e[0m" << endl;
+    //     parsing::tokenized_text_t tokenized_msg = parsing::tokenize_HTTP_message(msg_as_text);
+    //     //do parsing checks?
+    //     first_line = tokenized_msg[0];
+    //     parsing::tokenized_text_t::iterator it = tokenized_msg.begin() + 1;
+    //     while (it != tokenized_msg.end() && !it->empty())
+    //         it++;
+    //     //do parsing checks?
+    //     header = parsing::tokenized_text_t(tokenized_msg.begin() + 1, it);
+    //     body = msg_as_text.substr(msg_as_text.find("\r\n\r\n"));
+    // }
+
+	void mk_request_from_socket(int socket_fd)
+	{
+		string string_buffer = ws_recv(socket_fd, READ_BUFFER_SIZE, RECV_FLAGS);
+		parsing::tokenized_HTTP_message_t tokenized_buffer = parsing::tokenize_HTTP_message(string_buffer);
+		parsing::tokenized_HTTP_message_t::iterator it = tokenized_buffer.begin();
+        parsing::tokenized_HTTP_message_t::iterator end = tokenized_buffer.end();
+		if (!header_is_parsed)
+			parse_header(it, end);
+		else
+            parse_body(it, end);
+	}
+	void parse_header(parsing::tokenized_HTTP_message_t::iterator& it, parsing::tokenized_HTTP_message_t::iterator end)
+	{
+		if (first_line.size() != 0)
+		{
+			first_line = *it;
+			it++;
+		}
+		for (; it != end; it++)
+		{
+			//arrived ath the end of header
+			if (it->size() != 0)
+			{
+				header_is_parsed = true;
+				return;
+			}
+			header.push_back(*it);
+		}
+	}
+    void parse_body(parsing::tokenized_HTTP_message_t::iterator& it, parsing::tokenized_HTTP_message_t::iterator end)
     {
-        std::string msg_as_text = read_text_msg(buffer_size);
-        if (msg_as_text.length() == 0)
-            throw NoBytesToReadException();
-        // cout << "Read new HTTP Message from fd " << read_fd << ":" << endl;
-        // cout << "\e[2m" << msg_as_text << "\e[0m" << endl;
-        parsing::tokenized_text_t tokenized_msg = parsing::tokenize_HTTP_message(msg_as_text);
-        //do parsing checks?
-        first_line = tokenized_msg[0];
-        parsing::tokenized_text_t::iterator it = tokenized_msg.begin() + 1;
-        while (it != tokenized_msg.end() && !it->empty())
-            it++;
-        //do parsing checks?
-        header = parsing::tokenized_text_t(tokenized_msg.begin() + 1, it);
-        body = msg_as_text.substr(msg_as_text.find("\r\n\r\n"));
+        
     }
+    
     HTTP_Message(const HTTP_Message& other)
     {
         *this = other;
@@ -171,7 +210,7 @@ class HTTP_Message
         header.push_back(header_fields);
     }
     public:
-    void clear()
+    virtual void clear()
     {
         first_line.clear();
         header.clear();

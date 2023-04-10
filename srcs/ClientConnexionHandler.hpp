@@ -219,10 +219,15 @@ class ClientHandler : public IO_Manager::FD_interest
 	}
 	void write_request_on_cgi_stdin(int write_pipe)
 	{
-		std::string	cRqst = this->request.serialize().c_str();
-		if (write(write_pipe, cRqst.c_str(), cRqst.size() + 1) == -1)
-			throw WSexception("500");
-		IO_Manager::remove_interest_and_close_fd(write_pipe);
+		try
+		{
+			std::string	cRqst = this->request.serialize().c_str();
+			if (write(write_pipe, cRqst.c_str(), cRqst.size() + 1) == -1)
+				throw WSexception("500");
+			IO_Manager::remove_interest_and_close_fd(write_pipe);
+		}
+		catch (const WSexception& e) { handle_WS_exception(e); }
+		catch (const std::exception& e) { handle_std_exception(e); }
 	}
 	void	handle_cgi(const string& cgi_launcher)	{
 		char	*cgi_command[3];
@@ -253,8 +258,10 @@ class ClientHandler : public IO_Manager::FD_interest
 					  << FAINT_AINSI << response.debug() << END_AINSI << std::endl;
 			ws_send(fd, response.serialize(), 0);
 			IO_Manager::change_interest_epoll_mask(fd, EPOLLIN);
-			request.clear();
-			response.clear();
+			// request.clear();
+			// response.clear();
+			request = HTTP_Request();
+			response = HTTP_Response();
 			virtualServerContext = VirtualServerContext();
 			locationContext = LocationContext();
 		}
@@ -272,7 +279,8 @@ class ClientHandler : public IO_Manager::FD_interest
 		//If the virtual server context contains an default error page for this
 		string redirected_path = virtualServerContext.error_codes_to_default_error_page_path[response.get_status_code()];
 		request = HTTP_Request(redirected_path, request);
-		response.clear();
+		// response.clear();
+		response = HTTP_Response();
 		virtualServerContext = VirtualServerContext();
 		locationContext = LocationContext();
 		IO_Manager::change_interest_epoll_mask(fd, EPOLLIN);

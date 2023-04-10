@@ -9,39 +9,40 @@
 # define HOST 1
 # define PORT 2
 
+
 class HTTP_Request : public HTTP_Message
 {
 	private:
 	//fields
+	// string tmp_content;
 	vector<string> request_line;
 	public:
 	string HTTP_method;
 	string target_URL;
-
 	std::string	_path;
 	std::string	_ports;
 	std::string	_hostname;
+
 	public:
 	bool is_redirected;
 	std::string	_queryString;
 
 	public:
 	HTTP_Request() { }
-	HTTP_Request(int read_fd, size_t buffer_size, int recv_flags = 0) : 
-	HTTP_Message(read_fd, buffer_size, recv_flags), is_redirected(false)
-	{
-		//do checks to make sure that the message is a properly formatted request
-		request_line = first_line;
-		HTTP_method = request_line[0];
-		target_URL = request_line[1];
-		std::size_t	d = target_URL.find("?");
-		this->_path = target_URL.substr(0, d);
-		if (d != std::string::npos)
-			this->_queryString = target_URL.substr(d + 1, target_URL.size() - d);
-		this->_hostname = this->get_header_fields("Host")[HOST];
-		if (this->get_header_fields("Host").size() > 2)
-			this->_ports = this->get_header_fields("Host")[PORT];
-	}
+	// HTTP_Request(int read_fd) : /* HTTP_Message(read_fd, buffer_size), */ is_redirected(false)
+	// {
+	// 	//do checks to make sure that the message is a properly formatted request
+	// 	request_line = first_line;
+	// 	HTTP_method = request_line[0];
+	// 	target_URL = request_line[1];
+	// 	std::size_t	d = target_URL.find("?");
+	// 	this->_path = target_URL.substr(0, d);
+	// 	if (d != std::string::npos)
+	// 		this->_queryString = target_URL.substr(d + 1, target_URL.size() - d);
+	// 	this->_hostname = this->get_header_fields("Host")[HOST];
+	// 	if (this->get_header_fields("Host").size() > 2)
+	// 		this->_ports = this->get_header_fields("Host")[PORT];
+	// }
 	//construct redirected GET request
 	HTTP_Request(string redirected_path, HTTP_Request initial_request) : 
 	HTTP_method("GET"), _path(redirected_path), is_redirected(true)
@@ -74,6 +75,19 @@ class HTTP_Request : public HTTP_Message
 		std::cout << "HTPP_Serveur: QueryString: " << this->_queryString << std::endl;
 		std::cout << "[++++++++++++++++++++++++++++++++++++++++++++++++]" << std::endl;
 	}
+	// void clear()
+	// {
+	// 	HTTP_Message::clear();
+	// 	tmp_content.clear();
+	// 	request_line.clear();
+	// 	HTTP_method.clear();
+	// 	target_URL.clear();
+	// 	_path.clear();
+	// 	_ports.clear();
+	// 	_hostname.clear();
+	// 	is_redirected = false;
+	// 	std::string	_queryString;
+	// 	bool is_completed;
+	// }
 };
-
 #endif
