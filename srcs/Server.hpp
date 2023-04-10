@@ -55,12 +55,11 @@ class Server
     {
         try
         {
-            cout << "SIG_ERR = " << SIG_ERR << endl;
             signal(SIGINT, &Server::handle_SIGINT);
             setup_CSV_maps();
             GlobalContextSingleton = GlobalContext(config_file_path);
             setup_connexion_queues();
-            IO_Manager::wait_and_call_callbacks();
+            IO_Manager::wait__for_events_and_call_callbacks();
         }
         catch(const std::exception& e)
         {
@@ -161,7 +160,7 @@ class Server
         sockaddr_storage local_addr = get_socket_addr_from_listening_queue_fd(listening_socket_fd);
         string listening_ip_address = get_ip_address_as_string_from_socket_address(reinterpret_cast<sockaddr_t *>(&local_addr));
         string listening_port = get_port_as_string_from_socket_addres(reinterpret_cast<sockaddr_t *>(&local_addr));
-        IO_Manager::set_interest(connexion_socket_fd, EPOLLIN, new ClientConnexionHandler(connexion_socket_fd, listening_ip_address, listening_port));
+        IO_Manager::set_interest(connexion_socket_fd, EPOLLIN, new ClientHandler(connexion_socket_fd, listening_ip_address, listening_port));
         //debugging
         cout << "New client connexion on socket " << connexion_socket_fd << ", listening interface: " << get_network_interface_as_string(reinterpret_cast<sockaddr_t *>(&local_addr)) << endl;
     }

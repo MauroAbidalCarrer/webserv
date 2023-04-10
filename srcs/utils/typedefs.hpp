@@ -36,7 +36,9 @@ typedef std::map<std::string, std::map<std::string, std::string> > CSV_maps_t;
 //words
 # define RED_ERROR "\e[38;5;9mError\e[0m: "
 # define YELLOW_WARNING "\e[38;5;11mWarning\e[0m: "
-
+# define ERROR_WARNING "\e[38;5;11mError\e[0m: "
+//prints
+# define PRINT_WARNING(x) cout << YELLOW_WARNING << x << endl
 # define END_AINSI "\e[0m"
 
 #include <sstream>

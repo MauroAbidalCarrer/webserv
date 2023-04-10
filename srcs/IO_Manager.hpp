@@ -124,12 +124,22 @@ class IO_Manager
         //methods
         void internal_call_event_callbacks(epoll_event event)
         {
+            if (event.events & EPOLLERR)
+            {
+                remove_interest_and_close_fd(fd);
+                return;
+            }
             if ((event.events & EPOLLIN) && read_cb)
                 (instance->*read_cb)(event.data.fd);
             if ((event.events & EPOLLOUT) && write_cb)
                 (instance->*write_cb)(event.data.fd);
-            if ((event.events & EPOLLHUP) && hungup_cb && !(event.events & EPOLLOUT) && !(event.events & EPOLLIN))
-                (instance->*hungup_cb)(event.data.fd);
+            if ((event.events & EPOLLHUP) && !(event.events & EPOLLOUT) && !(event.events & EPOLLIN))
+            {
+                if (hungup_cb)
+                    (instance->*hungup_cb)(event.data.fd);
+                else
+                    remove_interest_and_close_fd(fd);
+            }
         }
         void call_timeout_callback()
         {
@@ -243,11 +253,11 @@ class IO_Manager
         singleton().non_static_remove_interest_and_close_fd(fd);
     }
     
-    void non_static_wait_and_call_callbacks()
+    void non_static_wait__for_events_and_call_callbacks()
     {
         if (interest_map.size() == 0)
         {
-            cout << "Warning:calling IO_Manager::" << __func__ << " with zero fd interests." << endl;
+            PRINT_WARNING("calling IO_Manager::" << __func__ << " with zero fd interests.");
             cout << "\tNot starting the epoll_wait lopp to avoid endless loop." << endl;
             return ;
         }
@@ -258,6 +268,10 @@ class IO_Manager
                 current_time_in_mill = ws_epoch_time_in_mill();
                 static epoll_event events[MAX_EPOLL_EVENTS_TO_HANDLE_AT_ONCE];
                 int sortest_timeout_in_mill = find_shortest_timeout_in_milliseconds();
+                if (sortest_timeout_in_mill == -1)
+                    std::cout << "Going to call epoll_wait to wait indefinetly for events on FDs monitored by IO_Manager." << std::endl << std::endl;
+                else
+                    std::cout << "Going to call epoll_wait to wait for events on FDs monitored by IO_Manager for " << sortest_timeout_in_mill << " milliseconds." << std::endl << std::endl;
                 int nb_events = ws_epoll_wait(epoll_fd, events, MAX_EPOLL_EVENTS_TO_HANDLE_AT_ONCE, sortest_timeout_in_mill);
                 current_time_in_mill = ws_epoch_time_in_mill();
                 //timeout
@@ -278,9 +292,9 @@ class IO_Manager
             std::cout << "Stopped epoll_wait loop." << std::endl;
         }
     }
-    static void wait_and_call_callbacks()
+    static void wait__for_events_and_call_callbacks()
     {
-        singleton().non_static_wait_and_call_callbacks();
+        singleton().non_static_wait__for_events_and_call_callbacks();
     }
     int find_shortest_timeout_in_milliseconds()
     {
@@ -292,10 +306,6 @@ class IO_Manager
             if (other_timeout != -1 && other_timeout > timeout)
                 timeout = other_timeout - current_time_in_mill;
         }
-        if (timeout != -1)
-            std::cout << "shortest timeout in milliseconds = " << timeout << std::endl << std::endl;
-        else
-            std::cout << "shortest timeout in milliseconds = NO TIMEOUT" << std::endl << std::endl;
         return timeout;
     }
     void handle_timeout()

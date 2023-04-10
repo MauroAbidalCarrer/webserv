@@ -31,7 +31,7 @@
 extern GlobalContext GlobalContextSingleton;
 extern std::vector<std::string>	g_env;
 
-class ClientConnexionHandler : public IO_Manager::FD_interest
+class ClientHandler : public IO_Manager::FD_interest
 {
 	private:
 	HTTP_Request request;
@@ -45,19 +45,19 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 
 	public:
 	// constructors and destructors
-	ClientConnexionHandler() {}
-	ClientConnexionHandler(int socket_connexion_fd, string listening_ip, string listening_port) : 
+	ClientHandler() {}
+	ClientHandler(int socket_connexion_fd, string listening_ip, string listening_port) : 
 	FD_interest(IDLE_CLIENT_CONNEXION_TIMEOUT_IN_MILL, CONNEXION_TIMEOUT_MODE, socket_connexion_fd), listening_ip(listening_ip), listening_port(listening_port)
 	{
-		// cout << "ClientConnexionHandler.listening_ip = " << listening_ip << ", ClientConnexionHandler.listening_port" << listening_port << endl;
+		// cout << "ClientHandler.listening_ip = " << listening_ip << ", ClientHandler.listening_port" << listening_port << endl;
 	}
-	ClientConnexionHandler(const ClientConnexionHandler &other)
+	ClientHandler(const ClientHandler &other)
 	{
 		*this = other;
 	}
-	~ClientConnexionHandler() {}
+	~ClientHandler() {}
 	// operator overloads
-	ClientConnexionHandler &operator=(const ClientConnexionHandler &rhs)
+	ClientHandler &operator=(const ClientHandler &rhs)
 	{
 		(void)rhs;
 		return *this;
@@ -72,9 +72,12 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 			virtualServerContext = GlobalContextSingleton.find_corresponding_virtualServerContext(request, listening_ip, listening_port);
 			locationContext = virtualServerContext.find_corresponding_location_context(request._path);
 			locationContext.apply_to_path(request._path);
+
 			//start processing request
-			if (request_requires_cgi())
+			string cgi_launcher;
+			if (request_requires_cgi(cgi_launcher))
 			{
+				handle_cgi(cgi_launcher);
 				cout << BLUE_AINSI << "Calling CGI" << END_AINSI << endl;
 			}
 			else if (request.HTTP_method == "GET")
@@ -121,7 +124,7 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 		// Implement response method that defines response's Content-Type header field.
 		IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
 	}
-	bool request_requires_cgi()
+	bool request_requires_cgi(string& cgi_launcher)
 	{
 		for (size_t i = 0; i < locationContext.cgi_extensions_and_launchers.size(); i++)
 		{
@@ -129,7 +132,7 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 			string extension = cgi_extension_and_launcher.first;
 			if (str_end_with(request._path, extension))
 			{
-				handle_cgi(cgi_extension_and_launcher.second);
+				cgi_launcher = cgi_extension_and_launcher.second;
 				return true;
 			}
 		}
@@ -167,8 +170,7 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 	}	
 
 	void	closeChannelServerCgi(int p_read)	{
-		// cout << YELLOW_AINSI << "closeChannelServerCgi called" << END_AINSI << endl;
-		int res = read(p_read, NULL, 0);;
+		int res = read(p_read, NULL, 0);
 		if (res == -1 && errno == EBADF)	{
 			close(p_read);
 			throw WSexception("403");
@@ -208,7 +210,6 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 	}
 
 	void	prepareChannelServerCgi(int *p, int *r)	{
-		std::string	cRqst = this->request.serialize().c_str();
 		if (access(this->request._path.c_str(), X_OK))
 			throw WSexception("403");
 		if (pipe(p) == -1)
@@ -218,12 +219,16 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 			close(p[WRITE]);
 			throw WSexception("500");
 		}
-		if (write(r[WRITE], cRqst.c_str(), cRqst.size() + 1) == -1)
+	}
+	void write_request_on_cgi_stdin(int write_pipe)
+	{
+		std::string	cRqst = this->request.serialize().c_str();
+		if (write(write_pipe, cRqst.c_str(), cRqst.size() + 1) == -1)
 			throw WSexception("500");
-		close(r[WRITE]);
+		IO_Manager::remove_interest_and_close_fd(write_pipe);
 	}
 
-	void	handle_cgi(string cgi_launcher)	{
+	void	handle_cgi(const string& cgi_launcher)	{
 		char	*cgi_command[3];
 		int		p[2];
 		int		r[2];
@@ -237,7 +242,8 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 			close(p[WRITE]);
 			pipe_fds_to_cgi_pids[p[READ]] = pid;
 			pipe_fds_to_cgi_pids[r[WRITE]] = pid;
-			IO_Manager::set_interest<ClientConnexionHandler>(p[READ], &ClientConnexionHandler::closeChannelServerCgi, NULL, NULL, &ClientConnexionHandler::handle_cgi_pipe_hungup, -1, no_timeout, this);
+			IO_Manager::set_interest<ClientHandler>(r[WRITE], NULL, &ClientHandler::write_request_on_cgi_stdin, NULL, NULL, -1, no_timeout, this);
+			IO_Manager::set_interest<ClientHandler>(p[READ], &ClientHandler::closeChannelServerCgi, NULL, NULL, &ClientHandler::handle_cgi_pipe_hungup, -1, no_timeout, this);
 		}
 	}
 
@@ -258,7 +264,7 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 		}
 		catch (std::exception e)
 		{
-			std::cerr << "Exception caught in ClientConnexionHandler::" << __func__ << ", client connexion socket fd: " << fd << "." << std::endl;
+			std::cerr << "Exception caught in ClientHandler::" << __func__ << ", client connexion socket fd: " << fd << "." << std::endl;
 			std::cerr << "exception.what() = " << e.what() << std::endl;
 			std::cerr << "Response: " << response.debug() << std::endl;
 			std::cerr << BOLD_AINSI << "Closing" << FAINT_AINSI << " client connexion " << BOLD_AINSI << fd << END_AINSI << "." << std::endl;
@@ -281,7 +287,7 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 	void internal_call_event_callbacks(epoll_event event)
 	{
 		if ((event.events & EPOLLIN) && (event.events & EPOLLOUT))
-			std::cerr << "Warning: called ClientConnexionHandler::" << __func__ << " with both EPOLLIN and OUT, this is not supposed to happen!" << std::endl;
+			std::cerr << "Warning: called ClientHandler::" << __func__ << " with both EPOLLIN and OUT, this is not supposed to happen!" << std::endl;
 		if (event.events & EPOLLOUT)
 			send_response();
 		if (event.events & EPOLLIN)
@@ -302,7 +308,7 @@ class ClientConnexionHandler : public IO_Manager::FD_interest
 	}
 	void call_timeout_callback()
 	{
-		cerr << YELLOW_WARNING << "ClientConnexionHandler::" << __func__ << " called but client is not supposed to have timeout!(not closing connexion)" << endl;
+		cerr << YELLOW_WARNING << "ClientHandler::" << __func__ << " called but client is not supposed to have timeout!(not closing connexion)" << endl;
 	}
 	void close_connexion()
 	{
