@@ -65,7 +65,7 @@ class GlobalContext
         return config_file_tokens;
     }
     public:
-    const VirtualServerContext& find_corresponding_virtualServerContext(const HTTP_Request& request, string listen_ip, string listen_port) 
+    const VirtualServerContext& find_corresponding_virtualServerContext(const string& hostname, string listen_ip, string listen_port) 
     {
         VirtualServerContext* default_server_context = NULL;
         // cout << endl;
@@ -83,13 +83,16 @@ class GlobalContext
                 for (vector<string>::iterator hostname_it = candidate_it->hostnames.begin(); hostname_it != candidate_it->hostnames.end(); hostname_it++)
                 {
                     // cout << "\tComparing request hostname(" << request._hostname << ") server hostname(" << *hostname_it << ")" << endl;
-                    if (request._hostname == *hostname_it)
+                    if (hostname == *hostname_it)
                         return *candidate_it;
                 }
             }
         }
         if (default_server_context == NULL)
-            throw WSexception("404");
+        {
+            string error_msg = "Could not found server context, hostname: " + hostname + ", listen_ip: " + listen_ip + ", listen_port: " + listen_port;
+            throw WSexception("404", runtime_error(error_msg));
+        }
         return *default_server_context;
     }
 };

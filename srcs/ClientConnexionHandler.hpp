@@ -69,7 +69,7 @@ class ClientHandler : public IO_Manager::FD_interest
 		try
 		{
 			//set up meber variables
-			virtualServerContext = GlobalContextSingleton.find_corresponding_virtualServerContext(request, listening_ip, listening_port);
+			virtualServerContext = GlobalContextSingleton.find_corresponding_virtualServerContext(request._hostname, listening_ip, listening_port);
 			locationContext = virtualServerContext.find_corresponding_location_context(request._path);
 			locationContext.apply_to_path(request._path);
 
@@ -77,8 +77,8 @@ class ClientHandler : public IO_Manager::FD_interest
 			string cgi_launcher;
 			if (request_requires_cgi(cgi_launcher))
 			{
-				handle_cgi(cgi_launcher);
 				cout << BLUE_AINSI << "Calling CGI" << END_AINSI << endl;
+				handle_cgi(cgi_launcher);
 			}
 			else if (request.HTTP_method == "GET")
 				start_processing_Get_request("200", request._path);
@@ -168,7 +168,6 @@ class ClientHandler : public IO_Manager::FD_interest
 		envCgi[i] = NULL;
 		return envCgi;
 	}	
-
 	void	closeChannelServerCgi(int p_read)	{
 		int res = read(p_read, NULL, 0);
 		if (res == -1 && errno == EBADF)	{
@@ -196,7 +195,6 @@ class ClientHandler : public IO_Manager::FD_interest
 		cout << "cgi_status_code: " << cgi_status_code << endl;
 		pipe_fds_to_cgi_pids.erase(pipe_fd);
 	}
-
 	void	cgiChild(char **cgi_command, std::string cgi_launcher, int *p, int *r)	{
 		close(p[READ]);
 		dup2(p[WRITE], STDOUT_FILENO);
@@ -208,7 +206,6 @@ class ClientHandler : public IO_Manager::FD_interest
 		execve(cgi_command[0], cgi_command, env);
 		delete [] env;
 	}
-
 	void	prepareChannelServerCgi(int *p, int *r)	{
 		if (access(this->request._path.c_str(), X_OK))
 			throw WSexception("403");
@@ -227,7 +224,6 @@ class ClientHandler : public IO_Manager::FD_interest
 			throw WSexception("500");
 		IO_Manager::remove_interest_and_close_fd(write_pipe);
 	}
-
 	void	handle_cgi(const string& cgi_launcher)	{
 		char	*cgi_command[3];
 		int		p[2];

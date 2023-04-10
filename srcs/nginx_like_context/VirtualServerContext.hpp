@@ -34,6 +34,8 @@ struct VirtualServerContext
             if (!parsed_a_directive)
                 throw std::runtime_error("invalid token in virtual server context : " + *it);
         }
+        if (listen_ip == "localhost")
+            listen_ip = "127.0.0.1";
     }
     //returns true if a server_name drective was parced
     bool parse_server_name_directive(string_vec_it_t& it, string_vec_it_t server_context_end_it)
@@ -129,7 +131,7 @@ struct VirtualServerContext
             }
         }
         if (best_location_context_match == NULL)
-            throw WSexception("404");
+            throw WSexception("404", runtime_error("Could not found server context."));
         return *best_location_context_match;
     }
     bool string_starts_by(string a, string b)
