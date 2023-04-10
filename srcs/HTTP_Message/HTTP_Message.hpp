@@ -36,37 +36,9 @@ class HTTP_Message
     HTTP_Message() :
     read_fd(-1), recv_flags(0), header_is_parsed(false), first_line(), header(), body(), is_fully_constructed(false)
     { }
-    // HTTP_Message(int read_fd, size_t buffer_size, int recv_flags = 0) : read_fd(read_fd), recv_flags(recv_flags)
-    // {
-    //     std::string msg_as_text = read_text_msg(buffer_size);
-    //     if (msg_as_text.length() == 0)
-    //         throw NoBytesToReadException();
-    //     // cout << "Read new HTTP Message from fd " << read_fd << ":" << endl;
-    //     // cout << "\e[2m" << msg_as_text << "\e[0m" << endl;
-    //     parsing::tokenized_text_t tokenized_msg = parsing::tokenize_HTTP_message(msg_as_text);
-    //     //do parsing checks?
-    //     first_line = tokenized_msg[0];
-    //     parsing::tokenized_text_t::iterator it = tokenized_msg.begin() + 1;
-    //     while (it != tokenized_msg.end() && !it->empty())
-    //         it++;
-    //     //do parsing checks?
-    //     header = parsing::tokenized_text_t(tokenized_msg.begin() + 1, it);
-    //     body = msg_as_text.substr(msg_as_text.find("\r\n\r\n"));
-    // }
     protected:
 	void partial_constructor(int read_fd, int recv_flags = 0)
 	{
-		// string string_buffer;
-        // if (recv_flags != 0)
-        //     string_buffer = ws_recv(read_fd, READ_BUFFER_SIZE, RECV_FLAGS);
-        // else
-        //     string_buffer = ws_read(read_fd, READ_BUFFER_SIZE);
-		// if (!header_is_parsed)
-		// 	parse_header(string_buffer);
-		// else
-        //     parse_body(string_buffer);
-        // if (string_buffer.size() < READ_BUFFER_SIZE)
-        //     is_fully_constructed = true;
 
         size_t nb_read_bytes = 0;
         if (recv_flags != 0)
@@ -85,62 +57,11 @@ class HTTP_Message
                 header_end_it++;
             //do parsing checks?
             header = parsing::tokenized_text_t(tokenized_msg.begin() + 1, header_end_it);
-            // body = construct_buffer.substr(construct_buffer.find("\r\n\r\n"));
-            // cout << "Fully constructed msg, construct_buffer: " << endl;
-            // cout << BLUE_AINSI;
-            // cout << construct_buffer << endl << endl;
-            // for (size_t i = 0; i < tokenized_msg.size(); i++)
-            // {
-            //     for (size_t j = 0; j < tokenized_msg[i].size(); j++)
-            //         cout << tokenized_msg[i][j] << " ";
-            //     cout << endl;
-            // }
-            // cout << END_AINSI;
+            body = construct_buffer.substr(construct_buffer.find("\r\n\r\n"));
             is_fully_constructed = true;
         }
 	}
     public:
-	// void parse_header(const string& string_buffer)
-	// {
-	// 	parsing::tokenized_HTTP_message_t tokenized_buffer = parsing::tokenize_HTTP_message(string_buffer);
-	// 	parsing::tokenized_HTTP_message_t::iterator it = tokenized_buffer.begin();
-
-
-    //     cout << "[" << endl;
-    //     for (size_t i = 0; i < tokenized_buffer.size(); i++)
-    //     {
-    //         cout << "[";
-    //         for (size_t j = 0; j < tokenized_buffer[i].size(); j++)
-    //             cout << tokenized_buffer[i][j] << " ";
-    //         cout << "]" << endl;
-    //     }
-    //     cout << "]" << endl;
-
-	// 	if (first_line.size() == 0)
-	// 	{
-    //         if (string_buffer.length() == 0)
-    //             throw NoBytesToReadException();
-	// 		first_line = *it;
-	// 		it++;
-	// 	}
-	// 	for (; it != tokenized_buffer.end(); it++)
-	// 	{
-	// 		//arrived ath the end of header
-	// 		if (it->size() != 0)
-	// 		{
-	// 			header_is_parsed = true;
-	// 			return;
-	// 		}
-	// 		header.push_back(*it);
-	// 	}
-    //     for (; it != tokenized_buffer.end(); it++)
-    //         for (vector<string>::iterator line_it = it->begin(); line_it != it->end(); line_it++)
-    //             body.append(*line_it);
-	// }
-    // void parse_body(const string& string_buffer)
-    // {
-    //     body.append(string_buffer);
-    // }
     
     HTTP_Message(const HTTP_Message& other)
     {

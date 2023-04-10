@@ -17,21 +17,18 @@ class HTTP_Response : public HTTP_Message
 
     public:
     //constructors and destructors
-    HTTP_Response() : is_default_response(false) { }
-    // HTTP_Response(int read_fd, size_t buffer_size) : HTTP_Message(read_fd, buffer_size), is_default_response(false)
-    // {
-    //     //do checks
-    //     // status_code = std::atoi(first_line[1].data());
-    //     // status_msg = first_line[2];
-    // }
-    // HTTP_Response(std::string status_code, std::string status_msg)
-    // {
-    //     first_line.push_back(status_code);
-    //     first_line.push_back(status_msg);
-    // }
+    HTTP_Response() : HTTP_Message(), is_default_response(false) { }
     ~HTTP_Response() { }
     
     //methods
+    void partial_constructor_from_fd(int read_fd)
+    {
+        HTTP_Message::partial_constructor(read_fd);
+        if (is_fully_constructed)
+        {
+            
+        }
+    }
     static HTTP_Response Mk_default_response(std::string status_code)
     {
         HTTP_Response response;
