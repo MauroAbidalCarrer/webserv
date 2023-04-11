@@ -303,11 +303,13 @@ class ClientHandler : public IO_Manager::FD_interest
 				request.construct_from_socket(fd);
 				if (request.is_fully_constructed)
 				{
-					cout << "value request: " << request.HTTP_method << endl;
+					// cout << "value request: " << request.HTTP_method << endl;
 					cout << "New request from client on socket " << fd << ":" << endl;
 					cout << FAINT_AINSI << request.debug() << END_AINSI << endl;
 					handle_request();
 				}
+				else
+					cout << "Request is not fully constructed" << endl;
 			}
 			catch (const HTTP_Message::NoBytesToReadException &e)
 			{

@@ -22,6 +22,7 @@ std::string ws_read(int fd, int buffer_size);
 class HTTP_Message
 {
 private:
+    size_t nb_partial_constructs, total_nb_bytes_read;
     int read_fd;
     int recv_flags;
     string construct_buffer;
@@ -39,6 +40,8 @@ public:
 public:
     // constructors and destructors
     HTTP_Message() : 
+    nb_partial_constructs(0),
+    total_nb_bytes_read(0),
     read_fd(-1),
     recv_flags(0),
     header_is_constructed(false),
@@ -52,65 +55,62 @@ public:
 protected:
     void partial_constructor(int read_fd)
     {
-        if (header_is_constructed == false)
+        nb_partial_constructs++;
+        size_t nb_read_bytes = 0;
+        construct_buffer += ws_read(read_fd, READ_BUFFER_SIZE, &nb_read_bytes);
+
+        cout << "construct_buffer.length(): " << construct_buffer.length() << ", nb_read_bytes: " << nb_read_bytes << endl;
+        total_nb_bytes_read += nb_read_bytes;
+        if (nb_read_bytes == 0)
+            throw NoBytesToReadException();
+        if (header_is_constructed)
         {
-            size_t nb_read_bytes = 0;
-            construct_buffer += ws_read(read_fd, READ_BUFFER_SIZE, &nb_read_bytes);
-            if (nb_read_bytes == 0)
-                throw NoBytesToReadException();
-            //if there is no double CRLF found, it means that we did not read the entirity of the header
-            size_t header_end_index = construct_buffer.find("\r\n\r\n");
-            if (header_end_index != string::npos)
-                return;
-            //construct header
-            parsing::tokenized_text_t tokenized_msg = parsing::tokenize_HTTP_message(construct_buffer.substr(0, header_end_index));
-            first_line = tokenized_msg[0];
-            header = parsing::tokenized_text_t(tokenized_msg.begin() + 1, tokenized_msg.end());
-            header_is_constructed = true;
-            //construct body string
+            body.append(construct_buffer);
+            construct_buffer.clear();
+        }
+        // If nb_read_bytes < READ_BUFFER_SIZE we might have read the full message
+        if (nb_read_bytes < READ_BUFFER_SIZE)
+        {
+            // If nb_read_bytes < READ_BUFFER_SIZE we are (almost)certain that we have read the whole header_fields and
+            if (header_is_constructed == false)
+            {
+                // cout << YELLOW_AINSI << "Construct buffer before constructing header_fields:" << endl;
+                // cout << construct_buffer << END_AINSI << endl;
+                construct_header();
+                body = construct_buffer.substr(construct_buffer.find("\r\n\r\n") + 4);
+                construct_buffer.clear();
+            }
             try
             {
-                /* code */
+                // if body size == Content-Length
+                // We've read the entirety of the message.
+                vector<string> Content_length_header_field = get_header_fields("Content-Length");
+                size_t content_length = std::atoi(Content_length_header_field[1].c_str());
+                cout << "Content-Length: " << content_length << ", body.length(): " << body.length() << ", Content-Length - body.length(): " << (long long)((long long)content_length - (long long)body.length()) << endl;
+                if (body.length() >= content_length)
+                {
+                    cout << "Request fully constructed." << endl;
+                    is_fully_constructed = true;
+                }
             }
-            catch(const std::exception& e)
+            catch (const NoHeaderFieldFoundException &e)
             {
-                std::cerr << e.what() << '\n';
+                // No Content-Length was header_fields was provided, therefore there is no body
+                is_fully_constructed = true;
             }
-            
         }
+    }
 
-        // // If nb_read_bytes < READ_BUFFER_SIZE we might have read the full message
-        // if (nb_read_bytes < READ_BUFFER_SIZE)
-        // {
-        //     // If nb_read_bytes < READ_BUFFER_SIZE we are (almost)certain that we have read the whole header_fields and
-        //     if (header_is_constructed == false)
-        //     {
-        //         body = construct_buffer.substr(construct_buffer.find("\r\n\r\n"));
-        //         construct_buffer.clear();
-        //     }
-        //     try
-        //     {
-        //         // if body size == Content-Length
-        //         // We've read the entirety of the message.
-        //         vector<string> Content_length_header_field = get_header_fields("Content-Length");
-        //         size_t content_length = std::atoi(Content_length_header_field[1].c_str());
-        //         cout << "Content-Length: " << content_length << ", body.length(): " << body.length() << ", Content-Length - body.length(): " << (long long)((long long)content_length - (long long)body.length()) << endl;
-        //         if (body.length() >= content_length)
-        //         {
-        //             cout << "Request fully constructed." << endl;
-        //             is_fully_constructed = true;
-        //         }
-        //     }
-        //     catch (const NoHeaderFieldFoundException &e)
-        //     {
-        //         // No Content-Length was header_fields was provided, therefore there is no body
-        //         is_fully_constructed = true;
-        //     }
-        //     if (header_is_constructed)
-        //     {
-        //         body.append(construct_buffer);
-        //     }
-        // }
+private:
+    void construct_header()
+    {
+        parsing::tokenized_text_t tokenized_msg = parsing::tokenize_HTTP_message(construct_buffer);
+        first_line = tokenized_msg[0];
+        parsing::tokenized_text_t::iterator header_end_it = tokenized_msg.begin() + 1;
+        while (header_end_it != tokenized_msg.end() && !header_end_it->empty())
+            header_end_it++;
+        header = parsing::tokenized_text_t(tokenized_msg.begin() + 1, header_end_it);
+        header_is_constructed = true;
     }
 
 public:
