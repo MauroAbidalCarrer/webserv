@@ -2,10 +2,12 @@
 # define HTTP_Message_HPP
 # include <iostream>
 # include <string>
+# include <cstdlib>
 
 # include "parsing.hpp"
 # include "typedefs.hpp"
 # include "sys_calls_warp_arounds.hpp"
+// # include "WSexception.hpp"
 
 #define FIRST_READ_BUFFER_SIZE 10
 
@@ -14,7 +16,7 @@ std::string ws_recv(int socket_fd, int buffer_size, int flags, size_t* nb_read_b
 std::string ws_read(int fd, int buffer_size, size_t* nb_read_bytes_ptr);
 std::string ws_recv(int socket_fd, int buffer_size, int flags);
 std::string ws_read(int fd, int buffer_size);
-# define READ_BUFFER_SIZE 1000
+# define READ_BUFFER_SIZE 3000
 # define RECV_FLAGS 0
 
 class HTTP_Message
@@ -23,6 +25,7 @@ class HTTP_Message
     int read_fd;
     int recv_flags;
     string construct_buffer;
+    bool header_is_constructed;
     protected:
 	bool header_is_parsed;
     public:
@@ -34,12 +37,11 @@ class HTTP_Message
     public:
     //constructors and destructors
     HTTP_Message() :
-    read_fd(-1), recv_flags(0), header_is_parsed(false), first_line(), header(), body(), is_fully_constructed(false)
+    read_fd(-1), recv_flags(0), header_is_constructed(false), header_is_parsed(false), first_line(), header(), body(), is_fully_constructed(false)
     { }
     protected:
 	void partial_constructor(int read_fd, int recv_flags = 0)
 	{
-
         size_t nb_read_bytes = 0;
         if (recv_flags != 0)
             construct_buffer += ws_recv(read_fd, READ_BUFFER_SIZE, RECV_FLAGS, &nb_read_bytes);
@@ -47,22 +49,66 @@ class HTTP_Message
             construct_buffer += ws_read(read_fd, READ_BUFFER_SIZE, &nb_read_bytes);
         if (nb_read_bytes == 0)
             throw NoBytesToReadException();
+        if (header_is_constructed)
+        {
+            body.append(construct_buffer);
+            construct_buffer.clear();
+        }
+        //If nb_read_bytes < READ_BUFFER_SIZE we might have read the full message
         if (nb_read_bytes < READ_BUFFER_SIZE)
         {
-            parsing::tokenized_text_t tokenized_msg = parsing::tokenize_HTTP_message(construct_buffer);
-            //do parsing checks?
-            first_line = tokenized_msg[0];
-            parsing::tokenized_text_t::iterator header_end_it = tokenized_msg.begin() + 1;
-            while (header_end_it != tokenized_msg.end() && !header_end_it->empty())
-                header_end_it++;
-            //do parsing checks?
-            header = parsing::tokenized_text_t(tokenized_msg.begin() + 1, header_end_it);
-            body = construct_buffer.substr(construct_buffer.find("\r\n\r\n"));
-            is_fully_constructed = true;
+            cout << "nb_read_bytes: " << nb_read_bytes << ", READ_BUFFER_SIZE: " << READ_BUFFER_SIZE << endl;
+            //If nb_read_bytes < READ_BUFFER_SIZE we are (almost)certain that we have read the whole header and
+            if (header_is_constructed == false)
+            {
+                cout << YELLOW_AINSI << "Construct buffer before constructing header:" << endl;
+                cout << construct_buffer << END_AINSI << endl;
+                construct_header();
+                body = construct_buffer.substr(construct_buffer.find("\r\n\r\n"));
+                construct_buffer.clear();
+            }
+            try
+            {
+                cout << BLUE_AINSI << "header size = " << header.size() << endl;
+                for (size_t i = 0; i < header.size(); i++)
+                {
+                    for (size_t j = 0; j < header[i].size(); j++)
+                        cout << header[i][j] << " ";
+                    cout << endl;
+                }
+                cout << body << endl;
+                cout << END_AINSI << endl;
+                
+                //if body size == Content-Length 
+                //We've read the entirety of the message.
+                vector<string> Content_length_header_field = get_header_fields("Content-Length");
+                size_t content_length = std::atoi(Content_length_header_field[1].c_str());
+                cout << "Content-Length: " << content_length << endl;
+                if (body.length() == content_length)
+                    is_fully_constructed = true;
+            }
+            catch(const std::exception& e)
+            {
+                //No Content-Length was header was provided, therefore there is no body
+                PRINT_ERROR("No Content-Length header found.");
+                is_fully_constructed = true;
+                // throw WSexception("400");
+                // throw NoHeaderFieldFoundException();
+            }
         }
 	}
+    private:
+    void construct_header()
+    {
+        parsing::tokenized_text_t tokenized_msg = parsing::tokenize_HTTP_message(construct_buffer);
+        first_line = tokenized_msg[0];
+        parsing::tokenized_text_t::iterator header_end_it = tokenized_msg.begin() + 1;
+        while (header_end_it != tokenized_msg.end() && !header_end_it->empty())
+            header_end_it++;
+        header = parsing::tokenized_text_t(tokenized_msg.begin() + 1, header_end_it);
+        header_is_constructed = true;
+    }
     public:
-    
     HTTP_Message(const HTTP_Message& other)
     {
         *this = other;

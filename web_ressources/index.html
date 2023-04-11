@@ -17,7 +17,7 @@
 		  This is a link to <a href="/asdqweg">unexistant ressource</a>.<br>
 		  <img src="/sono.jpg"><br>
 		</p>
-		<H2>Répondez aux questions suivantes</H2>
+		<!-- <H2>Répondez aux questions suivantes</H2>
 		<FORM ACTION="cgi-bin/cgi-image.pl" METHOD=GET>
 		Prénom : <INPUT TYPE="text" NAME=prenom SIZE=20><BR>
 		Nom : <INPUT TYPE="text" NAME=nom SIZE=20><BR>
@@ -28,8 +28,29 @@
 				<OPTION>+ de 60 ans
 		</SELECT><BR>
 		<INPUT TYPE=submit VALUE="Envoyer"> <INPUT TYPE=reset VALUE="Remettre à zéro">
-		</FORM>
+		</FORM> -->
+		<input type="file" id="fileInput">
+		<button id="uploadButton">Upload</button>
+	
+		<script>
+		  const fileInput = document.getElementById('fileInput');
+		  const uploadButton = document.getElementById('uploadButton');
+	
+		  uploadButton.addEventListener('click', async () => {
+			const file = fileInput.files[0];
+	
+			const response = await fetch('/file.mp4', {
+			  method: 'POST',
+			  headers: {
+				'Content-Type': 'video/mp4',
+				'Transfer-Encoding': 'chunked'
+			  },
+			  body: file
+			});
+	
+			console.log(`Response status: ${response.status}`);
+		  });
+		</script>
 	</main>
-	<script src="index.js"></script>
   </body>
 </html>

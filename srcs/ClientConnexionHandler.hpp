@@ -294,7 +294,7 @@ class ClientHandler : public IO_Manager::FD_interest
 				if (request.is_fully_constructed)
 				{
 					cout << "New request from client on socket " << fd << ":" << endl;
-					cout << FAINT_AINSI << request.debug() << END_AINSI << endl;
+					cout << FAINT_AINSI << request.serialize() << END_AINSI << endl;
 					handle_request();
 				}
 			}

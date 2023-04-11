@@ -65,7 +65,7 @@ class HTTP_Request : public HTTP_Message
 		}
 		catch(const NoHeaderFieldFoundException& e)
 		{
-			cout << YELLOW_WARNING << "no \"Host\" field found in initial_request while constructing redirected request." << endl;
+			PRINT_WARNING("no \"Host\" field found in initial_request while constructing redirected request.");
 		}
 		// cout << "redirected request:" << endl << debug() << endl;
 	}
