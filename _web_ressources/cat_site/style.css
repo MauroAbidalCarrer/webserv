@@ -1,0 +1,152 @@
+body
+{
+	/* background-color: rgb(31, 40, 63); */
+  background-image: url('imgs/mqdefault.jpg');
+  background-repeat: no-repeat;
+  background-attachment: fixed; 
+  background-size: 60% 100%;
+	color: rgb(255, 255, 255);
+	font-family: Arial;
+	/* font-size: 25px; */
+	text-decoration: none;
+}
+
+.container
+{
+	width: 1000px;
+	margin: 40px auto;
+	align-items: center;	
+}
+
+h1
+{
+	font-weight: bold;
+	text-align: center;
+	padding: 0px 0px 60px 0px;
+	/* border: 2px solid powderblue; */
+}
+
+h2
+{
+	font-weight: bold;
+	text-decoration: underline;
+	font-size: 200%;
+	padding-bottom:  20px;
+}
+
+p
+{
+	/* border: 2px solid powderblue; */
+	line-height:130%;
+	/* font-size: 60%; */
+	/*padding: 60px 0px 60px 20px;*/
+}
+pre
+{
+	/* border: 2px solid powderblue; */
+	line-height:130%;
+	/* font-size: 60%; */
+	text-align: left;
+	/*padding: 60px 0px 60px 20px;*/
+}
+
+
+dd
+{
+	color: rgb(207, 169, 243);
+	padding-bottom: 1%;
+	font-style: italic;
+}
+
+a
+{
+	color: rgb(255, 216, 145);
+}
+
+button
+{
+	font-size: 180%;
+	border-radius: 15px;
+}
+
+#gp_equilibre
+{
+	/* border-radius: 20px; */
+	max-width:60%;
+	height:auto;
+	align-content: center;
+	float: left;
+	margin-right:15px;
+}
+
+
+img
+{
+	border-radius: 5%;
+}
+#dissolve
+{
+	max-width:50%;
+	height:auto;
+	align-content: center;
+	float: right;
+	margin-left:15px;
+}
+
+#spinGlitch
+{
+	/* border-radius: 10px; */
+	max-width:30%;
+	height:auto;
+	align-content: center;
+	float: left;
+	margin-top:15px;
+}
+
+figcaption
+{
+	font-size: 80%;
+	font-style: italic;
+}
+
+#c
+{
+	background-color: solid powderblue;
+	border: 1px solid powderblue;
+}
+
+article
+{
+	clear: both;
+	padding-top: 20px;
+}
+
+section
+{
+	clear: both;
+	margin-top: 10%;
+	/* border: 2px solid powderblue; */
+}
+
+code
+{
+	color: rgb(209, 253, 253);
+}
+
+.code-box
+{
+	background-color: rgb(51, 57, 61);
+	width :70%;
+	margin: 50px auto;
+	padding-left: 20px; 
+	border-radius: 5px;
+}
+
+li
+{
+	margin-top: 0.3%;
+}
+
+html {
+  scroll-behavior: smooth;
+}
