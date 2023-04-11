@@ -71,7 +71,7 @@ class HTTP_Request : public HTTP_Message
 	}
 	void construct_from_socket(int socket_fd)
 	{
-		HTTP_Message::partial_constructor(socket_fd, RECV_FLAGS);
+		HTTP_Message::partial_constructor(socket_fd/* , RECV_FLAGS */);
 		if (is_fully_constructed)
 		{
 			request_line = first_line;

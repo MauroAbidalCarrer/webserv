@@ -213,7 +213,7 @@ std::string ws_read(int fd, int buffer_size, size_t* nb_read_bytes_ptr = NULL)
     buffer[nb_read_bytes] = 0;
     if (nb_read_bytes_ptr != NULL)
         *nb_read_bytes_ptr = nb_read_bytes;
-    return std::string(buffer);
+    return std::string(buffer, nb_read_bytes);
 }
 
 int ws_open(std::string pathname, int flags)
