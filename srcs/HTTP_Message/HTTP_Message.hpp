@@ -84,7 +84,7 @@ class HTTP_Message
                 vector<string> Content_length_header_field = get_header_fields("Content-Length");
                 size_t content_length = std::atoi(Content_length_header_field[1].c_str());
                 cout << "Content-Length: " << content_length << endl;
-                if (body.length() == content_length)
+                if (body.length() >= content_length)
                     is_fully_constructed = true;
             }
             // catch(const std::e& e)
