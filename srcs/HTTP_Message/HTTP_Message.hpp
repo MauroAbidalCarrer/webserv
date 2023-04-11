@@ -87,7 +87,8 @@ class HTTP_Message
                 if (body.length() == content_length)
                     is_fully_constructed = true;
             }
-            catch(const std::exception& e)
+            // catch(const std::e& e)
+            catch(const NoHeaderFieldFoundException& e)
             {
                 //No Content-Length was header was provided, therefore there is no body
                 PRINT_ERROR("No Content-Length header found.");
@@ -244,14 +245,14 @@ class HTTP_Message
     }
 
     //nested classes
-    class NoBytesToReadException : std::exception
+    class NoBytesToReadException : public std::exception
     {
         const char * what() const throw()
         {
             return "NoBytesToReadException";
         }
     };
-    class NoHeaderFieldFoundException : std::exception
+    class NoHeaderFieldFoundException : public std::exception
     {
         const char * what() const throw()
         {
