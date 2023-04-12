@@ -6,6 +6,7 @@
 //using namespaces
 using std::string;
 using std::vector;
+using std::map;
 using std::runtime_error;
 using std::pair;
 using std::cout;

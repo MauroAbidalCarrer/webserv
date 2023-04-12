@@ -17,10 +17,24 @@ struct VirtualServerContext
     vector<string> hostnames;
     str_to_str_map_t error_codes_to_default_error_page_path;
     vector<LocationContext> location_contexts;
+    map<string, string> redirected_URLs;
     
     //constructors and destructors
-    VirtualServerContext() {}
-    VirtualServerContext(string_vec_it_t it, string_vec_it_t server_context_end_it)
+    VirtualServerContext() :
+    listen_ip(),
+    listen_port(),
+    hostnames(),
+    error_codes_to_default_error_page_path(),
+    location_contexts(),
+    redirected_URLs()
+    { }
+    VirtualServerContext(string_vec_it_t it, string_vec_it_t server_context_end_it) :
+    listen_ip(),
+    listen_port(),
+    hostnames(),
+    error_codes_to_default_error_page_path(),
+    location_contexts(),
+    redirected_URLs()
     {
         listen_ip = "127.0.0.1";
         listen_port = "80";
@@ -31,6 +45,7 @@ struct VirtualServerContext
             parsed_a_directive |= parse_listen_directive(it, server_context_end_it);
             parsed_a_directive |= parse_error_page_directive(it, server_context_end_it);
             parsed_a_directive |= parse_server_name_directive(it, server_context_end_it);
+            parsed_a_directive |= parse_redirections(it, server_context_end_it);
             if (!parsed_a_directive)
                 throw std::runtime_error("invalid token in virtual server context : " + *it);
         }
@@ -100,6 +115,7 @@ struct VirtualServerContext
         hostnames = rhs.hostnames;
         error_codes_to_default_error_page_path = rhs.error_codes_to_default_error_page_path;
         location_contexts = rhs.location_contexts;
+        redirected_URLs = rhs.redirected_URLs;
         return *this;
     }
     //methods
@@ -113,6 +129,9 @@ struct VirtualServerContext
             cout << hostnames[i] << endl;
         cout << "\terror pages redirects:" << endl;
         for (str_to_str_map_t::iterator it = error_codes_to_default_error_page_path.begin(); it != error_codes_to_default_error_page_path.end(); it++)
+            cout << "\t\t" << it->first << " => " << it->second << endl;
+        cout << "\tredirections:" << endl;
+        for (map<string, string>::iterator it = redirected_URLs.begin(); it != redirected_URLs.end(); it++)
             cout << "\t\t" << it->first << " => " << it->second << endl;
         cout << BOLD_AINSI << "\tlocation contexts: " << END_AINSI << endl;
         for (size_t i = 0; i < location_contexts.size(); i++)
@@ -139,6 +158,26 @@ struct VirtualServerContext
 		if (a.length() >= b.length())
 			return (a.compare(0, b.length(), b) == 0);
 		return false;
+    }
+    bool parse_redirections(string_vec_it_t& it, string_vec_it_t server_context_end_it)
+    {
+        if (*it == "redirect")
+        {
+            cout << "Found \"redirect\" directive." << endl;
+            it++;
+            if (it == server_context_end_it || *it == ";" || *it == "}" || *it == "{") 
+                throw runtime_error("\"redirect\" directive is not followed by a url key.");
+            it++;
+            if (it == server_context_end_it || *it == ";" || *it == "}" || *it == "{") 
+                throw runtime_error("\"redirect\" directive url key is not followed by a url value.");
+            redirected_URLs[*(it - 1)] = *it;
+            it++;
+            if (it == server_context_end_it || *it != ";")
+                throw runtime_error("redirect directive does not end by a \";\".");
+            it++;
+            return true;
+        }
+        return false;
     }
 };
 #endif

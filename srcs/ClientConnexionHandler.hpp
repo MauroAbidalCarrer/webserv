@@ -68,6 +68,8 @@ class ClientHandler : public IO_Manager::FD_interest
 	{
 		try
 		{
+			string cgi_launcher;
+
 			//set up meber variables
 			virtualServerContext = GlobalContextSingleton.find_corresponding_virtualServerContext(request._hostname, listening_ip, listening_port);
 			locationContext = virtualServerContext.find_corresponding_location_context(request._path);
@@ -75,9 +77,15 @@ class ClientHandler : public IO_Manager::FD_interest
 			//verify that method is actually allowed in the location context 
 			if (std::count(locationContext.allowed_methods.begin(), locationContext.allowed_methods.end(), request.HTTP_method) == 0)
 				throw WSexception("405");
+			if (virtualServerContext.redirected_URLs.count(request._path))
+			{
+				string redirected_url = virtualServerContext.redirected_URLs[request._path];
+				HTTP_Response::set_redirection_response(response, redirected_url);
+				cout << BLUE_AINSI << "Redirecting request with path \"" << request._path << "\" to \"" << redirected_url << "." << END_AINSI << endl; 
+				IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
+			}
 			//start processing request
-			string cgi_launcher;
-			if (request_requires_cgi(cgi_launcher))
+			else if (request_requires_cgi(cgi_launcher))
 			{
 				cout << "Going to generate response from CGI." << endl;
 				handle_cgi(cgi_launcher);
@@ -117,7 +125,7 @@ class ClientHandler : public IO_Manager::FD_interest
 			if (locationContext.directory_listing == false)
 				throw WSexception("403");
 			cout << "Constructing directory listing response for request." << endl;
-			response = HTTP_Response(request._path);
+			HTTP_Response::set_directory_listing_response(response, request._path);
 		}
 		else
 			response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);
@@ -354,7 +362,7 @@ class ClientHandler : public IO_Manager::FD_interest
 	void handle_unexpected_exception(const std::exception& e)
 	{
 		response = HTTP_Response::Mk_default_response("500");
-		std::cerr << RED_AINSI << "ERROR" << END_AINSI << ": Caught Unexpected exception processins request. Setting response to default 500 response. " << std::endl;
+		std::cerr << RED_AINSI << "ERROR" << END_AINSI << ": Caught Unexpected exception while processing request. Setting response to default 500 response. " << std::endl;
 		std::cerr << "e.what(): " << e.what() << std::endl;
 		IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
 	}
