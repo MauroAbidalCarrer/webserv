@@ -83,7 +83,7 @@ class ClientHandler : public IO_Manager::FD_interest
 			else if (request.HTTP_method == "GET")
 				start_processing_Get_request("200", request._path);
 			else if (request.HTTP_method == "POST")
-				start_processing_Post_request("200", request._path);
+				start_processing_Post_request("201", request._path);
 			else
 				throw WSexception("405");
 			// if method == POST
@@ -98,13 +98,13 @@ class ClientHandler : public IO_Manager::FD_interest
 		catch (const WSexception &e) { handle_WSexception(e); }
 		catch (const std::exception &e) { handle_unexpected_exception(e); }
 	}
+	// start_processing_Post_request("201", request._path);
 
 	void	start_processing_Post_request(std::string status_code, string target_ressource_path)
 	{
-		(void)status_code;
-		(void)target_ressource_path;
+		response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);
+		IO_Manager::change_interest_epoll_mask(fd , EPOLLOUT);
 	}
-
 
 	// GET method
 	// open content file AND consturct response from content AND dedebug reuqest on connexion socket_fd
