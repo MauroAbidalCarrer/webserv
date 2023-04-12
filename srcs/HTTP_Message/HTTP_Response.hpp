@@ -27,6 +27,23 @@ class HTTP_Response : public HTTP_Message
         set_response_line("200", CSV_maps["status_code_to_msg"]["200"]);
         body = "<!DOCTYPE html>\n"
                         "<html lang=\"en\">\n"
+                        "<style>"
+                        "table {"
+                        "font-family: arial, sans-serif;"
+                        "border-collapse: collapse;"
+                        "width: 100%;"
+                        "}"
+                        ""
+                        "td, th {"
+                        "border: 1px solid #dddddd;"
+                        "text-align: left;"
+                        "padding: 8px;"
+                        "}"
+                        ""
+                        "tr:nth-child(even) {"
+                        "background-color: #dddddd;"
+                        "}"
+                        "</style>"
                         "<head>\n"
                         "\t\t<meta charset=\"UTF-8\">\n"
                         "\t\t<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
@@ -37,7 +54,8 @@ class HTTP_Response : public HTTP_Message
                                         "</head>\n"
                                         "<body>\n"
                                         "\t<main>\n"
-                                        "\t\t<p>\n";
+                                        "\t\t<table>\n"
+                                        "\t\t\t<tr><th>Name</th><th>Size</th></tr>";
         body.append(second_part);
         DIR *dir;
         struct dirent *ent;
@@ -52,18 +70,22 @@ class HTTP_Response : public HTTP_Message
                         continue;;
                     if (ent->d_type & DT_DIR)
                         element_name += "/";
-                    body.append("\t\t\t<a href=\"");
+                    body.append("\t\t\t<tr><th><a href=\"");
                     body.append(element_name);
                     body.append("\">");
                     body.append(element_name);
-                    body.append("</a><br>");
+                    body.append("</a></th><th>");
+                    std::ostringstream convert;
+                    convert << ent->d_reclen;
+                    body.append(convert.str());
+                    body.append("</th></tr>\n");
                 }
             }
             closedir (dir);
         }
         else
             throw runtime_error("Failed to list directory, opendir failed.");
-        static char last_part[] =   "\t\t</p>"
+        static char last_part[] =   "\t\t</table>"
                                     "\t</main>\n"
                                     "</body>\n"
                                     "</html>\n";
@@ -77,10 +99,6 @@ class HTTP_Response : public HTTP_Message
     void partial_constructor_from_fd(int read_fd)
     {
         HTTP_Message::partial_constructor(read_fd);
-        if (is_fully_constructed)
-        {
-            
-        }
     }
     static HTTP_Response Mk_default_response(std::string status_code)
     {
