@@ -7,15 +7,16 @@ server
     error_page 500 /cat_HTTP_Responses/500.jpg;
     location /
     {
-        root web_ressources/;
-        default_file index.html;
+        root web_ressources;
         cgi .pl;
         cgi .cgi;
+        default_file index.html;
+        directory_listing;
     }
 }
 server
 {
-    listen 10.11.8.18:8080;
+    listen 10.11.5.4:8080;
     server_name cat_site;
     error_page 404 /imgs/404.jpg;
     error_page 406 /imgs/406.jpg;

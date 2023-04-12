@@ -1,0 +1,15 @@
+fix construction of HTTP message body if nb_read_bytes is smalller than the resized 
+
+handle multi part url encoded
+handle multi part data
+
+
+Define a list of accepted HTTP methods for the route
+Define HTTP redirections
+Limit client body size
+add Content-Length to CGI output if it is missing
+implement DELETE methods
+handle CGI timeout
+handle request timeout
+
+test CGI that overflows pipe

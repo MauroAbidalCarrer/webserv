@@ -81,7 +81,7 @@ class ClientHandler : public IO_Manager::FD_interest
 				handle_cgi(cgi_launcher);
 			}
 			else if (request.HTTP_method == "GET")
-				start_processing_Get_request("200", request._path);
+				process_GET_request("200", request._path);
 			else if (request.HTTP_method == "POST")
 				start_processing_Post_request("201", request._path);
 			else
@@ -108,10 +108,17 @@ class ClientHandler : public IO_Manager::FD_interest
 
 	// GET method
 	// open content file AND consturct response from content AND dedebug reuqest on connexion socket_fd
-	void start_processing_Get_request(string status_code, string target_ressource_path)
+	void process_GET_request(string status_code, string target_ressource_path)
 	{
-		response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);
-		// Implement response method that defines response's Content-Type header field.
+		if (request._path[request._path.length() - 1] == '/')
+		{
+			if (locationContext.directory_listing == false)
+				throw WSexception("403");
+			cout << "Constructing directory listing response for request." << endl;
+			response = HTTP_Response(request._path);
+		}
+		else
+			response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);
 		IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
 	}
 	bool request_requires_cgi(string& cgi_launcher)

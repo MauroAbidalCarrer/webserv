@@ -255,7 +255,7 @@ std::vector<std::string> list_directory(std::string path_to_directory, int DT_ma
     std::vector<std::string> string_vec;
     DIR *dir;
     struct dirent *ent;
-    if ((dir = opendir (path_to_directory.data())) != NULL)
+    if ((dir = opendir(path_to_directory.data())) != NULL)
     {
         while ((ent = readdir (dir)) != NULL)
             if (ent->d_type & DT_mask)

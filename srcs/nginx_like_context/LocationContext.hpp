@@ -17,16 +17,31 @@ struct LocationContext
         second = cgi launcher(like python3), may be empty if the cgi can be excutated as is
     */
     vector<pair<string, string> > cgi_extensions_and_launchers;
+    bool directory_listing;
 
     //constructors and destructors
-    LocationContext() : path(), root(), default_file(), cgi_extensions_and_launchers() { }
+    LocationContext() : 
+    path(), 
+    root(), 
+    default_file(), 
+    cgi_extensions_and_launchers(),
+    directory_listing(false)
+    { }
     LocationContext(const LocationContext& other) :
-    path(), root(), default_file(), cgi_extensions_and_launchers()
+    path(), 
+    root(),
+    default_file(), 
+    cgi_extensions_and_launchers(),
+    directory_listing(false)
     {
         *this = other;
     }
     LocationContext(std::string path, string_vec_it_t& it, string_vec_it_t& location_context_end_it) :
-    path(), root(), default_file(), cgi_extensions_and_launchers()
+    path(), 
+    root(),
+    default_file(), 
+    cgi_extensions_and_launchers(),
+    directory_listing(false)
     {
         this->path = path;
         while (it != location_context_end_it)
@@ -35,6 +50,7 @@ struct LocationContext
             parsed_directive |= parsing::set_directive_field("default_file", directive_fields_dsts_t(default_file, NULL), it, location_context_end_it);
             parsed_directive |= parsing::set_directive_field("root", directive_fields_dsts_t(root, NULL), it, location_context_end_it);
             parsed_directive |= parse_cgi_directive(it, location_context_end_it);
+            parsed_directive |= parse_directory_listing(it, location_context_end_it);
             if (!parsed_directive)
                 throw runtime_error("Invalid token in location context in config file: " + *it);
         }
@@ -47,6 +63,7 @@ struct LocationContext
         root = rhs.root;
         default_file = rhs.default_file;
         cgi_extensions_and_launchers = rhs.cgi_extensions_and_launchers;
+        directory_listing = rhs.directory_listing;
         return *this;
     }
     //methods
@@ -95,6 +112,20 @@ struct LocationContext
         }
         return false;
     }
+    bool parse_directory_listing(string_vec_it_t& it, string_vec_it_t& location_context_end_it)
+    {
+        if (*it == "directory_listing")
+        {
+            it++;
+            if (it == location_context_end_it || *it != ";" )
+                throw std::runtime_error("\"directory_listing\" directive is not terminated by a \";\".");
+            it++;
+            cout << "setting directory_listing to true." << endl;
+            directory_listing = true;
+            return true;
+        }
+        return false;
+    }
     void apply_to_path(string& path)
     {
 		// apply root directive(for now just insert ".")
@@ -102,7 +133,7 @@ struct LocationContext
 		// apply rewrite directive(not sure if it's the rewrite directive... the that completes target URLs finishing ini "/")(for no just index.html)
 		if (*(path.end() - 1) == '/')
 			path.append(default_file);
-		// cout << "Path after applying context: " << path << endl;
+		cout << "Path after applying context: " << path << endl;
     }
     void debug()
     {
@@ -110,6 +141,10 @@ struct LocationContext
         cout << "\t\troot: " << root << endl;
         cout << "\t\tdefault_file: " << default_file << endl;  
         cout << "\t\tcgi extensions and launchers(optional):" << endl;
+        if (directory_listing)
+            cout << "\t\tdirectory_listing: true" << endl;
+        else
+            cout << "\t\tdirectory_listing: false" << endl;
         for (size_t i = 0; i < cgi_extensions_and_launchers.size(); i++)
             cout << "\t\t\t" << cgi_extensions_and_launchers[i].first << " " << cgi_extensions_and_launchers[i].second << endl;
     }
