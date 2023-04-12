@@ -15,7 +15,7 @@ server
 }
 server
 {
-    listen 10.11.8.4:8080;
+    listen 10.11.8.18:8080;
     server_name cat_site;
     error_page 404 /imgs/404.jpg;
     error_page 406 /imgs/406.jpg;

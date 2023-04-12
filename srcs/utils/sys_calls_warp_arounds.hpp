@@ -201,10 +201,10 @@ std::string ws_recv(int socket_fd, int buffer_size, int flags, size_t* nb_read_b
     buffer[nb_read_bytes] = 0;
     if (nb_read_bytes_ptr != NULL)
         *nb_read_bytes_ptr = nb_read_bytes;
-    return std::string(buffer);
+    return std::string(buffer, nb_read_bytes);
 }
 
-std::string ws_read(int fd, int buffer_size, size_t* nb_read_bytes_ptr = NULL)
+std::string ws_read(int fd, size_t buffer_size, ssize_t* nb_read_bytes_ptr = NULL)
 {
     ssize_t nb_read_bytes;
     char buffer[buffer_size + 1];
@@ -213,7 +213,7 @@ std::string ws_read(int fd, int buffer_size, size_t* nb_read_bytes_ptr = NULL)
     buffer[nb_read_bytes] = 0;
     if (nb_read_bytes_ptr != NULL)
         *nb_read_bytes_ptr = nb_read_bytes;
-    return std::string(buffer);
+    return std::string(buffer, nb_read_bytes);
 }
 
 int ws_open(std::string pathname, int flags)

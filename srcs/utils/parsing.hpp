@@ -62,8 +62,8 @@ namespace parsing
             tokenized_file.push_back(tokenize_first_of(line_tokens[i], word_delimiters, false));
         return tokenized_file;
     }
-    typedef tokenized_text_t tokenized_HTTP_message_t;
-    tokenized_HTTP_message_t tokenize_HTTP_message(std::string message_text)
+    typedef tokenized_text_t tokenized_HTTP_t;
+    tokenized_HTTP_t tokenize_HTTP_message(std::string message_text)
     {
         return tokenize_text(message_text, CLRF, ": ");
     }

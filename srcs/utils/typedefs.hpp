@@ -40,6 +40,7 @@ typedef std::map<std::string, std::map<std::string, std::string> > CSV_maps_t;
 //prints
 # define PRINT_WARNING(x) cout << YELLOW_WARNING << x << endl
 # define PRINT_ERROR(x) cout << RED_ERROR << x << endl
+# define PRINT_FAINT(x) cout << FAINT_AINSI << x << END_AINSI << endl
 # define END_AINSI "\e[0m"
 
 #include <sstream>

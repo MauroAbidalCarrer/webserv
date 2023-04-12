@@ -1,104 +1,103 @@
 #ifndef HTTP_Message_HPP
-# define HTTP_Message_HPP
-# include <iostream>
-# include <string>
-# include <cstdlib>
+#define HTTP_Message_HPP
+#include <iostream>
+#include <string>
+#include <cstdlib>
+#include <algorithm>
 
-# include "parsing.hpp"
-# include "typedefs.hpp"
-# include "sys_calls_warp_arounds.hpp"
+#include "parsing.hpp"
+#include "typedefs.hpp"
+#include "sys_calls_warp_arounds.hpp"
 // # include "WSexception.hpp"
 
-#define FIRST_READ_BUFFER_SIZE 10
-
-//sys call functions declarations to avoid circular dependencies (-_-)
-std::string ws_recv(int socket_fd, int buffer_size, int flags, size_t* nb_read_bytes_ptr);
-std::string ws_read(int fd, int buffer_size, size_t* nb_read_bytes_ptr);
-std::string ws_recv(int socket_fd, int buffer_size, int flags);
-std::string ws_read(int fd, int buffer_size);
-# define READ_BUFFER_SIZE 3000
-# define RECV_FLAGS 0
+// sys call functions declarations to avoid circular dependencies (-_-)
+std::string ws_recv(int socket_fd, size_t buffer_size, int flags, ssize_t *nb_read_bytes_ptr);
+std::string ws_read(int fd, size_t buffer_size, ssize_t *nb_read_bytes_ptr);
+std::string ws_recv(int socket_fd, size_t buffer_size, int flags);
+std::string ws_read(int fd, size_t buffer_size);
+#define READ_BUFFER_SIZE 10000
+#define RECV_FLAGS 0
 
 class HTTP_Message
 {
-    private:
+private:
+    // size_t nb_partial_constructs, total_nb_bytes_read;
     int read_fd;
     int recv_flags;
     string construct_buffer;
     bool header_is_constructed;
-    protected:
-	bool header_is_parsed;
-    public:
+    // string tmp_header_as_string;
+    size_t content_length;
+
+public:
     vector<string> first_line;
     parsing::tokenized_text_t header;
     string body;
-	bool is_fully_constructed;
+    bool is_fully_constructed;
 
-    public:
-    //constructors and destructors
-    HTTP_Message() :
-    read_fd(-1), recv_flags(0), header_is_constructed(false), header_is_parsed(false), first_line(), header(), body(), is_fully_constructed(false)
+public:
+    // constructors and destructors
+    HTTP_Message() : 
+    // nb_partial_constructs(0),
+    // total_nb_bytes_read(0),
+    read_fd(-1),
+    recv_flags(0),
+    header_is_constructed(false),
+    // tmp_header_as_string(),
+    content_length(0),
+    first_line(),
+    header(),
+    body(),
+    is_fully_constructed(false)
     { }
-    protected:
-	void partial_constructor(int read_fd, int recv_flags = 0)
-	{
-        size_t nb_read_bytes = 0;
-        if (recv_flags != 0)
-            construct_buffer += ws_recv(read_fd, READ_BUFFER_SIZE, RECV_FLAGS, &nb_read_bytes);
-        else
+
+protected:
+    void partial_constructor(int read_fd)
+    {
+        if (header_is_constructed == false)
+        {
+            ssize_t nb_read_bytes = 0;
             construct_buffer += ws_read(read_fd, READ_BUFFER_SIZE, &nb_read_bytes);
-        if (nb_read_bytes == 0)
-            throw NoBytesToReadException();
-        if (header_is_constructed)
-        {
-            body.append(construct_buffer);
-            construct_buffer.clear();
-        }
-        //If nb_read_bytes < READ_BUFFER_SIZE we might have read the full message
-        if (nb_read_bytes < READ_BUFFER_SIZE)
-        {
-            cout << "nb_read_bytes: " << nb_read_bytes << ", READ_BUFFER_SIZE: " << READ_BUFFER_SIZE << endl;
-            //If nb_read_bytes < READ_BUFFER_SIZE we are (almost)certain that we have read the whole header and
-            if (header_is_constructed == false)
-            {
-                cout << YELLOW_AINSI << "Construct buffer before constructing header:" << endl;
-                cout << construct_buffer << END_AINSI << endl;
-                construct_header();
-                body = construct_buffer.substr(construct_buffer.find("\r\n\r\n"));
-                construct_buffer.clear();
-            }
+            if (nb_read_bytes == 0)
+                throw NoBytesToReadException();
+            size_t double_CRLF_index = construct_buffer.find("\r\n\r\n");
+            if (double_CRLF_index == string::npos)
+                return ;
+            string header_as_string = construct_buffer.substr(0, double_CRLF_index);
+            parsing::tokenized_HTTP_t tokenized_header = parsing::tokenize_HTTP_message(header_as_string);
+            first_line = tokenized_header[0];
+            header = parsing::tokenized_HTTP_t(tokenized_header.begin() + 1, tokenized_header.end());
             try
             {
-                cout << BLUE_AINSI << "header size = " << header.size() << endl;
-                for (size_t i = 0; i < header.size(); i++)
-                {
-                    for (size_t j = 0; j < header[i].size(); j++)
-                        cout << header[i][j] << " ";
-                    cout << endl;
-                }
-                cout << body << endl;
-                cout << END_AINSI << endl;
-                
-                //if body size == Content-Length 
-                //We've read the entirety of the message.
-                vector<string> Content_length_header_field = get_header_fields("Content-Length");
-                size_t content_length = std::atoi(Content_length_header_field[1].c_str());
-                cout << "Content-Length: " << content_length << endl;
-                if (body.length() >= content_length)
-                    is_fully_constructed = true;
+                vector<string> content_length_header = get_header_fields("Content-Length");
+                content_length = std::strtoul(content_length_header[1].c_str(), NULL, 0);
+                body.reserve(content_length);
+                body.insert(body.begin(), construct_buffer.begin() + double_CRLF_index + 4, construct_buffer.end());
             }
-            // catch(const std::e& e)
-            catch(const NoHeaderFieldFoundException& e)
+            catch(const std::exception& e)
             {
-                //No Content-Length was header was provided, therefore there is no body
-                PRINT_ERROR("No Content-Length header found.");
+                // cout << FAINT_AINSI << "No header \"Content-Length\"(match is case sensitive) was found, assuming that there is no body, (Could be chunked, not yet supported)" << END_AINSI << endl;
                 is_fully_constructed = true;
-                // throw WSexception("400");
-                // throw NoHeaderFieldFoundException();
             }
+            header_is_constructed = true;
         }
-	}
-    private:
+        else
+        {
+            size_t read_size = content_length - body.size() < READ_BUFFER_SIZE ? content_length - body.size() : READ_BUFFER_SIZE;
+            size_t prev_body_size = body.size();
+            body.resize(body.size() + read_size);
+            ssize_t nb_readytes = read(read_fd, (void *)(body.data() + prev_body_size), read_size);
+            if (nb_readytes == -1)
+                throw runtime_error("Could not read on fd to cosntruct HTTP message.");
+            if (nb_readytes == 0)
+                throw NoBytesToReadException();
+            // double percentage_of_body_bytes_read = (double)((double)body.length() / (double)content_length) * (double)100.0;
+            // cout << "Read bytes into body, body.length(): " << body.length() << ", content_length: " << content_length << ", percentage of bytes read: " << percentage_of_body_bytes_read << endl;
+        }
+        is_fully_constructed = body.length() >= content_length;
+    }
+    
+private:
     void construct_header()
     {
         parsing::tokenized_text_t tokenized_msg = parsing::tokenize_HTTP_message(construct_buffer);
@@ -109,30 +108,24 @@ class HTTP_Message
         header = parsing::tokenized_text_t(tokenized_msg.begin() + 1, header_end_it);
         header_is_constructed = true;
     }
-    public:
-    HTTP_Message(const HTTP_Message& other)
+
+public:
+    HTTP_Message(const HTTP_Message &other)
     {
         *this = other;
     }
-    ~HTTP_Message() { }
-    //operator overloads
-    HTTP_Message& operator=(const HTTP_Message& rhs)
+    ~HTTP_Message() {}
+    // operator overloads
+    HTTP_Message &operator=(const HTTP_Message &rhs)
     {
         read_fd = rhs.read_fd;
         recv_flags = rhs.recv_flags;
         first_line = rhs.first_line;
-        header = rhs.header; 
-        body = rhs.body; 
+        header = rhs.header;
+        body = rhs.body;
         return *this;
     }
-    //methods
-    std::string read_text_msg(size_t buffer_size)
-    {
-        if (recv_flags == 0)
-            return ws_read(read_fd, buffer_size);
-        else
-            return ws_recv(read_fd, buffer_size, recv_flags);
-    }
+    // methods
     std::string serialize()
     {
         std::string str;
@@ -190,13 +183,15 @@ class HTTP_Message
             else
                 str.append("HTTP message body was ommited because body is not text.\n");
         }
-        catch(NoHeaderFieldFoundException e) 
-        {  
+        catch (NoHeaderFieldFoundException e)
+        {
+            str.append("Did not found \'Content-Length\' header(match is case sensitive), assuming that there is no body.");
             // std::cout << "Could not found Content-Type header field while debugging response." << std::endl;
-        }        
+        }
         return str;
     }
-    protected:
+
+protected:
     vector<string> get_header_fields(std::string header_name)
     {
         for (size_t i = 0; i < header.size(); i++)
@@ -214,7 +209,7 @@ class HTTP_Message
             if (i->size() > 0 && (*i)[0] == header_str)
             {
                 *i = header_fields;
-                return ;
+                return;
             }
         }
         header.push_back(header_fields);
@@ -231,12 +226,13 @@ class HTTP_Message
             if (i->size() > 0 && (*i)[0] == header_fields[0])
             {
                 *i = header_fields;
-                return ;
+                return;
             }
         }
         header.push_back(header_fields);
     }
-    public:
+
+public:
     virtual void clear()
     {
         first_line.clear();
@@ -244,17 +240,17 @@ class HTTP_Message
         body.clear();
     }
 
-    //nested classes
+    // nested classes
     class NoBytesToReadException : public std::exception
     {
-        const char * what() const throw()
+        const char *what() const throw()
         {
             return "NoBytesToReadException";
         }
     };
     class NoHeaderFieldFoundException : public std::exception
     {
-        const char * what() const throw()
+        const char *what() const throw()
         {
             return "NoHeaderFieldFoundException";
         }
