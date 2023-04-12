@@ -85,12 +85,12 @@ protected:
         {
             size_t read_size = content_length - body.size() < READ_BUFFER_SIZE ? content_length - body.size() : READ_BUFFER_SIZE;
             size_t prev_body_size = body.size();
-            body.resize(body.size() + read_size);
             ssize_t nb_readytes = read(read_fd, (void *)(body.data() + prev_body_size), read_size);
             if (nb_readytes == -1)
                 throw runtime_error("Could not read on fd to cosntruct HTTP message.");
             if (nb_readytes == 0)
                 throw NoBytesToReadException();
+            body.resize(body.size() + nb_readytes);
             // double percentage_of_body_bytes_read = (double)((double)body.length() / (double)content_length) * (double)100.0;
             // cout << "Read bytes into body, body.length(): " << body.length() << ", content_length: " << content_length << ", percentage of bytes read: " << percentage_of_body_bytes_read << endl;
         }

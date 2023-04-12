@@ -72,7 +72,9 @@ class ClientHandler : public IO_Manager::FD_interest
 			virtualServerContext = GlobalContextSingleton.find_corresponding_virtualServerContext(request._hostname, listening_ip, listening_port);
 			locationContext = virtualServerContext.find_corresponding_location_context(request._path);
 			locationContext.apply_to_path(request._path);
-
+			//verify that method is actually allowed in the location context 
+			if (std::count(locationContext.allowed_methods.begin(), locationContext.allowed_methods.end(), request.HTTP_method) == 0)
+				throw WSexception("405");
 			//start processing request
 			string cgi_launcher;
 			if (request_requires_cgi(cgi_launcher))

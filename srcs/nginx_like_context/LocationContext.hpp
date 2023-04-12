@@ -18,6 +18,7 @@ struct LocationContext
     */
     vector<pair<string, string> > cgi_extensions_and_launchers;
     bool directory_listing;
+    vector<string> allowed_methods;
 
     //constructors and destructors
     LocationContext() : 
@@ -25,8 +26,13 @@ struct LocationContext
     root(), 
     default_file(), 
     cgi_extensions_and_launchers(),
-    directory_listing(false)
-    { }
+    directory_listing(false),
+    allowed_methods()
+    { 
+        allowed_methods.push_back("GET");
+        allowed_methods.push_back("POST");
+        allowed_methods.push_back("DELETE");
+    }
     LocationContext(const LocationContext& other) :
     path(), 
     root(),
@@ -41,8 +47,12 @@ struct LocationContext
     root(),
     default_file(), 
     cgi_extensions_and_launchers(),
-    directory_listing(false)
+    directory_listing(false),
+    allowed_methods()
     {
+        allowed_methods.push_back("GET");
+        allowed_methods.push_back("POST");
+        allowed_methods.push_back("DELETE");
         this->path = path;
         while (it != location_context_end_it)
         {
@@ -51,6 +61,7 @@ struct LocationContext
             parsed_directive |= parsing::set_directive_field("root", directive_fields_dsts_t(root, NULL), it, location_context_end_it);
             parsed_directive |= parse_cgi_directive(it, location_context_end_it);
             parsed_directive |= parse_directory_listing(it, location_context_end_it);
+            parsed_directive |= parse_allow_methods(it, location_context_end_it);
             if (!parsed_directive)
                 throw runtime_error("Invalid token in location context in config file: " + *it);
         }
@@ -64,6 +75,7 @@ struct LocationContext
         default_file = rhs.default_file;
         cgi_extensions_and_launchers = rhs.cgi_extensions_and_launchers;
         directory_listing = rhs.directory_listing;
+        allowed_methods = rhs.allowed_methods;
         return *this;
     }
     //methods
@@ -120,12 +132,30 @@ struct LocationContext
             if (it == location_context_end_it || *it != ";" )
                 throw std::runtime_error("\"directory_listing\" directive is not terminated by a \";\".");
             it++;
-            cout << "setting directory_listing to true." << endl;
             directory_listing = true;
             return true;
         }
         return false;
     }
+    bool parse_allow_methods(string_vec_it_t& it, string_vec_it_t& location_context_end_it)
+    {
+        if (*it == "allow_methods")
+        {
+            allowed_methods.clear();
+            it++;
+            while (*it == "GET" || *it == "METHOD" || *it == "POST" )
+            {
+                allowed_methods.push_back(*it);
+                it++;
+            }
+            if (it == location_context_end_it || *it != ";")
+                throw std::runtime_error("\"allow_methods\" directive is not terminated by a \";\".");
+            it++;
+            return true;
+        }
+        return false;
+    }
+
     void apply_to_path(string& path)
     {
 		// apply root directive(for now just insert ".")
@@ -140,13 +170,14 @@ struct LocationContext
         cout << "\t\tlocation path: " << path << endl;
         cout << "\t\troot: " << root << endl;
         cout << "\t\tdefault_file: " << default_file << endl;  
+        cout << "\t\tdirectory_listing: " << (directory_listing ? "true" : "false") << endl;
         cout << "\t\tcgi extensions and launchers(optional):" << endl;
-        if (directory_listing)
-            cout << "\t\tdirectory_listing: true" << endl;
-        else
-            cout << "\t\tdirectory_listing: false" << endl;
         for (size_t i = 0; i < cgi_extensions_and_launchers.size(); i++)
             cout << "\t\t\t" << cgi_extensions_and_launchers[i].first << " " << cgi_extensions_and_launchers[i].second << endl;
+        cout << "\t\tAllowed methods:";
+        for (size_t i = 0; i < allowed_methods.size(); i++)
+            cout << " " << allowed_methods[i];
+        cout << endl;
     }
 };
 #endif
