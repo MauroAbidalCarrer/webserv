@@ -87,12 +87,11 @@ class HTTP_Request : public HTTP_Message
 				if (this->get_header_fields("Host").size() > 2)
 					this->_ports = this->get_header_fields("Host")[PORT];
 			}
-			catch(const std::exception& e)
+			catch(NoHeaderFieldFoundException& e)
 			{
-				string error_msg = "Caught exception while trying to get headers" + string(e.what());
-				PRINT_ERROR(error_msg);
+				PRINT_ERROR("Caught exception while trying to get \"Host\" header.");
+				cout << "request:" << endl << serialize() << endl;
 			}
-			
 		}
 	}
 

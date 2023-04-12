@@ -204,7 +204,7 @@ std::string ws_recv(int socket_fd, int buffer_size, int flags, size_t* nb_read_b
     return std::string(buffer, nb_read_bytes);
 }
 
-std::string ws_read(int fd, int buffer_size, size_t* nb_read_bytes_ptr = NULL)
+std::string ws_read(int fd, size_t buffer_size, ssize_t* nb_read_bytes_ptr = NULL)
 {
     ssize_t nb_read_bytes;
     char buffer[buffer_size + 1];

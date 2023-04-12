@@ -268,10 +268,10 @@ class IO_Manager
                 current_time_in_mill = ws_epoch_time_in_mill();
                 static epoll_event events[MAX_EPOLL_EVENTS_TO_HANDLE_AT_ONCE];
                 int sortest_timeout_in_mill = find_shortest_timeout_in_milliseconds();
-                if (sortest_timeout_in_mill == -1)
-                    std::cout << BOLD_AINSI << "IO_Manager" << END_AINSI << ": Going to call epoll_wait to wait indefinetly for events on FDs monitored by IO_Manager." << std::endl << std::endl;
-                else
-                    std::cout << BOLD_AINSI << "IO_Manager" << END_AINSI << ": Going to call epoll_wait to wait for events on FDs monitored by IO_Manager for " << sortest_timeout_in_mill << " milliseconds." << std::endl << std::endl;
+                // if (sortest_timeout_in_mill == -1)
+                //     std::cout << BOLD_AINSI << "IO_Manager" << END_AINSI << ": Going to call epoll_wait to wait indefinetly for events on FDs monitored by IO_Manager." << std::endl << std::endl;
+                // else
+                //     std::cout << BOLD_AINSI << "IO_Manager" << END_AINSI << ": Going to call epoll_wait to wait for events on FDs monitored by IO_Manager for " << sortest_timeout_in_mill << " milliseconds." << std::endl << std::endl;
                 int nb_events = ws_epoll_wait(epoll_fd, events, MAX_EPOLL_EVENTS_TO_HANDLE_AT_ONCE, sortest_timeout_in_mill);
                 current_time_in_mill = ws_epoch_time_in_mill();
                 //timeout
