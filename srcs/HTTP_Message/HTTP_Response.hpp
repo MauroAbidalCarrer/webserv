@@ -21,11 +21,11 @@ class HTTP_Response : public HTTP_Message
     HTTP_Response() : HTTP_Message(), is_default_response(false) { }
     ~HTTP_Response() { }
     //Construct respoonse for directory listing
-    HTTP_Response(string directory_path)
+    static void set_directory_listing_response(HTTP_Response& response_dst, string directory_path)
     {
-        is_default_response = true;
-        set_response_line("200", CSV_maps["status_code_to_msg"]["200"]);
-        body = "<!DOCTYPE html>\n"
+        response_dst.is_default_response = true;
+        response_dst.set_response_line("200", CSV_maps["status_code_to_msg"]["200"]);
+        response_dst.body = "<!DOCTYPE html>\n"
                         "<html lang=\"en\">\n"
                         "<style>"
                         "table {"
@@ -49,14 +49,14 @@ class HTTP_Response : public HTTP_Message
                         "\t\t<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
                         "\t\t<meta http-equiv=\"X-UA-Compatible\" content=\"ie=edge\">\n"
                         "\t\t<title>";
-        body.append(directory_path);
+        response_dst.body.append(directory_path);
         static char second_part[] =    "</title>\n"
                                         "</head>\n"
                                         "<body>\n"
                                         "\t<main>\n"
                                         "\t\t<table>\n"
                                         "\t\t\t<tr><th>Name</th><th>Size</th></tr>";
-        body.append(second_part);
+        response_dst.body.append(second_part);
         DIR *dir;
         struct dirent *ent;
         if ((dir = opendir(directory_path.data())) != NULL)
@@ -70,15 +70,15 @@ class HTTP_Response : public HTTP_Message
                         continue;;
                     if (ent->d_type & DT_DIR)
                         element_name += "/";
-                    body.append("\t\t\t<tr><th><a href=\"");
-                    body.append(element_name);
-                    body.append("\">");
-                    body.append(element_name);
-                    body.append("</a></th><th>");
+                    response_dst.body.append("\t\t\t<tr><th><a href=\"");
+                    response_dst.body.append(element_name);
+                    response_dst.body.append("\">");
+                    response_dst.body.append(element_name);
+                    response_dst.body.append("</a></th><th>");
                     std::ostringstream convert;
                     convert << ent->d_reclen;
-                    body.append(convert.str());
-                    body.append("</th></tr>\n");
+                    response_dst.body.append(convert.str());
+                    response_dst.body.append("</th></tr>\n");
                 }
             }
             closedir (dir);
@@ -89,16 +89,21 @@ class HTTP_Response : public HTTP_Message
                                     "\t</main>\n"
                                     "</body>\n"
                                     "</html>\n";
-        body.append(last_part);
-        set_header_fields("Content-Type", "text/html;");
-        set_content_length();
-
+        response_dst.body.append(last_part);
+        response_dst.set_header_fields("Content-Type", "text/html;");
+        response_dst.set_content_length();
     }
     
     //methods
     void partial_constructor_from_fd(int read_fd)
     {
         HTTP_Message::partial_constructor(read_fd);
+    }
+    static void set_redirection_response(HTTP_Response& response_dst, string new_url)
+    {
+        response_dst = HTTP_Response::Mk_default_response("301");
+        response_dst.set_header_fields("Location", new_url);
+        response_dst.set_header_fields("Connection", "keep-alive");
     }
     static HTTP_Response Mk_default_response(std::string status_code)
     {

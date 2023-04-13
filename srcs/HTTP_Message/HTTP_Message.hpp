@@ -25,11 +25,11 @@ private:
     int read_fd;
     int recv_flags;
     string construct_buffer;
-    bool header_is_constructed;
     // string tmp_header_as_string;
-    size_t content_length;
 
 public:
+    size_t content_length;
+    bool header_is_constructed;
     vector<string> first_line;
     parsing::tokenized_text_t header;
     string body;
@@ -42,9 +42,9 @@ public:
     // total_nb_bytes_read(0),
     read_fd(-1),
     recv_flags(0),
-    header_is_constructed(false),
     // tmp_header_as_string(),
     content_length(0),
+    header_is_constructed(false),
     first_line(),
     header(),
     body(),
@@ -69,8 +69,8 @@ protected:
             header = parsing::tokenized_HTTP_t(tokenized_header.begin() + 1, tokenized_header.end());
             try
             {
-                vector<string> content_length_header = get_header_fields("Content-Length");
-                content_length = std::strtoul(content_length_header[1].c_str(), NULL, 0);
+                // vector<string> content_length_header = get_header_fields("Content-Length");
+                content_length =  get_content_length_from_header();//std::strtoul(content_length_header[1].c_str(), NULL, 0);
                 body.reserve(content_length);
                 body.insert(body.begin(), construct_buffer.begin() + double_CRLF_index + 4, construct_buffer.end());
             }
@@ -255,5 +255,12 @@ public:
             return "NoHeaderFieldFoundException";
         }
     };
+    size_t get_content_length_from_header()
+    {
+        vector<string> content_length_header = get_header_fields("Content-Length");
+        if (content_length_header.size() < 2)
+            throw runtime_error("Header \"Content-Length\" is present but no actual length is specified");
+        return std::strtoul(content_length_header[1].c_str(), NULL, 0);
+    }
 };
 #endif

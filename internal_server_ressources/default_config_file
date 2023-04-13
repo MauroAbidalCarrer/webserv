@@ -5,6 +5,7 @@ server
     error_page 404 /cat_HTTP_Responses/404.jpg;
     error_page 406 /cat_HTTP_Responses/406.jpg;
     error_page 500 /cat_HTTP_Responses/500.jpg;
+    client_body_size_limit 5000;
     location /
     {
         default_file index.html;
@@ -16,7 +17,7 @@ server
 }
 server
 {
-    listen 10.11.5.4:8080;
+    listen localhost:8080;
     server_name cat_site;
     error_page 404 /imgs/404.jpg;
     error_page 406 /imgs/406.jpg;

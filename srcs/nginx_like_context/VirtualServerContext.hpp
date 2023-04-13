@@ -18,6 +18,8 @@ struct VirtualServerContext
     str_to_str_map_t error_codes_to_default_error_page_path;
     vector<LocationContext> location_contexts;
     map<string, string> redirected_URLs;
+    string client_body_size_limit_as_string;
+    size_t client_body_size_limit;
     
     //constructors and destructors
     VirtualServerContext() :
@@ -26,7 +28,9 @@ struct VirtualServerContext
     hostnames(),
     error_codes_to_default_error_page_path(),
     location_contexts(),
-    redirected_URLs()
+    redirected_URLs(),
+    client_body_size_limit_as_string(),
+    client_body_size_limit(string::npos)
     { }
     VirtualServerContext(string_vec_it_t it, string_vec_it_t server_context_end_it) :
     listen_ip(),
@@ -34,7 +38,9 @@ struct VirtualServerContext
     hostnames(),
     error_codes_to_default_error_page_path(),
     location_contexts(),
-    redirected_URLs()
+    redirected_URLs(),
+    client_body_size_limit_as_string(),
+    client_body_size_limit(string::npos)
     {
         listen_ip = "127.0.0.1";
         listen_port = "80";
@@ -46,11 +52,14 @@ struct VirtualServerContext
             parsed_a_directive |= parse_error_page_directive(it, server_context_end_it);
             parsed_a_directive |= parse_server_name_directive(it, server_context_end_it);
             parsed_a_directive |= parse_redirections(it, server_context_end_it);
+            parsed_a_directive |= parsing::set_directive_field("client_body_size_limit", directive_fields_dsts_t(client_body_size_limit_as_string, NULL), it, server_context_end_it);
             if (!parsed_a_directive)
                 throw std::runtime_error("invalid token in virtual server context : " + *it);
         }
         if (listen_ip == "localhost")
             listen_ip = "127.0.0.1";
+        if (client_body_size_limit_as_string.empty() == false)
+            client_body_size_limit = std::strtoul(client_body_size_limit_as_string.c_str(), NULL, 0);
     }
     //returns true if a server_name drective was parced
     bool parse_server_name_directive(string_vec_it_t& it, string_vec_it_t server_context_end_it)
@@ -116,6 +125,7 @@ struct VirtualServerContext
         error_codes_to_default_error_page_path = rhs.error_codes_to_default_error_page_path;
         location_contexts = rhs.location_contexts;
         redirected_URLs = rhs.redirected_URLs;
+        client_body_size_limit = rhs.client_body_size_limit;
         return *this;
     }
     //methods
@@ -124,6 +134,7 @@ struct VirtualServerContext
         cout << BOLD_AINSI << "Virtual server context:" << END_AINSI << endl;
         cout << "\tlisten_adress\t: " << listen_ip << endl;
         cout << "\tlisten_port\t: " << listen_port << endl;
+        cout << "\tclient_body_size_limit: " << client_body_size_limit << endl;
         cout << "\tserver hostnames: ";
         for (size_t i = 0; i < hostnames.size(); i++)
             cout << hostnames[i] << endl;

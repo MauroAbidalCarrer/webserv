@@ -74,9 +74,11 @@ class ClientHandler : public IO_Manager::FD_interest
 			virtualServerContext = GlobalContextSingleton.find_corresponding_virtualServerContext(request._hostname, listening_ip, listening_port);
 			locationContext = virtualServerContext.find_corresponding_location_context(request._path);
 			locationContext.apply_to_path(request._path);
-			//verify that method is actually allowed in the location context 
+			//verify that request conforms to contexts constrains
 			if (std::count(locationContext.allowed_methods.begin(), locationContext.allowed_methods.end(), request.HTTP_method) == 0)
 				throw WSexception("405");
+			if (request.content_length > virtualServerContext.client_body_size_limit)
+				throw WSexception("413");
 			if (virtualServerContext.redirected_URLs.count(request._path))
 			{
 				string redirected_url = virtualServerContext.redirected_URLs[request._path];
@@ -327,11 +329,9 @@ class ClientHandler : public IO_Manager::FD_interest
 				// else
 				// 	cout << "Request is not fully constructed" << endl;
 			}
-			catch (const HTTP_Message::NoBytesToReadException &e)
-			{
-				std::cout << "Client" << BOLD_AINSI << " closed connexion " << fd << END_AINSI << std::endl;
-				close_connexion();
-			}
+			catch (const HTTP_Message::NoBytesToReadException &e) { close_connexion(); }
+			catch (const WSexception& e) { handle_WSexception(e); }
+			catch (const std::exception& e) { handle_unexpected_exception(e); }
 		}
 	}
 	void call_timeout_callback()
@@ -340,6 +340,7 @@ class ClientHandler : public IO_Manager::FD_interest
 	}
 	void close_connexion()
 	{
+		std::cout << "Closed client connexion on socket " << fd << std::endl;
 		IO_Manager::remove_interest_and_close_fd(fd);
 	}
 
