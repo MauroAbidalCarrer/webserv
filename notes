@@ -2,11 +2,10 @@ handle multi part url encoded
 handle multi part data
 handle chunked transfer encoding
 
-Limit client body size
 implement DELETE methods
 handle CGI timeout
 handle request timeout
-
 add Content-Length to CGI output if it is missing
+
 test convoluted config file
 test CGI that overflows pipe

@@ -14,6 +14,12 @@ server
         cgi .cgi;
         directory_listing;
     }
+    location /deletable
+    {
+        directory_listing;
+        root web_ressources;
+        allowed_methods DELETE GET;
+    }
 }
 server
 {

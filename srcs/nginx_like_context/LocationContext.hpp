@@ -31,7 +31,6 @@ struct LocationContext
     { 
         allowed_methods.push_back("GET");
         allowed_methods.push_back("POST");
-        allowed_methods.push_back("DELETE");
     }
     LocationContext(const LocationContext& other) :
     path(), 
@@ -52,7 +51,6 @@ struct LocationContext
     {
         allowed_methods.push_back("GET");
         allowed_methods.push_back("POST");
-        allowed_methods.push_back("DELETE");
         this->path = path;
         while (it != location_context_end_it)
         {
@@ -139,11 +137,11 @@ struct LocationContext
     }
     bool parse_allow_methods(string_vec_it_t& it, string_vec_it_t& location_context_end_it)
     {
-        if (*it == "allow_methods")
+        if (*it == "allowed_methods")
         {
             allowed_methods.clear();
             it++;
-            while (*it == "GET" || *it == "METHOD" || *it == "POST" )
+            while (*it == "GET" || *it == "DELETE" || *it == "POST" )
             {
                 allowed_methods.push_back(*it);
                 it++;

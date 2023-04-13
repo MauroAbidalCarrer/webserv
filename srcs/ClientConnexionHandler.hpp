@@ -96,15 +96,10 @@ class ClientHandler : public IO_Manager::FD_interest
 				process_GET_request("200", request._path);
 			else if (request.HTTP_method == "POST")
 				start_processing_Post_request("201", request._path);
+			else if (request.HTTP_method == "DELETE")
+				process_DELETE_request();
 			else
 				throw WSexception("405");
-			// if method == POST
-			// if already exists overwrite or append?
-			// open target ressource AND write on it and construct response AND dedebug reuqest on connexion socket_fd
-
-			// if method == DELETE
-			// if file doesn't exist ?
-			// delete file and construct response AND dedebug reuqest on connexion socket_fd
 		}
 		// make sure to take a reference instead of a copy, otherwise the destructor will be called twice and will potentially call delete twice on the same pointer
 		catch (const WSexception &e) { handle_WSexception(e); }
@@ -117,22 +112,31 @@ class ClientHandler : public IO_Manager::FD_interest
 		response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);
 		IO_Manager::change_interest_epoll_mask(fd , EPOLLOUT);
 	}
-
 	// GET method
 	// open content file AND consturct response from content AND dedebug reuqest on connexion socket_fd
 	void process_GET_request(string status_code, string target_ressource_path)
 	{
-		if (request._path[request._path.length() - 1] == '/')
+
+		if (is_directory(request._path))
 		{
 			if (locationContext.directory_listing == false)
 				throw WSexception("403");
 			cout << "Constructing directory listing response for request." << endl;
 			HTTP_Response::set_directory_listing_response(response, request._path);
 		}
-		else
+		else if(is_regular_file(request._path))
 			response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);
+		else
+			response = HTTP_Response::Mk_default_response("404");
 		IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
 	}
+	void process_DELETE_request()
+	{
+		delete_file(request._path);
+		response = HTTP_Response::Mk_default_response("200");
+		IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
+	}
+
 	bool request_requires_cgi(string& cgi_launcher)
 	{
 		for (size_t i = 0; i < locationContext.cgi_extensions_and_launchers.size(); i++)

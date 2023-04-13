@@ -34,6 +34,8 @@
 # include <fstream>
 # include <string>
 # include <sstream>
+#include <sys/types.h>
+#include <sys/stat.h>
 class StopWaitLoop {};
 
 # include "WSexception.hpp"
@@ -250,20 +252,29 @@ std::string read_file_into_string(const std::string& filename)
     return buffer.str();
 }
 
+DIR *ws_opendir(const string& dir_path)
+{
+    DIR *dir;
+    if ((dir = opendir(dir_path.c_str())) == NULL)
+    {
+        if (errno == EACCES)
+            throw WSexception("403", SystemCallException("opendir", "listing directory"));
+        if (errno == ENOENT)
+            throw WSexception("404", SystemCallException("opendir", "listing directory"));
+        throw WSexception("500", SystemCallException("opendir", "listing directory"));
+    }
+    return dir;
+}
 std::vector<std::string> list_directory(std::string path_to_directory, int DT_mask)
 {
     std::vector<std::string> string_vec;
     DIR *dir;
     struct dirent *ent;
-    if ((dir = opendir(path_to_directory.data())) != NULL)
-    {
-        while ((ent = readdir (dir)) != NULL)
-            if (ent->d_type & DT_mask)
-                string_vec.push_back(ent->d_name);
-        closedir (dir);
-    }
-    else
-        throw SystemCallException("opendir");
+    dir = opendir(path_to_directory.data());
+    while ((ent = readdir (dir)) != NULL)
+        if (ent->d_type & DT_mask)
+            string_vec.push_back(ent->d_name);
+    closedir (dir);
     return string_vec;
 }
 std::vector<std::string> list_files_in_directory(std::string path_to_directory)
@@ -275,8 +286,41 @@ std::vector<std::string> list_files_and_directories_in_directory(std::string pat
     return list_directory(path_to_directory, DT_REG | DT_DIR);
 }
 
-// template <typename> string ft_to_string(const T& value)
-// {
+struct stat ws_stat(string filename)
+{
+    struct stat file_stat;
+    if (stat(filename.c_str(), &file_stat) == -1)
+    {
+        if (errno == EACCES)
+            throw WSexception("403", SystemCallException("stat"));
+        if (errno == ENOENT)
+            throw WSexception("404", SystemCallException("stat"));
+        throw WSexception("500", SystemCallException("stat"));
+    }
+    return file_stat;
+}
+bool is_regular_file(string filename)
+{
+    struct stat file_stat = ws_stat(filename);
+    return (file_stat.st_mode & S_IFMT) == S_IFREG;
+}
+bool is_directory(string filename)
+{
+    struct stat file_stat = ws_stat(filename);
+    return (file_stat.st_mode & S_IFMT) == S_IFDIR;
+}
 
-// }
+void delete_file(string filename)
+{
+    if (unlink(filename.c_str()) == -1)
+    {
+        if (errno == EACCES)
+            throw WSexception("403", SystemCallException("unlink", "deleting file"));
+        if (errno == EBUSY)
+            throw WSexception("403", SystemCallException("unlink", "deleting file"));
+        if (errno == ENOENT)
+            throw WSexception("404", SystemCallException("unlink", "deleting file"));
+        throw WSexception("500", SystemCallException("unlink"));
+    }
+}
 #endif
