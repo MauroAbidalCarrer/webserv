@@ -8,10 +8,11 @@ server
     client_body_size_limit 5000;
     location /
     {
-        default_file index.html;
+        default_file home.html;
         root web_ressources;
         cgi .pl;
         cgi .cgi;
+        cgi .php;
         directory_listing;
     }
     location /deletable
@@ -31,8 +32,9 @@ server
     location /
     {
         root _web_ressources/cat_site;
-        default_file index.html;
+        default_file index0.html;
         cgi .pl;
         cgi .cgi;
+        cgi .php;
     }
 }

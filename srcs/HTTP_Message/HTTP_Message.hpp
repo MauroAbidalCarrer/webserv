@@ -190,8 +190,6 @@ public:
         }
         return str;
     }
-
-protected:
     vector<string> get_header_fields(std::string header_name)
     {
         for (size_t i = 0; i < header.size(); i++)
@@ -199,6 +197,8 @@ protected:
                 return header[i];
         throw NoHeaderFieldFoundException();
     }
+
+protected:
     void set_header_fields(std::string header_str, std::string value)
     {
         vector<string> header_fields;

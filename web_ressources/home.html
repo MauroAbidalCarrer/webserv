@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+	<html lang="en">
+	<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Oswald:wght@500&display=swap" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css2?family=Abhaya+Libre:wght@600&family=Abril+Fatface&family=Oswald:wght@500&display=swap" rel="stylesheet">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<title>Webserver</title>
+	</head>
+
+	<style>
+		@keyframes fadeIn {
+			0% { opacity: 0; }
+			100% { opacity: 1; }
+		}
+
+		.to-login-page	{
+			border-radius: 50px;
+			font-size: 25px;
+			font-family: Abhaya;
+			padding: 15px;
+			margin-right: 100px;
+			display: flex;
+			justify-content: flex-end;
+			color: white;
+			background-color: green;
+		}
+
+		.citation-header-homepage	{
+			font-size: 25px;
+			font-family: Abhaya;
+			font-weight: bold;
+			margin-left: 100px;
+			padding: 15px;
+			color: green;
+			justify-content: flex-start;
+		}
+
+		.title-homepage	{
+			animation: fadeIn 2s;
+			display: flex;
+			font-size: 75px;
+			font-family: Abril Fatface;
+			border-radius: 100px;
+			margin: 0 auto;
+			margin-left: 580px;
+			margin-top: 25px;
+			padding: 50px;
+			color: green;
+			background-color: rgba(0, 128, 0, 0.1);
+			justify-content: center;
+		}
+
+		.image-homepage-container	{
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			margin-right: 50px;
+		}
+
+		a	{
+			text-decoration: none;
+		}
+
+		.header {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+		}
+
+		.to-login-page:hover	{
+			animation: fadeIn 1s;
+			background-image: linear-gradient(green, white);
+		}
+
+		.title-homepage:hover	{
+			color: green;
+			background-color: white;
+		}
+	</style>
+
+	<body>
+
+		<div class="header">
+			<div class="citation-header-homepage">Nos mémoires sont de gigantesques prothèses qu'on <br>appelle serveurs, archives ou bibliothèques.</div>
+			<div class="title-homepage">Webserv.</div>
+			<a href="login.html">
+				<div class="to-login-page">Enter in your web profile</div>
+			</a>
+		</div>
+		<div class="image-homepage-container">
+			<img src="img/image-homepage-head.png">
+		</div>
+
+	</body>
+	</html>
+	<!-- Dimensions Screen 42 Mac: 2560x1440 pixels -->
+	<!-- <input type="range" min="10" max="2000" value="276" step="10" oninput="document.querySelector('img').style.width = (this.value +'px')" style="width: 90%; position: absolute; z-index: 2;" > -->
+
+
+
+
+
+

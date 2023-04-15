@@ -107,16 +107,29 @@ class ClientHandler : public IO_Manager::FD_interest
 	}
 	// start_processing_Post_request("201", request._path);
 
-	void	start_processing_Post_request(std::string status_code, string target_ressource_path)
-	{
-		response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);
-		IO_Manager::change_interest_epoll_mask(fd , EPOLLOUT);
+	unsigned int	redirect_post_request_on_content_type(vector<string> content_type)	{
+		if (!content_type[1].compare("multipart/form-data"))
+			return 0;
+		return 1;
 	}
+
+	void	start_processing_Post_request(std::string status_code, string target_ressource_path)
+		{
+			try
+			{	vector<string>	content_type = request.get_header_fields("Content-Type");
+				switch (redirect_post_request_on_content_type(content_type))	{
+					case 0:
+						response = HTTP_Response::Mk_default_response("404");
+					case 1:
+						response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path); }
+			}
+			catch(std::exception& e)	{ cout << e.what() << endl; }
+			IO_Manager::change_interest_epoll_mask(fd , EPOLLOUT);
+		}
 	// GET method
 	// open content file AND consturct response from content AND dedebug reuqest on connexion socket_fd
 	void process_GET_request(string status_code, string target_ressource_path)
 	{
-
 		if (is_directory(request._path))
 		{
 			if (locationContext.directory_listing == false)
@@ -142,6 +155,7 @@ class ClientHandler : public IO_Manager::FD_interest
 		for (size_t i = 0; i < locationContext.cgi_extensions_and_launchers.size(); i++)
 		{
 			pair<string, string> cgi_extension_and_launcher = locationContext.cgi_extensions_and_launchers[i];
+			cout << "[1] " << locationContext.cgi_extensions_and_launchers[i].first << " [2] " << locationContext.cgi_extensions_and_launchers[i].second << endl;
 			string extension = cgi_extension_and_launcher.first;
 			if (str_end_with(request._path, extension))
 			{
@@ -196,6 +210,7 @@ class ClientHandler : public IO_Manager::FD_interest
 				IO_Manager::remove_interest_and_close_fd(p_read);
 				IO_Manager::change_interest_epoll_mask(this->fd, EPOLLOUT);
 				wait_cgi(p_read);
+
 			}
 			else
 				cout << "Constructing response from CGI..." << endl;
@@ -214,9 +229,9 @@ class ClientHandler : public IO_Manager::FD_interest
 	void wait_cgi(int pipe_fd)
 	{
 		int cgi_status_code = 0;
+		pipe_fds_to_cgi_pids.erase(pipe_fd);
 		waitpid(pipe_fds_to_cgi_pids[pipe_fd], &cgi_status_code, 0);
 		cout << "cgi_status_code: " << cgi_status_code << endl;
-		pipe_fds_to_cgi_pids.erase(pipe_fd);
 	}
 	void	cgiChild(char **cgi_command, std::string cgi_launcher, int *p, int *r)	{
 		close(p[READ]);
@@ -327,7 +342,7 @@ class ClientHandler : public IO_Manager::FD_interest
 				{
 					// cout << "value request: " << request.HTTP_method << endl;
 					cout << "New request from client on socket " << fd << ":" << endl;
-					cout << FAINT_AINSI << request.debug() << END_AINSI << endl;
+					cout << FAINT_AINSI << request.serialize() << END_AINSI << endl;
 					handle_request();
 				}
 				// else

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+  
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Webserver</title>
+  </head>
+
+  <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        font-family: Roboto, Helvetica, sans-serif;
+      }
+      .popup { display: none; }
+
+      .popup.open { display: block; }
+
+      .blocker {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        right: 0;
+        content: ' ';
+        background: rgba(0,0,0,.5);
+      }
+
+      .popup .contents {
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        text-align: center;
+        width: 500px;
+        height: 150px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #FFF;
+        position: fixed;
+        top: 50vh;
+        left: 50vw;
+        transform: translate(-50%, -50%);
+      }
+
+      .form-connexion {
+        padding-top: 100px;
+        padding-left: 45%;
+      }
+
+      .form-connexion input[type=text], input[type=password] {
+        background-color: #04AA6D;
+        border: inset;
+        color: white;
+        padding: 16px 32px;
+        text-decoration: none;
+        margin: 4px 2px;
+        cursor: pointer;
+      }
+
+      .form-connexion input[type=submit] {
+        background-color: #04AA6D;
+        border: inset;
+        color: white;
+        padding: 16px 32px;
+        padding-left: 50px;
+        text-decoration: none;
+        margin: 4px 2px;
+        cursor: pointer;
+      }
+  </style>
+    <body>
+        <!-- <form method="post" enctype="multipart/form-data">
+            <label for="file">Selectionnez le fichier a envoyer</label>
+            <input type="file" id="file" name="file" multiple>
+            <button onclick="showPopup()">Upload</button>
+            <div class="popup">
+              <div class="blocker" onclick="hidePopup()">
+                <div class="contents">
+                  <p><strong>Congratulations!<br> Your document has been uploaded with success!</strong><span> 🔥 </span></p>
+                </div>
+            </div>
+          </div>
+        </form> -->
+  </body>
+</html>
+
+<script>
+  const popup = document.querySelector('.popup');
+  function showPopup() {
+    popup.classList.add('open');
+  }
+  function hidePopup() {
+    popup.classList.remove('open');
+  }
+</script>
