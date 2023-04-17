@@ -281,7 +281,7 @@ class ClientHandler : public IO_Manager::FD_interest
 			else
 			{
 				PRINT("Response from CGI not yet constructed...");
-				PRINT("respnse: " << response.serialize());
+				// PRINT("respnse: " << response.serialize());
 			}
 		}
 		catch(const WSexception& e) { handle_WSexception(e); }

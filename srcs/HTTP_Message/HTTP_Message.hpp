@@ -15,7 +15,7 @@ std::string ws_recv(int socket_fd, size_t buffer_size, int flags, ssize_t *nb_re
 std::string ws_read(int fd, size_t buffer_size, ssize_t *nb_read_bytes_ptr);
 std::string ws_recv(int socket_fd, size_t buffer_size, int flags);
 std::string ws_read(int fd, size_t buffer_size);
-#define READ_BUFFER_SIZE 10000
+#define READ_BUFFER_SIZE 1000
 #define RECV_FLAGS 0
 
 class HTTP_Message
@@ -95,9 +95,14 @@ protected:
         }
         else
         {
-            nb_read_bytes = construct_body(read_fd);
-            double percentage_of_body_bytes_read = (double)((double)body.length() / (double)content_length) * (double)100.0;
-            PRINT("Read bytes into body, body.length(): " << body.length() << ", content_length: " << content_length << ", percentage of bytes read: " << percentage_of_body_bytes_read << "%.");
+            if (expect_EOF_as_end_of_message)
+                body.append(ws_read(read_fd, READ_BUFFER_SIZE, &nb_read_bytes));
+            else
+            {
+                nb_read_bytes = construct_body(read_fd);
+                double percentage_of_body_bytes_read = (double)((double)body.length() / (double)content_length) * (double)100.0;
+                PRINT("Read bytes into body, body.length(): " << body.length() << ", content_length: " << content_length << ", percentage of bytes read: " << percentage_of_body_bytes_read << "%.");
+            }
         }
         if (expect_EOF_as_end_of_message)
         {
