@@ -16,7 +16,6 @@ std::string ws_read(int fd, size_t buffer_size, ssize_t *nb_read_bytes_ptr);
 std::string ws_recv(int socket_fd, size_t buffer_size, int flags);
 std::string ws_read(int fd, size_t buffer_size);
 #define READ_BUFFER_SIZE 1000
-#define RECV_FLAGS 0
 
 class HTTP_Message
 {
@@ -55,6 +54,7 @@ protected:
     void partial_constructor(int read_fd, bool expect_EOF_as_end_of_message = false)
     {
         ssize_t nb_read_bytes = 0;
+        size_t header_separator_size = 4;
         if (header_is_constructed == false)
         {
             construct_buffer += ws_read(read_fd, READ_BUFFER_SIZE, &nb_read_bytes);
@@ -62,28 +62,33 @@ protected:
                 throw NoBytesToReadException();
             size_t double_CRLF_index = construct_buffer.find("\r\n\r\n");
             if (double_CRLF_index == string::npos)
+            {
+                double_CRLF_index = construct_buffer.find("\n\n");
+                header_separator_size = 2;
+            }
+            if (double_CRLF_index == string::npos)
+            {
+                PRINT("no double CRLF found, message not yet constructed");
                 return ;
+            }
             string header_as_string = construct_buffer.substr(0, double_CRLF_index);
             parsing::tokenized_HTTP_t tokenized_header = parsing::tokenize_HTTP_message(header_as_string);
             first_line = tokenized_header[0];
             header = parsing::tokenized_HTTP_t(tokenized_header.begin() + 1, tokenized_header.end());
             if (expect_EOF_as_end_of_message)
             {
-                body.insert(body.begin(), construct_buffer.begin() + double_CRLF_index + 4, construct_buffer.end());
+                body.insert(body.begin(), construct_buffer.begin() + double_CRLF_index + header_separator_size, construct_buffer.end());
                 header_is_constructed = true;
-                if (nb_read_bytes < READ_BUFFER_SIZE)
-                {
-                    PRINT("In Header construcion:");
-                    PRINT("Construction of HTTP message expects EOF as end of message, nb_read_bytes: " << nb_read_bytes << ", READ_BUFFER_SIZE: " << READ_BUFFER_SIZE << ", nb_read_bytes < READ_BUFFER_SIZE: " << (nb_read_bytes < READ_BUFFER_SIZE));
-                    is_fully_constructed = true;
-                }
+                PRINT("In Header construcion:");
+                PRINT("Construction of HTTP message expects EOF as end of message, nb_read_bytes: " << nb_read_bytes << ", READ_BUFFER_SIZE: " << READ_BUFFER_SIZE << ", nb_read_bytes < READ_BUFFER_SIZE: " << (nb_read_bytes < READ_BUFFER_SIZE));
+                is_fully_constructed = nb_read_bytes < READ_BUFFER_SIZE;
                 return; 
             }
             try
             {
                 content_length =  get_content_length_from_header();
                 body.reserve(content_length);
-                body.insert(body.begin(), construct_buffer.begin() + double_CRLF_index + 4, construct_buffer.end());
+                body.insert(body.begin(), construct_buffer.begin() + double_CRLF_index + header_separator_size, construct_buffer.end());
             }
             catch(const std::exception& e)
             {
