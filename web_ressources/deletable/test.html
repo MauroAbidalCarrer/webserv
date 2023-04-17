@@ -1,0 +1,24 @@
+<form id="delete-form" method="POST">
+  <label for="url-input">URL:</label>
+  <input type="text" id="url-input" name="url" value="/your/api/endpoint">
+  <!-- add any other form fields you need here -->
+  <button type="submit">Delete</button>
+</form>
+
+<script>
+  const form = document.getElementById('delete-form');
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const xhr = new XMLHttpRequest();
+    const url = document.getElementById('url-input').value;
+    xhr.open('DELETE', url);
+    xhr.onload = function() {
+      if (xhr.status === 200) {
+        console.log('Deleted successfully!');
+      } else {
+        console.error('Error deleting: ' + xhr.statusText);
+      }
+    };
+    xhr.send(new FormData(form));
+  });
+</script>
