@@ -73,22 +73,32 @@ class Server
     void setup_connexion_queues()
     {
         vector<pair<string, string> > network_interfaces_already_used;
-        for (size_t i = 0; i < GlobalContextSingleton.virtual_server_contexts.size(); i++)
-        {
-            VirtualServerContext virtual_server_context = GlobalContextSingleton.virtual_server_contexts[i];
-            //get address info
-            string ip = virtual_server_context.listen_ip;
-            string port = virtual_server_context.listen_port;
-            pair<string, string> network_interface = std::make_pair(ip, port);
-            if (std::count(network_interfaces_already_used.begin(), network_interfaces_already_used.end(), network_interface))
+        vector<int> binded_sockets;
+        // try
+        // {
+            for (size_t i = 0; i < GlobalContextSingleton.virtual_server_contexts.size(); i++)
             {
-                // cout << "Already listenning to network interface " << ip << ":" << port << endl;
-                continue;
+                VirtualServerContext virtual_server_context = GlobalContextSingleton.virtual_server_contexts[i];
+                //get address info
+                string ip = virtual_server_context.listen_ip;
+                string port = virtual_server_context.listen_port;
+                pair<string, string> network_interface = std::make_pair(ip, port);
+                if (std::count(network_interfaces_already_used.begin(), network_interfaces_already_used.end(), network_interface))
+                {
+                    // cout << "Already listenning to network interface " << ip << ":" << port << endl;
+                    continue;
+                }
+                // cout << "Trying to listen to any of the network interfaces for " << ip << ":" << port << endl;
+                setup_connexion_queue(ip, port);
+                network_interfaces_already_used.push_back(network_interface);
             }
-            // cout << "Trying to listen to any of the network interfaces for " << ip << ":" << port << endl;
-            setup_connexion_queue(ip, port);
-            network_interfaces_already_used.push_back(network_interface);
-        }
+        // }
+        // catch(std::exception& e)
+        // {
+        //     for (size_t i = 0; i < binded_sockets.size(); i++)
+        //         close(binded_sockets[i]);
+        //     throw e;
+        // }
     }
     void setup_connexion_queue(string ip, string port)
     {
@@ -128,15 +138,23 @@ class Server
         //set socket to non blocking
         // ws_fcntl(listen_socket_fd, F_SETFL, O_NONBLOCK);
         //set sock option SO_REUSEADDR to prevent TCP related error 'Adress already in use' when restarting
-        int dump = 1;
-        ws_setsockopt(listen_socket_fd, SOL_SOCKET, SO_REUSEADDR, &dump, sizeof(int));
-        //binding of socket to port
-        ws_bind(listen_socket_fd, addr_info.ai_addr, addr_info.ai_addrlen);
-        //start listening for clients connexion requests
-        ws_listen(listen_socket_fd, MAX_QUEUE_SIZE);
-        IO_Manager::set_interest(listen_socket_fd, &Server::accept_client_connexion, NULL);
-        //debugging
-        cout << "listening to " << get_network_interface_as_string(addr_info.ai_addr) << endl;
+        try
+        {
+            int dump = 1;
+            ws_setsockopt(listen_socket_fd, SOL_SOCKET, SO_REUSEADDR, &dump, sizeof(int));
+            //binding of socket to port
+            ws_bind(listen_socket_fd, addr_info.ai_addr, addr_info.ai_addrlen);
+            //start listening for clients connexion requests
+            ws_listen(listen_socket_fd, MAX_QUEUE_SIZE);
+            IO_Manager::set_interest(listen_socket_fd, &Server::accept_client_connexion, NULL);
+            //debugging
+            cout << "listening to " << get_network_interface_as_string(addr_info.ai_addr) << endl;
+        }
+        catch(const std::exception& e)
+        {
+            close(listen_socket_fd);
+            throw e;
+        }
     }
     struct addrinfo* get_addrinfo(string ip, string port)
     {

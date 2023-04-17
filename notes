@@ -1,10 +1,5 @@
-handle multi part url encoded
 handle multi part data
 handle chunked transfer encoding
-
-fix CGI response construction
-handle CGI response without Content-Length
-close opemed sockets if a bind attempts fail
 
 test convoluted config file
 test CGI that overflows pipe
