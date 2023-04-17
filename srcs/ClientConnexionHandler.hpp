@@ -408,7 +408,7 @@ class ClientHandler : public IO_Manager::FD_interest
 				{
 					// cout << "value request: " << request.HTTP_method << endl;
 					cout << "New request from client on socket " << fd << ":" << endl;
-					cout << FAINT_AINSI << request.serialize() << END_AINSI << endl;
+					cout << FAINT_AINSI << request.debug() << END_AINSI << endl;
 					handle_request();
 				}
 				// else

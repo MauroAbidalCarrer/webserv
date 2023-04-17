@@ -58,7 +58,6 @@ protected:
         {
             ssize_t nb_read_bytes = 0;
             construct_buffer += ws_read(read_fd, READ_BUFFER_SIZE, &nb_read_bytes);
-            cout << RED_AINSI << nb_read_bytes << END_AINSI << endl; 
             if (nb_read_bytes == 0)
                 throw NoBytesToReadException();
             size_t double_CRLF_index = construct_buffer.find("\r\n\r\n");
@@ -72,7 +71,6 @@ protected:
             {
                 // vector<string> content_length_header = get_header_fields("Content-Length");
                 content_length =  get_content_length_from_header();//std::strtoul(content_length_header[1].c_str(), NULL, 0);
-
                 body.reserve(content_length);
                 body.insert(body.begin(), construct_buffer.begin() + double_CRLF_index + 4, construct_buffer.end());
             }
@@ -92,11 +90,17 @@ protected:
                 throw runtime_error("Could not read on fd to cosntruct HTTP message.");
             if (nb_readytes == 0)
                 throw NoBytesToReadException();
+            // PRINT("read " << nb_readytes << "bytes while constructing body.");
             body.resize(body.size() + nb_readytes);
             // double percentage_of_body_bytes_read = (double)((double)body.length() / (double)content_length) * (double)100.0;
-            // cout << "Read bytes into body, body.length(): " << body.length() << ", content_length: " << content_length << ", percentage of bytes read: " << percentage_of_body_bytes_read << endl;
+            // cout << "Read bytes into body, body.length(): " << body.length() << ", content_length: " << content_length << ", percentage of bytes read: " << percentage_of_body_bytes_read << "%." << endl;
         }
         is_fully_constructed = body.length() >= content_length;
+        // if (body.length() >= content_length)
+        // {
+        //     double percentage_of_body_bytes_read = (double)((double)body.length() / (double)content_length) * (double)100.0;
+        //     cout << "Read full rquest, read bytes into body, body.length(): " << body.length() << ", content_length: " << content_length << ", percentage of bytes read: " << percentage_of_body_bytes_read << "%." << endl;
+        // }
     }
     
 private:

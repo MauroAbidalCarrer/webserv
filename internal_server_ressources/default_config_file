@@ -5,7 +5,6 @@ server
     error_page 404 /cat_HTTP_Responses/404.jpg;
     error_page 406 /cat_HTTP_Responses/406.jpg;
     error_page 500 /cat_HTTP_Responses/500.jpg;
-    client_body_size_limit 1000000;
     location /
     {
         default_file home.html;
