@@ -5,6 +5,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <signal.h>
 
 #include "IO_Manager.hpp"
 #include "HTTP_Message.hpp"
@@ -19,6 +20,8 @@
 
 #define READ 0
 #define WRITE 1
+
+#define CGI_TIMEOUT_IN_MILL 5000
 
 #define MAXIMUM_HTTP_HEADER_SIZE 1024
 #define GET_RESPONSE_CONTENT_RAD_BUFFER_SIZE 10000
@@ -50,9 +53,7 @@ class ClientHandler : public IO_Manager::FD_interest
 	ClientHandler() {}
 	ClientHandler(int socket_connexion_fd, string listening_ip, string listening_port) : 
 	FD_interest(IDLE_CLIENT_CONNEXION_TIMEOUT_IN_MILL, CONNEXION_TIMEOUT_MODE, socket_connexion_fd), listening_ip(listening_ip), listening_port(listening_port)
-	{
-		// cout << "ClientHandler.listening_ip = " << listening_ip << ", ClientHandler.listening_port" << listening_port << endl;
-	}
+	{ }
 	ClientHandler(const ClientHandler &other)
 	{
 		*this = other;
@@ -61,11 +62,16 @@ class ClientHandler : public IO_Manager::FD_interest
 	// operator overloads
 	ClientHandler &operator=(const ClientHandler &rhs)
 	{
-		(void)rhs;
+		request = rhs.request;
+		response = rhs.response;
+		virtualServerContext = rhs.virtualServerContext;
+		locationContext = rhs.locationContext;
+		pipe_fds_to_cgi_pids = rhs.pipe_fds_to_cgi_pids;
+		url_encoded_collector = rhs.url_encoded_collector;
 		return *this;
 	}
 
-	// methods
+	// member methods
 	void handle_request()
 	{
 		try
@@ -97,7 +103,7 @@ class ClientHandler : public IO_Manager::FD_interest
 			else if (request.HTTP_method == "GET")
 				process_GET_request("200", request._path);
 			else if (request.HTTP_method == "POST")
-				start_processing_Post_request("201", request._path);
+				process_POST_request("201", request._path);
 			else if (request.HTTP_method == "DELETE")
 				process_DELETE_request();
 			else
@@ -107,12 +113,11 @@ class ClientHandler : public IO_Manager::FD_interest
 		catch (const WSexception &e) { handle_WSexception(e); }
 		catch (const std::exception &e) { handle_unexpected_exception(e); }
 	}
-	// start_processing_Post_request("201", request._path);
 
+	//POST mehtod
 	void	treat_multipart_body_boundaries(std::string body)	{
 		(void)body;
 	}
-
 	void	treat_encoded_url(std::string body)	{
 		size_t	value = 0;
 		for (size_t key = 0; key != std::string::npos || value != std::string::npos; )	{
@@ -125,7 +130,6 @@ class ClientHandler : public IO_Manager::FD_interest
 				body.erase(0, value + 1);
 		}
 	}
-
 	void	add_user_in_db()	{
 		std::ofstream db;
 		db.open("web_ressources/users/all", std::ios_base::app);
@@ -137,7 +141,6 @@ class ClientHandler : public IO_Manager::FD_interest
 		db << url_encoded_collector[1].second << endl;
 		db.close();
 	}
-
 	bool	search_user_in_db()	{
 		std::fstream db;
 		db.open("web_ressources/users/all", std::fstream::in | std::ios_base::app);
@@ -156,7 +159,6 @@ class ClientHandler : public IO_Manager::FD_interest
 		}
 		return  db.close(), false;
 	}
-
 	unsigned int	redirect_post_request_on_content_type(vector<string> content_type)	{
 		if (!content_type[1].compare("multipart/form-data;"))	{
 			treat_multipart_body_boundaries(std::string(request.body));
@@ -169,29 +171,25 @@ class ClientHandler : public IO_Manager::FD_interest
 		else
 			return 2;
 	}
-
-	void	start_processing_Post_request(std::string status_code, string target_ressource_path)	{
-		try
-		{	vector<string>	content_type = request.get_header_fields("Content-Type");
-			switch (redirect_post_request_on_content_type(content_type))	{
-				case 0:
-					treat_multipart_body_boundaries(string(request.body));
-					response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);
-					break;
-				case 1:
-					if (!url_encoded_collector[0].first.compare("connexion-page-email") && search_user_in_db())	{
-						target_ressource_path = "web_ressources/logged.html";
-					}
-					else if (!url_encoded_collector[0].first.compare("subscribe-page-email") )	{
-						add_user_in_db();
-					}
-					response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);
-					url_encoded_collector.clear();
-					break;
-				case 2:
-					response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);	}
-		}
-		catch (std::exception& e)	{ cout << e.what() << endl; }
+	void	process_POST_request(std::string status_code, string target_ressource_path)	{
+		vector<string>	content_type = request.get_header_fields("Content-Type");
+		switch (redirect_post_request_on_content_type(content_type))	{
+			case 0:
+				treat_multipart_body_boundaries(string(request.body));
+				response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);
+				break;
+			case 1:
+				if (!url_encoded_collector[0].first.compare("connexion-page-email") && search_user_in_db())	{
+					target_ressource_path = "web_ressources/logged.html";
+				}
+				else if (!url_encoded_collector[0].first.compare("subscribe-page-email") )	{
+					add_user_in_db();
+				}
+				response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);
+				url_encoded_collector.clear();
+				break;
+			case 2:
+				response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);	}
 		IO_Manager::change_interest_epoll_mask(fd , EPOLLOUT);
 	}
 	// GET method
@@ -218,6 +216,7 @@ class ClientHandler : public IO_Manager::FD_interest
 		IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
 	}
 
+	//CGI
 	bool request_requires_cgi(string& cgi_launcher)
 	{
 		for (size_t i = 0; i < locationContext.cgi_extensions_and_launchers.size(); i++)
@@ -238,7 +237,6 @@ class ClientHandler : public IO_Manager::FD_interest
 			return (0 == fullString.compare(fullString.length() - ending.length(), ending.length(), ending));
 		return false;
 	}
-
 	void	buildCgiCommand(char **cgi_command, std::string cgi_launcher)	{
 		if (!cgi_launcher.size())	{
 			cgi_command[0] = const_cast<char *>(this->request._path.c_str());
@@ -250,7 +248,6 @@ class ClientHandler : public IO_Manager::FD_interest
 		cgi_command[1] = const_cast<char *>(this->request._path.c_str());
 		cgi_command[2] = NULL;
 	}
-
 	char	**getEnvToFormatCgi(void)	{
 		std::string	QueryStringRequest = ("QUERY_STRING=" + this->request._queryString);
 		g_env.push_back(QueryStringRequest);
@@ -261,7 +258,7 @@ class ClientHandler : public IO_Manager::FD_interest
 		}
 		envCgi[i] = NULL;
 		return envCgi;
-	}	
+	}
 	void	closeChannelServerCgi(int p_read)	{
 		try
 		{
@@ -292,12 +289,22 @@ class ClientHandler : public IO_Manager::FD_interest
 		IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
 		wait_cgi(pipe_fd);
 	}
+	void handle_cgi_timeout(int p_read)
+	{
+		if (pipe_fds_to_cgi_pids.count(p_read) == 0)
+			throw runtime_error("\"pipe_fds_to_cgi_pids\" does not contain read pipe when handlign CGI timeout");
+		PRINT_WARNING("CGI with pid " << pipe_fds_to_cgi_pids[p_read] << " timed out, going to terminate it.");
+		if (kill(pipe_fds_to_cgi_pids[p_read], SIGTERM) == -1)
+			throw runtime_error("Could not terminate CGI that timed out");
+		pipe_fds_to_cgi_pids.erase(p_read);
+	}
 	void wait_cgi(int pipe_fd)
 	{
 		int cgi_status_code = 0;
 		pipe_fds_to_cgi_pids.erase(pipe_fd);
 		waitpid(pipe_fds_to_cgi_pids[pipe_fd], &cgi_status_code, 0);
 		cout << "cgi_status_code: " << cgi_status_code << endl;
+		pipe_fds_to_cgi_pids.erase(pipe_fd);
 	}
 	void	cgiChild(char **cgi_command, std::string cgi_launcher, int *p, int *r)	{
 		close(p[READ]);
@@ -308,6 +315,7 @@ class ClientHandler : public IO_Manager::FD_interest
 		char	**env = this->getEnvToFormatCgi();
 		this->buildCgiCommand(cgi_command, cgi_launcher);
 		execve(cgi_command[0], cgi_command, env);
+		PRINT_ERROR(RED_AINSI << "failed to execve CGI" << END_AINSI);
 		delete [] env;
 	}
 	void	prepareChannelServerCgi(int *p, int *r)	{
@@ -340,15 +348,16 @@ class ClientHandler : public IO_Manager::FD_interest
 
 		this->prepareChannelServerCgi(p, r);
 		pid_t	pid = fork();
-		if (!pid)
+		if (pid == -1)
+			throw runtime_error("Could not fork to launch CGI, WTF\?!");
+		else if (!pid)
 			this->cgiChild(cgi_command, cgi_launcher, p, r);
 		else if (pid > 0)	{
-			close(r[READ]);
-			close(p[WRITE]);
+			ws_close(r[READ], "Closing read end of CGI stdout pipe in parent");
+			ws_close(p[WRITE], "Closing write end of CGI stdin pipe in parent");
 			pipe_fds_to_cgi_pids[p[READ]] = pid;
-			pipe_fds_to_cgi_pids[r[WRITE]] = pid;
 			IO_Manager::set_interest<ClientHandler>(r[WRITE], NULL, &ClientHandler::write_request_on_cgi_stdin, NULL, NULL, -1, no_timeout, this);
-			IO_Manager::set_interest<ClientHandler>(p[READ], &ClientHandler::closeChannelServerCgi, NULL, NULL, &ClientHandler::handle_cgi_pipe_hungup, -1, no_timeout, this);
+			IO_Manager::set_interest<ClientHandler>(p[READ], &ClientHandler::closeChannelServerCgi, NULL, &ClientHandler::handle_cgi_timeout, &ClientHandler::handle_cgi_pipe_hungup, CGI_TIMEOUT_IN_MILL, do_not_renew, this);
 		}
 	}
 
@@ -408,7 +417,7 @@ class ClientHandler : public IO_Manager::FD_interest
 				{
 					// cout << "value request: " << request.HTTP_method << endl;
 					cout << "New request from client on socket " << fd << ":" << endl;
-					cout << FAINT_AINSI << request.debug() << END_AINSI << endl;
+					cout << FAINT_AINSI << request.serialize() << END_AINSI << endl;
 					handle_request();
 				}
 				// else

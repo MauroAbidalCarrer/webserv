@@ -5,8 +5,11 @@
   <button type="submit">Delete</button>
 </form>
 
+<div id="message"></div>
+
 <script>
   const form = document.getElementById('delete-form');
+  const message = document.getElementById('message');
   form.addEventListener('submit', (event) => {
     event.preventDefault();
     const xhr = new XMLHttpRequest();
@@ -14,9 +17,9 @@
     xhr.open('DELETE', url);
     xhr.onload = function() {
       if (xhr.status === 200) {
-        console.log('Deleted successfully!');
+        message.textContent = 'Deleted successfully!';
       } else {
-        console.error('Error deleting: ' + xhr.statusText);
+        message.textContent = 'Error deleting: ' + xhr.statusText;
       }
     };
     xhr.send(new FormData(form));
