@@ -3,8 +3,10 @@
 # include <iostream>
 # include <string>
 # include <dirent.h>
+# include <algorithm>
 
 # include "HTTP_Message.hpp"
+# include "LocationContext.hpp"
 
 extern std::map<std::string, std::map<std::string, std::string> > CSV_maps;
 
@@ -67,7 +69,7 @@ class HTTP_Response : public HTTP_Message
                 {
                     string element_name = ent->d_name;
                     if (element_name == ".")
-                        continue;;
+                        continue;
                     if (ent->d_type & DT_DIR)
                         element_name += "/";
                     response_dst.body.append("\t\t\t<tr><th><a href=\"");
@@ -151,12 +153,9 @@ class HTTP_Response : public HTTP_Message
         if (pathname.find('.') != std::string::npos && pathname.find('.') != pathname.length())
         {
             std::string file_extension = pathname.substr(pathname.find('.') + 1, std::string::npos);
-            // std::cout << "--------------------------------------found file_extension = " << file_extension << std::endl;
             if (CSV_maps["subtype_to_full_content_type"].count(file_extension))
                 response.set_header_fields("Content-Type", CSV_maps["subtype_to_full_content_type"][file_extension]);
         }
-        else
-            std::cout << "--------------------------------------DID NOT found file_extension = " << std::endl;
         response.set_response_line(status_code, CSV_maps["status_code_to_msg"][status_code]);
         response.set_content_length();
 		response.set_header_fields("Connection", "keep-alive");
