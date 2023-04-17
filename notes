@@ -2,6 +2,7 @@ handle multi part url encoded
 handle multi part data
 handle chunked transfer encoding
 
+fix multipart body parsing
 handle CGI timeout
 handle request timeout
 add Content-Length to CGI output if it is missing
