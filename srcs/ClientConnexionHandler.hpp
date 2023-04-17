@@ -1,6 +1,7 @@
 #ifndef HTTP_RequestHandler_HPP
 #define HTTP_RequestHandler_HPP
 #include <sys/wait.h>
+#include <algorithm>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -39,6 +40,7 @@ class ClientHandler : public IO_Manager::FD_interest
 	VirtualServerContext virtualServerContext;
 	LocationContext locationContext;
 	std::map<int, pid_t> pipe_fds_to_cgi_pids;
+	vector<pair<string, string> > url_encoded_collector;
 
 	public:
 	string listening_ip, listening_port;
@@ -107,16 +109,95 @@ class ClientHandler : public IO_Manager::FD_interest
 	}
 	// start_processing_Post_request("201", request._path);
 
-	void	start_processing_Post_request(std::string status_code, string target_ressource_path)
-	{
-		response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);
+	void	treat_multipart_body_boundaries(std::string body)	{
+		(void)body;
+	}
+
+	void	treat_encoded_url(std::string body)	{
+		size_t	value = 0;
+		for (size_t key = 0; key != std::string::npos || value != std::string::npos; )	{
+			key = body.find("=", 0);
+			value = body.find("&", key);
+			url_encoded_collector.push_back(std::make_pair(body.substr(0, key), body.substr(key + 1, value - key - 1)));
+			if (value > body.size())
+				break ;
+			if (value != std::string::npos)
+				body.erase(0, value + 1);
+		}
+	}
+
+	void	add_user_in_db()	{
+		std::ofstream db;
+		db.open("web_ressources/users/all", std::ios_base::app);
+		if (!db.is_open())	{
+			return ;
+		}
+		db << url_encoded_collector[0].second;
+		db << " | ";
+		db << url_encoded_collector[1].second << endl;
+		db.close();
+	}
+
+	bool	search_user_in_db()	{
+		std::fstream db;
+		db.open("web_ressources/users/all", std::fstream::in | std::ios_base::app);
+		if (!db.is_open())	{
+			return false ;
+		}
+		std::string	db_content;
+		std::string	format = " | ";
+		while (getline(db, db_content))	{
+			if (!url_encoded_collector[0].second.compare(db_content.substr(0, url_encoded_collector[0].second.size())))	{
+				if (!url_encoded_collector[1].second.compare(db_content.substr(url_encoded_collector[0].second.size() + format.size(), db_content.size())))
+					return db.close(), true;
+				else
+					cout << RED_AINSI << "POST: [BAD PASSWORD FOR CONNEXION]" << END_AINSI << endl;
+			}
+		}
+		return  db.close(), false;
+	}
+
+	unsigned int	redirect_post_request_on_content_type(vector<string> content_type)	{
+		if (!content_type[1].compare("multipart/form-data;"))	{
+			treat_multipart_body_boundaries(std::string(request.body));
+			return 0;
+		}
+		else if (!content_type[1].compare("application/x-www-form-urlencoded"))	{
+			treat_encoded_url(std::string(request.body));
+			return 1;
+		}
+		else
+			return 2;
+	}
+
+	void	start_processing_Post_request(std::string status_code, string target_ressource_path)	{
+		try
+		{	vector<string>	content_type = request.get_header_fields("Content-Type");
+			switch (redirect_post_request_on_content_type(content_type))	{
+				case 0:
+					treat_multipart_body_boundaries(string(request.body));
+					response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);
+					break;
+				case 1:
+					if (!url_encoded_collector[0].first.compare("connexion-page-email") && search_user_in_db())	{
+						target_ressource_path = "web_ressources/logged.html";
+					}
+					else if (!url_encoded_collector[0].first.compare("subscribe-page-email") )	{
+						add_user_in_db();
+					}
+					response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);
+					url_encoded_collector.clear();
+					break;
+				case 2:
+					response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);	}
+		}
+		catch (std::exception& e)	{ cout << e.what() << endl; }
 		IO_Manager::change_interest_epoll_mask(fd , EPOLLOUT);
 	}
 	// GET method
 	// open content file AND consturct response from content AND dedebug reuqest on connexion socket_fd
 	void process_GET_request(string status_code, string target_ressource_path)
 	{
-
 		if (is_directory(request._path))
 		{
 			if (locationContext.directory_listing == false)
@@ -214,9 +295,9 @@ class ClientHandler : public IO_Manager::FD_interest
 	void wait_cgi(int pipe_fd)
 	{
 		int cgi_status_code = 0;
+		pipe_fds_to_cgi_pids.erase(pipe_fd);
 		waitpid(pipe_fds_to_cgi_pids[pipe_fd], &cgi_status_code, 0);
 		cout << "cgi_status_code: " << cgi_status_code << endl;
-		pipe_fds_to_cgi_pids.erase(pipe_fd);
 	}
 	void	cgiChild(char **cgi_command, std::string cgi_launcher, int *p, int *r)	{
 		close(p[READ]);
@@ -327,7 +408,7 @@ class ClientHandler : public IO_Manager::FD_interest
 				{
 					// cout << "value request: " << request.HTTP_method << endl;
 					cout << "New request from client on socket " << fd << ":" << endl;
-					cout << FAINT_AINSI << request.debug() << END_AINSI << endl;
+					cout << FAINT_AINSI << request.serialize() << END_AINSI << endl;
 					handle_request();
 				}
 				// else

@@ -58,6 +58,7 @@ protected:
         {
             ssize_t nb_read_bytes = 0;
             construct_buffer += ws_read(read_fd, READ_BUFFER_SIZE, &nb_read_bytes);
+            cout << RED_AINSI << nb_read_bytes << END_AINSI << endl; 
             if (nb_read_bytes == 0)
                 throw NoBytesToReadException();
             size_t double_CRLF_index = construct_buffer.find("\r\n\r\n");
@@ -71,6 +72,7 @@ protected:
             {
                 // vector<string> content_length_header = get_header_fields("Content-Length");
                 content_length =  get_content_length_from_header();//std::strtoul(content_length_header[1].c_str(), NULL, 0);
+
                 body.reserve(content_length);
                 body.insert(body.begin(), construct_buffer.begin() + double_CRLF_index + 4, construct_buffer.end());
             }
@@ -190,8 +192,6 @@ public:
         }
         return str;
     }
-
-protected:
     vector<string> get_header_fields(std::string header_name)
     {
         for (size_t i = 0; i < header.size(); i++)
@@ -199,6 +199,8 @@ protected:
                 return header[i];
         throw NoHeaderFieldFoundException();
     }
+
+protected:
     void set_header_fields(std::string header_str, std::string value)
     {
         vector<string> header_fields;

@@ -261,7 +261,7 @@ class IO_Manager
             cout << "\tNot starting the epoll_wait lopp to avoid endless loop." << endl;
             return ;
         }
-        try 
+        try
         {
             while (true)
             {

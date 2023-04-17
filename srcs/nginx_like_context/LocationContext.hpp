@@ -28,7 +28,7 @@ struct LocationContext
     cgi_extensions_and_launchers(),
     directory_listing(false),
     allowed_methods()
-    { 
+    {
         allowed_methods.push_back("GET");
         allowed_methods.push_back("POST");
     }

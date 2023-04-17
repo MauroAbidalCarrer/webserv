@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8">
+			<link href="https://fonts.googleapis.com/css2?family=Abhaya+Libre:wght@600&family=Abril+Fatface&family=Oswald:wght@500&display=swap" rel="stylesheet">
+			<meta name="viewport" content="width=device-width, initial-scale=1.0">
+			<meta http-equiv="X-UA-Compatible" content="ie=edge">
+			<title>Webserver ⚔️</title>
+		</head>
+		<style>
+		@keyframes fadeIn {
+			0% { opacity: 0; }
+			100% { opacity: 1; }
+		}
+
+		body, html {
+			height: 100%;
+		}
+
+		.bg-img {
+			background-image: url("img/background-img.webp");
+			min-height: 100%;
+			background-position: center;
+			background-repeat: no-repeat;
+			background-size: 100% 100%;
+			position: relative;
+			display: flex;
+			align-items: center;
+			flex-direction: column;
+			justify-content: center;
+		}
+
+		.container {
+			position: absolute;
+			border-radius: 10px;
+			padding: 70px;
+			max-width: 60%;
+			position: relative;
+			transition: border-radius 0.1s ease-out 100ms;
+			color:green;
+			background-color: white;
+		}
+
+		.subscribe-redirect-btn	{
+			margin-top: 3%;
+			animation: fadeIn 3s;
+			position: relative;
+			border-radius: 10px;
+			/* margin: auto; */
+			padding: 35px;
+			max-width: 600px;
+			position: relative;
+			transition: border-radius 0.1s ease-out 100ms;
+			color:green;
+			background-color: white;
+		}
+
+		.btn {
+			background-color: #f9f6ee;
+			padding: 16px 20px;
+			border: none;
+			cursor: pointer;
+			width: 80%;
+			opacity: 0.9;
+			font-weight: bolder;
+			color: green;
+			display: block;
+			margin: 0 auto;
+		}
+
+		input[type=text], input[type=password] {
+			width: 100%;
+			padding: 15px;
+			margin: 5px 0 22px 0;
+			border: none;
+			color: black;
+			background: #f9f6ee;
+		}
+		
+		input[type=text]:focus, input[type=password]:focus {
+			background-color: #f9f6ee;
+			outline: none;
+		}
+
+		.container:hover	{
+			border-radius: 160px;
+		}
+
+		.btn:hover {
+			opacity: 1;
+			background-color: green;
+			color: white;
+		}
+		</style>
+		<body>
+			<div class="bg-img">
+				<form method="POST" class="container">
+					<center><h2 color="white">Please, enter your login and password &#128273;</h2></center>
+					<label for="email"><b>Email</b></label>
+					<input type="text" placeholder="Enter Email" name="connexion-page-email" required>
+					<label for="psw"><b>Password</b></label>
+					<input type="password" placeholder="Enter Password" name="connexion-page-password" required>
+					<button type="submit" class="btn">Login</button>
+				</form>
+				<form class="subscribe-redirect-btn" method="GET" action="subscribe.html">
+					<center><h2 color="white">You can create your account here</h2></center>
+					<button class="btn" type="submit" value="Submit">Subscribe ⚔️</button>
+				</form>
+			</div>
+		</body>
+	</html>
