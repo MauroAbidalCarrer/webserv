@@ -1,6 +1,7 @@
 #ifndef HTTP_RequestHandler_HPP
 #define HTTP_RequestHandler_HPP
 #include <sys/wait.h>
+#include <algorithm>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -39,6 +40,7 @@ class ClientHandler : public IO_Manager::FD_interest
 	VirtualServerContext virtualServerContext;
 	LocationContext locationContext;
 	std::map<int, pid_t> pipe_fds_to_cgi_pids;
+	vector<pair<string, string> > url_encoded_collector;
 
 	public:
 	string listening_ip, listening_port;
@@ -107,25 +109,93 @@ class ClientHandler : public IO_Manager::FD_interest
 	}
 	// start_processing_Post_request("201", request._path);
 
-	unsigned int	redirect_post_request_on_content_type(vector<string> content_type)	{
-		if (!content_type[1].compare("multipart/form-data"))
-			return 0;
-		return 1;
+	void	treat_multipart_body_boundaries(std::string body)	{
+		(void)body;
 	}
 
-	void	start_processing_Post_request(std::string status_code, string target_ressource_path)
-		{
-			try
-			{	vector<string>	content_type = request.get_header_fields("Content-Type");
-				switch (redirect_post_request_on_content_type(content_type))	{
-					case 0:
-						response = HTTP_Response::Mk_default_response("404");
-					case 1:
-						response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path); }
-			}
-			catch(std::exception& e)	{ cout << e.what() << endl; }
-			IO_Manager::change_interest_epoll_mask(fd , EPOLLOUT);
+	void	treat_encoded_url(std::string body)	{
+		size_t	value = 0;
+		for (size_t key = 0; key != std::string::npos || value != std::string::npos; )	{
+			key = body.find("=", 0);
+			value = body.find("&", key);
+			url_encoded_collector.push_back(std::make_pair(body.substr(0, key), body.substr(key + 1, value - key - 1)));
+			if (value > body.size())
+				break ;
+			if (value != std::string::npos)
+				body.erase(0, value + 1);
 		}
+	}
+
+	unsigned int	redirect_post_request_on_content_type(vector<string> content_type)	{
+		if (!content_type[1].compare("multipart/form-data"))	{
+			treat_multipart_body_boundaries(std::string(request.body));
+			return 0;
+		}
+		else if (!content_type[1].compare("application/x-www-form-urlencoded"))	{
+			treat_encoded_url(std::string(request.body));
+			return 1;
+		}
+		else
+			return 2;
+	}
+
+	void	add_user_in_db()	{
+		std::ofstream db;
+		db.open("web_ressources/users/all", std::ios_base::app);
+		if (!db.is_open())	{
+			return ;
+		}
+		db << url_encoded_collector[0].second;
+		db << " | ";
+		db << url_encoded_collector[1].second << endl;
+		db.close();
+	}
+
+	bool	search_user_in_db()	{
+		std::fstream db;
+		db.open("web_ressources/users/all", std::fstream::in | std::ios_base::app);
+		if (!db.is_open())	{
+			return false ;
+		}
+		std::string	db_content;
+		std::string	format = " | ";
+		while (getline(db, db_content))	{
+			if (!url_encoded_collector[0].second.compare(db_content.substr(0, url_encoded_collector[0].second.size())))	{
+				if (!url_encoded_collector[1].second.compare(db_content.substr(url_encoded_collector[0].second.size() + format.size(), db_content.size())))
+					return db.close(), true;
+				else
+					cout << RED_AINSI << "POST: [BAD PASSWORD FOR CONNEXION]" << END_AINSI << endl;
+			}
+		}
+		return  db.close(), false;
+	}
+
+	void	start_processing_Post_request(std::string status_code, string target_ressource_path)	{
+		try
+		{	vector<string>	content_type = request.get_header_fields("Content-Type");
+			switch (redirect_post_request_on_content_type(content_type))	{
+				case 0:
+					response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);
+					break;
+				case 1:
+					if (!url_encoded_collector[0].first.compare("connexion-page-email") && search_user_in_db())	{
+						target_ressource_path = "web_ressources/logged.html";
+						cout << RED_AINSI << "FOUND USER" << END_AINSI << endl;
+					}
+					else if (!url_encoded_collector[0].first.compare("subscribe-page-email") )	{
+						add_user_in_db();
+						cout << RED_AINSI << "ADDED USER" << END_AINSI << endl;
+					}
+					response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);
+					url_encoded_collector.clear();
+					break;
+				case 2:
+					cout << RED_AINSI << "[TYPE NOT HANDLED FOR POST REQUEST]" << END_AINSI << endl;
+					response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);	}
+		}
+		catch (std::exception& e)	{ cout << e.what() << endl; }
+		IO_Manager::change_interest_epoll_mask(fd , EPOLLOUT);
+	}
 	// GET method
 	// open content file AND consturct response from content AND dedebug reuqest on connexion socket_fd
 	void process_GET_request(string status_code, string target_ressource_path)
@@ -155,7 +225,6 @@ class ClientHandler : public IO_Manager::FD_interest
 		for (size_t i = 0; i < locationContext.cgi_extensions_and_launchers.size(); i++)
 		{
 			pair<string, string> cgi_extension_and_launcher = locationContext.cgi_extensions_and_launchers[i];
-			cout << "[1] " << locationContext.cgi_extensions_and_launchers[i].first << " [2] " << locationContext.cgi_extensions_and_launchers[i].second << endl;
 			string extension = cgi_extension_and_launcher.first;
 			if (str_end_with(request._path, extension))
 			{
@@ -210,7 +279,6 @@ class ClientHandler : public IO_Manager::FD_interest
 				IO_Manager::remove_interest_and_close_fd(p_read);
 				IO_Manager::change_interest_epoll_mask(this->fd, EPOLLOUT);
 				wait_cgi(p_read);
-
 			}
 			else
 				cout << "Constructing response from CGI..." << endl;

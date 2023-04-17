@@ -8,11 +8,6 @@
 			<title>Webserver ⚔️</title>
 		</head>
 		<style>
-		@keyframes fadeIn {
-			0% { opacity: 0; }
-			100% { opacity: 1; }
-		}
-
 		body, html {
 			height: 100%;
 		}
@@ -26,33 +21,33 @@
 			position: relative;
 			display: flex;
 			align-items: center;
-			flex-direction: column;
-			justify-content: center;
 		}
 
 		.container {
-			position: absolute;
+			position: relative;
 			border-radius: 10px;
+			margin: auto;
 			padding: 70px;
-			max-width: 60%;
+			max-width: 600px;
+			display: inline-block;
 			position: relative;
 			transition: border-radius 0.1s ease-out 100ms;
 			color:green;
 			background-color: white;
 		}
 
-		.subscribe-redirect-btn	{
-			margin-top: 3%;
-			animation: fadeIn 3s;
-			position: relative;
-			border-radius: 10px;
-			/* margin: auto; */
-			padding: 35px;
-			max-width: 600px;
-			position: relative;
-			transition: border-radius 0.1s ease-out 100ms;
-			color:green;
-			background-color: white;
+		input[type=text], input[type=password] {
+			width: 100%;
+			padding: 15px;
+			margin: 5px 0 22px 0;
+			border: none;
+			color: black;
+			background: #f9f6ee;
+		}
+
+		input[type=text]:focus, input[type=password]:focus {
+			background-color: #f9f6ee;
+			outline: none;
 		}
 
 		.btn {
@@ -65,21 +60,7 @@
 			font-weight: bolder;
 			color: green;
 			display: block;
-			margin: 0 auto;
-		}
-
-		input[type=text], input[type=password] {
-			width: 100%;
-			padding: 15px;
-			margin: 5px 0 22px 0;
-			border: none;
-			color: black;
-			background: #f9f6ee;
-		}
-		
-		input[type=text]:focus, input[type=password]:focus {
-			background-color: #f9f6ee;
-			outline: none;
+  			margin: 0 auto;
 		}
 
 		.container:hover	{
@@ -91,20 +72,17 @@
 			background-color: green;
 			color: white;
 		}
+
 		</style>
 		<body>
 			<div class="bg-img">
-				<form method="POST" class="container">
-					<center><h2 color="white">Please, enter your login and password &#128273;</h2></center>
+				<form method="POST" class="container" action="login.html">
+					<center><h2 color="white">Welcome to the adventure &#129312<br>you can enter your user information below &#128071</h2></center>
 					<label for="email"><b>Email</b></label>
-					<input type="text" placeholder="Enter Email" name="connexion-page-email" required>
+					<input type="text" placeholder="Enter Email" name="subscribe-page-email" required>
 					<label for="psw"><b>Password</b></label>
-					<input type="password" placeholder="Enter Password" name="connexion-page-password" required>
-					<button type="submit" class="btn">Login</button>
-				</form>
-				<form class="subscribe-redirect-btn" method="GET" action="subscribe.html">
-					<center><h2 color="white">You can create your account here</h2></center>
-					<button class="btn" type="submit" value="Submit">Subscribe ⚔️</button>
+					<input type="password" placeholder="Enter Password" name="subscribe-page-password" required>
+					<button type="Subscribe" class="btn">Subscribe</button>
 				</form>
 			</div>
 		</body>
