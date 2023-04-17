@@ -126,19 +126,6 @@ class ClientHandler : public IO_Manager::FD_interest
 		}
 	}
 
-	unsigned int	redirect_post_request_on_content_type(vector<string> content_type)	{
-		if (!content_type[1].compare("multipart/form-data"))	{
-			treat_multipart_body_boundaries(std::string(request.body));
-			return 0;
-		}
-		else if (!content_type[1].compare("application/x-www-form-urlencoded"))	{
-			treat_encoded_url(std::string(request.body));
-			return 1;
-		}
-		else
-			return 2;
-	}
-
 	void	add_user_in_db()	{
 		std::ofstream db;
 		db.open("web_ressources/users/all", std::ios_base::app);
@@ -170,27 +157,38 @@ class ClientHandler : public IO_Manager::FD_interest
 		return  db.close(), false;
 	}
 
+	unsigned int	redirect_post_request_on_content_type(vector<string> content_type)	{
+		if (!content_type[1].compare("multipart/form-data;"))	{
+			treat_multipart_body_boundaries(std::string(request.body));
+			return 0;
+		}
+		else if (!content_type[1].compare("application/x-www-form-urlencoded"))	{
+			treat_encoded_url(std::string(request.body));
+			return 1;
+		}
+		else
+			return 2;
+	}
+
 	void	start_processing_Post_request(std::string status_code, string target_ressource_path)	{
 		try
 		{	vector<string>	content_type = request.get_header_fields("Content-Type");
 			switch (redirect_post_request_on_content_type(content_type))	{
 				case 0:
+					treat_multipart_body_boundaries(string(request.body));
 					response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);
 					break;
 				case 1:
 					if (!url_encoded_collector[0].first.compare("connexion-page-email") && search_user_in_db())	{
 						target_ressource_path = "web_ressources/logged.html";
-						cout << RED_AINSI << "FOUND USER" << END_AINSI << endl;
 					}
 					else if (!url_encoded_collector[0].first.compare("subscribe-page-email") )	{
 						add_user_in_db();
-						cout << RED_AINSI << "ADDED USER" << END_AINSI << endl;
 					}
 					response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);
 					url_encoded_collector.clear();
 					break;
 				case 2:
-					cout << RED_AINSI << "[TYPE NOT HANDLED FOR POST REQUEST]" << END_AINSI << endl;
 					response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);	}
 		}
 		catch (std::exception& e)	{ cout << e.what() << endl; }
