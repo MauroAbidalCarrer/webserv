@@ -22,6 +22,7 @@
 #define WRITE 1
 
 #define CGI_TIMEOUT_IN_MILL 2000
+#define REQUEST_TIMEOUT_IN_MILL 1000
 
 #define MAXIMUM_HTTP_HEADER_SIZE 1024
 #define GET_RESPONSE_CONTENT_RAD_BUFFER_SIZE 10000
@@ -259,24 +260,29 @@ class ClientHandler : public IO_Manager::FD_interest
 		envCgi[i] = NULL;
 		return envCgi;
 	}
-	void	closeChannelServerCgi(int p_read)	{
+	void	closeChannelServerCgi(int p_read)
+	{
+		PRINT("Constructing response from CGI...");
 		try
 		{
 			int res = read(p_read, NULL, 0);
 			if (res == -1 && errno == EBADF)	{
-				close(p_read);
+				IO_Manager::remove_interest_and_close_fd(p_read);
 				throw WSexception("403");
 			}
-			response.partial_constructor_from_fd(p_read);
+			response.partial_constructor_from_fd(p_read, true);
 			if (response.is_fully_constructed)
 			{
-				cout << "Read CGI response, closing pipe read " << END_AINSI << endl; 
+				cout << "Fully constructed CGI response, closing pipe read and waiting for child process." << END_AINSI << endl; 
 				IO_Manager::remove_interest_and_close_fd(p_read);
 				IO_Manager::change_interest_epoll_mask(this->fd, EPOLLOUT);
 				wait_cgi(p_read);
 			}
 			else
-				cout << "Constructing response from CGI..." << endl;
+			{
+				PRINT("Response from CGI not yet constructed...");
+				PRINT("respnse: " << response.serialize());
+			}
 		}
 		catch(const WSexception& e) { handle_WSexception(e); }
 		catch(const std::exception& e) { handle_unexpected_exception(e); }
@@ -342,6 +348,7 @@ class ClientHandler : public IO_Manager::FD_interest
 			std::string	cRqst = this->request.serialize().c_str();
 			if (write(write_pipe, cRqst.c_str(), cRqst.size() + 1) == -1)
 				throw WSexception("500");
+			PRINT("wrote request to cgi.");
 			IO_Manager::remove_interest_and_close_fd(write_pipe);
 		}
 		catch (const WSexception& e) { handle_WSexception(e); }
@@ -353,20 +360,20 @@ class ClientHandler : public IO_Manager::FD_interest
 		int		r[2];
 
 		this->prepareChannelServerCgi(p, r);
-		pid_t	pid = fork();
-		if (pid == -1)
+		pid_t	cgi_pid = fork();
+		if (cgi_pid == -1)
 			throw runtime_error("Could not fork to launch CGI, WTF\?!");
-		else if (!pid)
+		else if (!cgi_pid)
 		{
 			g_pid = getpid();
 			PRINT("New child process, parent pid: " << getppid());
-
 			this->cgiChild(cgi_command, cgi_launcher, p, r);
 		}
-		else if (pid > 0)	{
+		else if (cgi_pid > 0)
+		{
 			ws_close(r[READ], "Closing read end of CGI stdout pipe in parent");
 			ws_close(p[WRITE], "Closing write end of CGI stdin pipe in parent");
-			pipe_fds_to_cgi_pids[p[READ]] = pid;
+			pipe_fds_to_cgi_pids[p[READ]] = cgi_pid;
 			IO_Manager::set_interest<ClientHandler>(r[WRITE], NULL, &ClientHandler::write_request_on_cgi_stdin, NULL, NULL, -1, no_timeout, this);
 			IO_Manager::set_interest<ClientHandler>(p[READ], &ClientHandler::closeChannelServerCgi, NULL, &ClientHandler::handle_cgi_timeout, &ClientHandler::handle_cgi_read_pipe_hungup, CGI_TIMEOUT_IN_MILL, do_not_renew, this);
 			// response = HTTP_Response::Mk_default_response("200");
@@ -381,7 +388,7 @@ class ClientHandler : public IO_Manager::FD_interest
 		else try
 		{
 			PRINT("Sending response to client on socket " << fd << ":" << std::endl
-					  << FAINT_AINSI << response.debug() << END_AINSI);
+					  << FAINT_AINSI << response.serialize() << END_AINSI);
 			ws_send(fd, response.serialize(), 0);
 			IO_Manager::change_interest_epoll_mask(fd, EPOLLIN);
 			// request.clear();
@@ -424,16 +431,19 @@ class ClientHandler : public IO_Manager::FD_interest
 		{
 			try
 			{
+				// PRINT("Setting timeout mode to " << renew_after_IO_operation);
+				timeout_mode = renew_after_IO_operation;
+				timeout_in_mill = REQUEST_TIMEOUT_IN_MILL;
 				// request = HTTP_Request(fd, MAXIMUM_HTTP_HEADER_SIZE);
 				request.construct_from_socket(fd);
 				if (request.is_fully_constructed)
 				{
+					timeout_mode = no_timeout;
 					PRINT("New request from client on socket " << fd << ":");
 					PRINT_FAINT(request.serialize());
+					PRINT_FAINT("request.body.length: " << request.body.length());
 					handle_request();
 				}
-				// else
-				// 	cout << "Request is not fully constructed" << endl;
 			}
 			catch (const HTTP_Message::NoBytesToReadException &e) { close_connexion(); }
 			catch (const WSexception& e) { handle_WSexception(e); }
@@ -442,11 +452,13 @@ class ClientHandler : public IO_Manager::FD_interest
 	}
 	void call_timeout_callback()
 	{
-		cerr << YELLOW_WARNING << "ClientHandler::" << __func__ << " called but client is not supposed to have timeout!(not closing connexion)" << endl;
+		// cerr << YELLOW_WARNING << "ClientHandler::" << __func__ << " called but client is not supposed to have timeout!(not closing connexion)" << endl;
+		PRINT_WARNING("Connexion on socket " << fd << " timed out.");
+		close_connexion();
 	}
 	void close_connexion()
 	{
-		PRINT("Closed client connexion on socket " << fd);
+		PRINT("Closing client connexion on socket " << fd);
 		IO_Manager::remove_interest_and_close_fd(fd);
 	}
 

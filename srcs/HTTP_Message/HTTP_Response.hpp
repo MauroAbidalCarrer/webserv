@@ -97,9 +97,9 @@ class HTTP_Response : public HTTP_Message
     }
     
     //methods
-    void partial_constructor_from_fd(int read_fd)
+    void partial_constructor_from_fd(int read_fd, bool expect_EOF_as_end_of_message = false)
     {
-        HTTP_Message::partial_constructor(read_fd);
+        HTTP_Message::partial_constructor(read_fd, expect_EOF_as_end_of_message);
     }
     static void set_redirection_response(HTTP_Response& response_dst, string new_url)
     {
