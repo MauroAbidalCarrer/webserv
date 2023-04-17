@@ -63,7 +63,8 @@ class Server
         }
         catch(const std::exception& e)
         {
-            cerr << RED_ERROR << "caught (very)unexpected exception: " << e.what() << ", stopping server." << endl;
+            
+            PRINT_ERROR("caught (very)unexpected exception: " << e.what() << ", stopping server.");
         }
     }
 

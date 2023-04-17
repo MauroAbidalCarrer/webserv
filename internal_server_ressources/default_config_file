@@ -12,7 +12,7 @@ server
         cgi .pl;
         cgi .cgi;
         cgi .php;
-        cgi .sh sh;
+        cgi .sh /bin/sh;
         directory_listing;
     }
     location /deletable

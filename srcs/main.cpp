@@ -1,7 +1,7 @@
 // #include <iostream>
 #include <map>
 #include <string>
-#include <cstring>
+#include <string>
 
 #include "sys_calls_warp_arounds.hpp"
 #include "Server.hpp"
@@ -12,6 +12,7 @@ CSV_maps_t CSV_maps;
 GlobalContext GlobalContextSingleton;
 std::vector<std::string> g_env;
 bool received_SIGINT;
+pid_t g_pid;
 
 void	BuildEnv(char **env)	{
 	for (std::size_t i = 0; env[i]; i++)
@@ -22,6 +23,7 @@ int main(int ac, char **av, char **env)
 {
 	try
 	{
+		g_pid = getpid();
 		Server server;
 		BuildEnv(env);
 		string config_file_path = ac >= 2 ? av[1] : "internal_server_ressources/default_config_file";

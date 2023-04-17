@@ -5,6 +5,7 @@ handle chunked transfer encoding
 handle CGI timeout
 handle request timeout
 add Content-Length to CGI output if it is missing
+close sockets if a bind fails
 
 test convoluted config file
 test CGI that overflows pipe

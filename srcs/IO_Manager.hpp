@@ -10,6 +10,7 @@
 # define CLOCKS_PER_MILLISECONDS CLOCKS_PER_SEC / 1000
 # define MAX_EPOLL_EVENTS_TO_HANDLE_AT_ONCE 64
 
+
 typedef void (*static_fd_callback_t)(int);
 enum timeout_mode_e
 {
@@ -138,7 +139,10 @@ class IO_Manager
                 if (hungup_cb)
                     (instance->*hungup_cb)(event.data.fd);
                 else
+                {
+                    PRINT_WARNING("No call back for hungup of an instance of FD_Interest_Template, remove fd " << fd << " from IO_Manager interest map.");
                     remove_interest_and_close_fd(fd);
+                }
             }
         }
         void call_timeout_callback()
@@ -268,10 +272,10 @@ class IO_Manager
                 current_time_in_mill = ws_epoch_time_in_mill();
                 static epoll_event events[MAX_EPOLL_EVENTS_TO_HANDLE_AT_ONCE];
                 int sortest_timeout_in_mill = find_shortest_timeout_in_milliseconds();
-                // if (sortest_timeout_in_mill == -1)
-                //     std::cout << BOLD_AINSI << "IO_Manager" << END_AINSI << ": Going to call epoll_wait to wait indefinetly for events on FDs monitored by IO_Manager." << std::endl << std::endl;
-                // else
-                //     std::cout << BOLD_AINSI << "IO_Manager" << END_AINSI << ": Going to call epoll_wait to wait for events on FDs monitored by IO_Manager for " << sortest_timeout_in_mill << " milliseconds." << std::endl << std::endl;
+                if (sortest_timeout_in_mill == -1)
+                    std::cout << BOLD_AINSI << "IO_Manager" << END_AINSI << ": Going to call epoll_wait to wait indefinetly for events on FDs monitored by IO_Manager." << std::endl << std::endl;
+                else
+                    std::cout << BOLD_AINSI << "IO_Manager" << END_AINSI << ": Going to call epoll_wait to wait for events on FDs monitored by IO_Manager for " << sortest_timeout_in_mill << " milliseconds." << std::endl << std::endl;
                 int nb_events = ws_epoll_wait(epoll_fd, events, MAX_EPOLL_EVENTS_TO_HANDLE_AT_ONCE, sortest_timeout_in_mill);
                 current_time_in_mill = ws_epoch_time_in_mill();
                 //timeout
@@ -322,7 +326,8 @@ class IO_Manager
         for (size_t i = 0; i < fds_to_close.size(); i++)
         {
             int fd = fds_to_close[i];
-            ws_epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL, "removing fd from epoll instance in \"remove_interest_and_close_fd\"");
+            // PRINT("Going to close " << fd << ", is child process: ");
+            ws_epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL, "removing fd from epoll interest list in \"clear_fds_to_close\"");
             ws_close(fd, "Closing fd before removing it from interest_map.");
             delete interest_map[fd];
             interest_map.erase(fd);

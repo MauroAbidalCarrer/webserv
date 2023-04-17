@@ -21,7 +21,7 @@
 #define READ 0
 #define WRITE 1
 
-#define CGI_TIMEOUT_IN_MILL 5000
+#define CGI_TIMEOUT_IN_MILL 2000
 
 #define MAXIMUM_HTTP_HEADER_SIZE 1024
 #define GET_RESPONSE_CONTENT_RAD_BUFFER_SIZE 10000
@@ -281,9 +281,9 @@ class ClientHandler : public IO_Manager::FD_interest
 		catch(const WSexception& e) { handle_WSexception(e); }
 		catch(const std::exception& e) { handle_unexpected_exception(e); }
 	}
-	void handle_cgi_pipe_hungup(int pipe_fd)
+	void handle_cgi_read_pipe_hungup(int pipe_fd)
 	{
-		cout << YELLOW_WARNING << "EPOLLHUP flag set on fd " << fd << ", closing fd." << endl;
+		cout << YELLOW_WARNING << "EPOLLHUP flag set on read pipe " << fd << ", closing fd and setting response to default 500." << endl;
 		IO_Manager::remove_interest_and_close_fd(pipe_fd);
 		response = HTTP_Response::Mk_default_response("500");
 		IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
@@ -294,9 +294,12 @@ class ClientHandler : public IO_Manager::FD_interest
 		if (pipe_fds_to_cgi_pids.count(p_read) == 0)
 			throw runtime_error("\"pipe_fds_to_cgi_pids\" does not contain read pipe when handlign CGI timeout");
 		PRINT_WARNING("CGI with pid " << pipe_fds_to_cgi_pids[p_read] << " timed out, going to terminate it.");
+		IO_Manager::remove_interest_and_close_fd(p_read);
 		if (kill(pipe_fds_to_cgi_pids[p_read], SIGTERM) == -1)
 			throw runtime_error("Could not terminate CGI that timed out");
 		pipe_fds_to_cgi_pids.erase(p_read);
+		response = HTTP_Response::Mk_default_response("504");
+		IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
 	}
 	void wait_cgi(int pipe_fd)
 	{
@@ -310,13 +313,16 @@ class ClientHandler : public IO_Manager::FD_interest
 		close(p[READ]);
 		dup2(p[WRITE], STDOUT_FILENO);
 		close(p[WRITE]);
+
 		dup2(r[READ], STDIN_FILENO);
 		close(r[READ]);
 		char	**env = this->getEnvToFormatCgi();
 		this->buildCgiCommand(cgi_command, cgi_launcher);
 		execve(cgi_command[0], cgi_command, env);
-		PRINT_ERROR(RED_AINSI << "failed to execve CGI" << END_AINSI);
+		PRINT_ERROR(RED_AINSI << "failed to execve CGI, path" << END_AINSI);
 		delete [] env;
+		close(r[WRITE]);
+		throw StopWaitLoop();
 	}
 	void	prepareChannelServerCgi(int *p, int *r)	{
 		if (access(this->request._path.c_str(), X_OK))
@@ -351,13 +357,20 @@ class ClientHandler : public IO_Manager::FD_interest
 		if (pid == -1)
 			throw runtime_error("Could not fork to launch CGI, WTF\?!");
 		else if (!pid)
+		{
+			g_pid = getpid();
+			PRINT("New child process, parent pid: " << getppid());
+
 			this->cgiChild(cgi_command, cgi_launcher, p, r);
+		}
 		else if (pid > 0)	{
 			ws_close(r[READ], "Closing read end of CGI stdout pipe in parent");
 			ws_close(p[WRITE], "Closing write end of CGI stdin pipe in parent");
 			pipe_fds_to_cgi_pids[p[READ]] = pid;
 			IO_Manager::set_interest<ClientHandler>(r[WRITE], NULL, &ClientHandler::write_request_on_cgi_stdin, NULL, NULL, -1, no_timeout, this);
-			IO_Manager::set_interest<ClientHandler>(p[READ], &ClientHandler::closeChannelServerCgi, NULL, &ClientHandler::handle_cgi_timeout, &ClientHandler::handle_cgi_pipe_hungup, CGI_TIMEOUT_IN_MILL, do_not_renew, this);
+			IO_Manager::set_interest<ClientHandler>(p[READ], &ClientHandler::closeChannelServerCgi, NULL, &ClientHandler::handle_cgi_timeout, &ClientHandler::handle_cgi_read_pipe_hungup, CGI_TIMEOUT_IN_MILL, do_not_renew, this);
+			// response = HTTP_Response::Mk_default_response("200");
+			// IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
 		}
 	}
 
@@ -367,8 +380,8 @@ class ClientHandler : public IO_Manager::FD_interest
 			internally_redirect_error_response_to_default_page();
 		else try
 		{
-			std::cout << "Sending response to client on socket " << fd << ":" << std::endl
-					  << FAINT_AINSI << response.debug() << END_AINSI << std::endl;
+			PRINT("Sending response to client on socket " << fd << ":" << std::endl
+					  << FAINT_AINSI << response.debug() << END_AINSI);
 			ws_send(fd, response.serialize(), 0);
 			IO_Manager::change_interest_epoll_mask(fd, EPOLLIN);
 			// request.clear();
@@ -397,7 +410,7 @@ class ClientHandler : public IO_Manager::FD_interest
 		virtualServerContext = VirtualServerContext();
 		locationContext = LocationContext();
 		IO_Manager::change_interest_epoll_mask(fd, EPOLLIN);
-		cout << BLUE_AINSI << "Handling redirected request, new request is GET " << request._path << END_AINSI << endl;
+		PRINT(BLUE_AINSI << "Handling redirected request, new request is GET " << request._path << END_AINSI);
 		handle_request();
 	}
 
@@ -415,9 +428,8 @@ class ClientHandler : public IO_Manager::FD_interest
 				request.construct_from_socket(fd);
 				if (request.is_fully_constructed)
 				{
-					// cout << "value request: " << request.HTTP_method << endl;
-					cout << "New request from client on socket " << fd << ":" << endl;
-					cout << FAINT_AINSI << request.serialize() << END_AINSI << endl;
+					PRINT("New request from client on socket " << fd << ":");
+					PRINT_FAINT(request.serialize());
 					handle_request();
 				}
 				// else
@@ -434,7 +446,7 @@ class ClientHandler : public IO_Manager::FD_interest
 	}
 	void close_connexion()
 	{
-		std::cout << "Closed client connexion on socket " << fd << std::endl;
+		PRINT("Closed client connexion on socket " << fd);
 		IO_Manager::remove_interest_and_close_fd(fd);
 	}
 
@@ -442,10 +454,10 @@ class ClientHandler : public IO_Manager::FD_interest
 	void handle_WSexception(const WSexception& e)
 	{
 		response = e.response;
-		std::cout << "Caught WSexception while processing client request." << std::endl;
-		std::cout << "e.what(): " << e.what() << std::endl;
-		std::cout << "response: " << std::endl;
-		std::cout << response.debug();
+		PRINT("Caught WSexception while processing client request.");
+		PRINT("e.what(): " << e.what());
+		PRINT("response: ");
+		PRINT(response.debug());
 		IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
 		if (request.is_redirected)
 		{
