@@ -78,7 +78,7 @@ class HTTP_Request : public HTTP_Message
 			HTTP_method = request_line[0];
 			target_URL = request_line[1];
 			std::size_t	d = target_URL.find("?");
-			this->_path = target_URL.substr(0, d);			
+			this->_path = target_URL.substr(0, d);
 			try
 			{
 				if (d != std::string::npos)
