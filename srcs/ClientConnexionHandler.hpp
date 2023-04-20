@@ -201,8 +201,8 @@ class ClientHandler : public IO_Manager::FD_interest
 		{
 			if (locationContext.directory_listing == false)
 				throw WSexception("403");
-			cout << "Constructing directory listing response for request." << endl;
-			HTTP_Response::set_directory_listing_response(response, request._path);
+			PRINT("Constructing directory listing response for request, locationContext.path: " << locationContext.path << ".");
+			HTTP_Response::set_directory_listing_response(response, request._path, locationContext);
 		}
 		else if(is_regular_file(request._path))
 			response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);

@@ -23,7 +23,7 @@ class HTTP_Response : public HTTP_Message
     HTTP_Response() : HTTP_Message(), is_default_response(false) { }
     ~HTTP_Response() { }
     //Construct respoonse for directory listing
-    static void set_directory_listing_response(HTTP_Response& response_dst, string directory_path)
+    static void set_directory_listing_response(HTTP_Response& response_dst, const string& request_path, const LocationContext& locationContext)
     {
         response_dst.is_default_response = true;
         response_dst.set_response_line("200", CSV_maps["status_code_to_msg"]["200"]);
@@ -51,7 +51,7 @@ class HTTP_Response : public HTTP_Message
                         "\t\t<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
                         "\t\t<meta http-equiv=\"X-UA-Compatible\" content=\"ie=edge\">\n"
                         "\t\t<title>";
-        response_dst.body.append(directory_path);
+        response_dst.body.append(request_path);
         static char second_part[] =    "</title>\n"
                                         "</head>\n"
                                         "<body>\n"
@@ -61,7 +61,7 @@ class HTTP_Response : public HTTP_Message
         response_dst.body.append(second_part);
         DIR *dir;
         struct dirent *ent;
-        if ((dir = opendir(directory_path.data())) != NULL)
+        if ((dir = opendir(request_path.data())) != NULL)
         {
             while ((ent = readdir (dir)) != NULL)
             {
@@ -73,6 +73,9 @@ class HTTP_Response : public HTTP_Message
                     if (ent->d_type & DT_DIR)
                         element_name += "/";
                     response_dst.body.append("\t\t\t<tr><th><a href=\"");
+                    response_dst.body.append(locationContext.path);
+                    if (locationContext.path[locationContext.path.size() - 1] != '/')
+                        response_dst.body.append("/");
                     response_dst.body.append(element_name);
                     response_dst.body.append("\">");
                     response_dst.body.append(element_name);

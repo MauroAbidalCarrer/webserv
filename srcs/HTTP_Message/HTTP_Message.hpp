@@ -54,7 +54,6 @@ protected:
     {
         ssize_t nb_read_bytes = 0;
         construct_buffer += ws_read(read_fd, READ_BUFFER_SIZE, &nb_read_bytes);
-        PRINT("construct_buffer: " << endl << construct_buffer << endl);
         size_t double_CRLF_index = construct_buffer.find("\r\n\r\n");
         if (double_CRLF_index == string::npos)
         {
