@@ -270,7 +270,7 @@ class ClientHandler : public IO_Manager::FD_interest
 				IO_Manager::remove_interest_and_close_fd(p_read);
 				throw WSexception("403");
 			}
-			response.partial_constructor_from_fd(p_read, true);
+			response.construct_from_CGI_output(p_read);
 			if (response.is_fully_constructed)
 			{
 				cout << "Fully constructed CGI response, closing pipe read and waiting for child process." << END_AINSI << endl; 
@@ -331,6 +331,8 @@ class ClientHandler : public IO_Manager::FD_interest
 		throw StopWaitLoop();
 	}
 	void	prepareChannelServerCgi(int *p, int *r)	{
+		if (access(this->request._path.c_str(), F_OK))
+			throw WSexception("404");
 		if (access(this->request._path.c_str(), X_OK))
 			throw WSexception("403");
 		if (pipe(p) == -1)
@@ -441,7 +443,7 @@ class ClientHandler : public IO_Manager::FD_interest
 					timeout_mode = no_timeout;
 					PRINT("New request from client on socket " << fd << ":");
 					PRINT_FAINT(request.debug());
-					PRINT_FAINT("request.body.length: " << request.body.length());
+					PRINT_FAINT("request.body.size: " << request.body.size());
 					handle_request();
 				}
 			}

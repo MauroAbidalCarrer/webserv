@@ -97,9 +97,27 @@ class HTTP_Response : public HTTP_Message
     }
     
     //methods
-    void partial_constructor_from_fd(int read_fd, bool expect_EOF_as_end_of_message = false)
+    // void partial_constructor_from_fd(int read_fd, bool expect_EOF_as_end_of_message = false)
+    // {
+    //     HTTP_Message::partial_constructor(read_fd, expect_EOF_as_end_of_message);
+    // }
+    void construct_from_CGI_output(int read_fd)
     {
-        HTTP_Message::partial_constructor(read_fd, expect_EOF_as_end_of_message);
+        ssize_t nb_read_bytes = 0;
+        if (header_is_constructed == false)
+            construct_header(read_fd);
+        else
+            body.append(ws_read(read_fd, READ_BUFFER_SIZE, &nb_read_bytes));
+        is_fully_constructed = nb_read_bytes < READ_BUFFER_SIZE;
+    }
+    ssize_t construct_header(int read_fd)
+    {
+        ssize_t nb_read_bytes = HTTP_Message::construct_header(read_fd, "500", "500");
+        body.insert(body.begin(), construct_buffer.begin() + construct_buffer.find("\r\n\r\n") + 4, construct_buffer.end());
+        header_is_constructed = true;
+        PRINT("In Header construcion:");
+        PRINT("Construction of HTTP message expects EOF as end of message, nb_read_bytes: " << nb_read_bytes << ", READ_BUFFER_SIZE: " << READ_BUFFER_SIZE << ", nb_read_bytes < READ_BUFFER_SIZE: " << (nb_read_bytes < READ_BUFFER_SIZE));
+        return nb_read_bytes;
     }
     static void set_redirection_response(HTTP_Response& response_dst, string new_url)
     {
