@@ -161,7 +161,7 @@ struct VirtualServerContext
             }
         }
         if (best_location_context_match == NULL)
-            throw WSexception("400", runtime_error("Could not found server context."));
+            throw WSexception("400", "Could not found server context for path \"" + path + "\"");
         return *best_location_context_match;
     }
     bool string_starts_by(string a, string b)

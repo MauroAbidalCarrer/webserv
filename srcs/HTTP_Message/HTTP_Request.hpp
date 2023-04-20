@@ -75,7 +75,6 @@ class HTTP_Request : public HTTP_Message
 			construct_header(socket_fd);
 		else
 			construct_body(socket_fd);
-        is_fully_constructed = body.length() >= content_length;
 	}
 	void construct_header(int socket_fd)
 	{
@@ -105,6 +104,7 @@ class HTTP_Request : public HTTP_Message
 				PRINT("Content_length: " << content_length);
 				body.reserve(content_length);
 				body.insert(body.begin(), construct_buffer.begin() + construct_buffer.find("\r\n\r\n") + 4, construct_buffer.end());
+				is_fully_constructed = body.length() >= content_length;
 			}
 			catch(const std::exception& e)
 			{
@@ -124,6 +124,7 @@ class HTTP_Request : public HTTP_Message
         if (nb_readytes == 0)
             throw NoBytesToReadException();
         body.resize(body.size() - (read_size - nb_readytes));
+		is_fully_constructed = body.length() >= content_length;
     }
 	// void construct_from_socket(int socket_fd)
 	// {

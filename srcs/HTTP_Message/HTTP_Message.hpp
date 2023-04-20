@@ -5,6 +5,7 @@
 # include <cstdlib>
 # include <algorithm>
 # include <iomanip>
+# include <climits>
 
 # include "parsing.hpp"
 # include "typedefs.hpp"
@@ -39,11 +40,8 @@ public:
 public:
     // constructors and destructors
     HTTP_Message() : 
-    // nb_partial_constructs(0),
-    // total_nb_bytes_read(0),
     read_fd(-1),
-    // tmp_header_as_string(),
-    content_length(0),
+    content_length(ULLONG_MAX),
     header_is_constructed(false),
     first_line(),
     header(),
@@ -52,75 +50,17 @@ public:
     { }
 
 protected:
-    // void partial_constructor(int read_fd, bool expect_EOF_as_end_of_message = false)
-    // {
-    //     ssize_t nb_read_bytes = 0;
-    //     if (header_is_constructed == false)
-    //     {
-    //         construct_buffer += ws_read(read_fd, READ_BUFFER_SIZE, &nb_read_bytes);
-    //         if (nb_read_bytes == 0)
-    //             throw NoBytesToReadException();
-    //         size_t double_CRLF_index = construct_buffer.find("\r\n\r\n");
-    //         if (double_CRLF_index == string::npos)
-    //         {
-    //             PRINT("no double CRLF or \n\n found, message not yet constructed");
-    //             return ;
-    //         }
-    //         string header_as_string = construct_buffer.substr(0, double_CRLF_index);
-    //         parsing::tokenized_HTTP_t tokenized_header = parsing::tokenize_HTTP_message(header_as_string);
-    //         first_line = tokenized_header[0];
-    //         header = parsing::tokenized_HTTP_t(tokenized_header.begin() + 1, tokenized_header.end());
-    //         if (expect_EOF_as_end_of_message)
-    //         {
-    //             body.insert(body.begin(), construct_buffer.begin() + double_CRLF_index + 4, construct_buffer.end());
-    //             header_is_constructed = true;
-    //             PRINT("In Header construcion:");
-    //             PRINT("Construction of HTTP message expects EOF as end of message, nb_read_bytes: " << nb_read_bytes << ", READ_BUFFER_SIZE: " << READ_BUFFER_SIZE << ", nb_read_bytes < READ_BUFFER_SIZE: " << (nb_read_bytes < READ_BUFFER_SIZE));
-    //             is_fully_constructed = nb_read_bytes < READ_BUFFER_SIZE;
-    //             return; 
-    //         }
-    //         try
-    //         {
-    //             content_length =  get_content_length_from_header();
-    //             body.reserve(content_length);
-    //             body.insert(body.begin(), construct_buffer.begin() + double_CRLF_index + 4, construct_buffer.end());
-    //         }
-    //         catch(const std::exception& e)
-    //         {
-    //             PRINT("In body construcion:");
-    //             PRINT_FAINT("No header \"Content-Length\"(match is case sensitive) was found, assuming that there is no body, (Could be chunked, not yet supported)");
-    //             is_fully_constructed = true;
-    //         }
-    //         header_is_constructed = true;
-    //     }
-    //     else
-    //     {
-    //         if (expect_EOF_as_end_of_message)
-    //             body.append(ws_read(read_fd, READ_BUFFER_SIZE, &nb_read_bytes));
-    //         else
-    //         {
-    //             nb_read_bytes = construct_body(read_fd);
-    //             double percentage_of_body_bytes_read = (double)((double)body.length() / (double)content_length) * (double)100.0;
-    //             PRINT("Read bytes into body, body.length(): " << body.length() << ", content_length: " << content_length << ", percentage of bytes read: " << percentage_of_body_bytes_read << "%.");
-    //         }
-    //     }
-    //     if (expect_EOF_as_end_of_message)
-    //     {
-    //         PRINT("Construction of HTTP message expects EOF as end of message, nb_read_bytes: " << nb_read_bytes << ", READ_BUFFER_SIZE: " << READ_BUFFER_SIZE << ", nb_read_bytes < READ_BUFFER_SIZE: " << (nb_read_bytes < READ_BUFFER_SIZE));
-    //         is_fully_constructed = nb_read_bytes < READ_BUFFER_SIZE;
-    //     }
-    //     else
-    //         is_fully_constructed = body.length() >= content_length;
-    // }
     ssize_t construct_header(int read_fd, const string& header_too_long_status_code, const string& bad_header_status_code)
     {
         ssize_t nb_read_bytes = 0;
         construct_buffer += ws_read(read_fd, READ_BUFFER_SIZE, &nb_read_bytes);
+        PRINT("construct_buffer: " << endl << construct_buffer << endl);
         size_t double_CRLF_index = construct_buffer.find("\r\n\r\n");
         if (double_CRLF_index == string::npos)
         {
             if (construct_buffer.size() > MAX_HEADER_SIZE)
                 throw_WSexcetpion(header_too_long_status_code);
+            
             return nb_read_bytes;
         }
         string header_as_string = construct_buffer.substr(0, double_CRLF_index);
@@ -132,19 +72,6 @@ protected:
         header_is_constructed = true;
         return nb_read_bytes;
     }
-    // ssize_t construct_body(int read_fd)
-    // {
-    //     size_t read_size = content_length - body.size() < READ_BUFFER_SIZE ? content_length - body.size() : READ_BUFFER_SIZE;
-    //     size_t prev_body_size = body.size();
-    //     ssize_t nb_readytes = read(read_fd, (void *)(body.data() + prev_body_size), read_size);
-    //     if (nb_readytes == -1)
-    //         throw runtime_error("Could not read on fd to cosntruct HTTP message.");
-    //     if (nb_readytes == 0)
-    //         throw NoBytesToReadException();
-    //     // PRINT("read " << nb_readytes << "bytes while constructing body.");
-    //     body.resize(body.size() + nb_readytes);
-    //     return nb_readytes;
-    // }
 
 public:
     HTTP_Message(const HTTP_Message &other)
@@ -254,7 +181,7 @@ protected:
     {
         if (header_fields.size() == 0)
         {
-            cout << YELLOW_WARNING << "HTTP_Message::set_header_fields called with empty header_fields." << endl;
+            PRINT_WARNING("HTTP_Message::set_header_fields called with empty header_fields.");
             return;
         }
         for (parsing::tokenized_text_t::iterator i = header.begin(); i != header.end(); i++)

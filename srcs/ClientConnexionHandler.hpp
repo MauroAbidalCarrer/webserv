@@ -444,8 +444,6 @@ class ClientHandler : public IO_Manager::FD_interest
 					PRINT("New request from client on socket " << fd << ":");
 					PRINT_FAINT(request.serialize());
 					PRINT_FAINT("request.body.size: " << request.body.size());
-					PRINT("body in hexa:" << endl);
-					request.print_body_in_hexa();
 					handle_request();
 				}
 			}

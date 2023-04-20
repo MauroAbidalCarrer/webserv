@@ -2,5 +2,21 @@ handle multi part data
 handle chunked transfer encoding
 
 test convoluted config file
+    set multiple hosts on 
+
 test CGI that overflows pipe
 test request timeout
+
+
+
+
+
+
+
+
+
+
+
+
+
+
