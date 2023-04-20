@@ -388,7 +388,7 @@ class ClientHandler : public IO_Manager::FD_interest
 		else try
 		{
 			PRINT("Sending response to client on socket " << fd << ":" << std::endl
-					  << FAINT_AINSI << response.serialize() << END_AINSI);
+					  << FAINT_AINSI << response.debug() << END_AINSI);
 			ws_send(fd, response.serialize(), 0);
 			IO_Manager::change_interest_epoll_mask(fd, EPOLLIN);
 			// request.clear();
@@ -440,7 +440,7 @@ class ClientHandler : public IO_Manager::FD_interest
 				{
 					timeout_mode = no_timeout;
 					PRINT("New request from client on socket " << fd << ":");
-					PRINT_FAINT(request.serialize());
+					PRINT_FAINT(request.debug());
 					PRINT_FAINT("request.body.length: " << request.body.length());
 					handle_request();
 				}
