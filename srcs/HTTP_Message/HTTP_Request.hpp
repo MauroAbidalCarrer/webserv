@@ -112,17 +112,18 @@ class HTTP_Request : public HTTP_Message
 				is_fully_constructed = true;
 			}
 		}
-	}
+	}	
     void construct_body(int read_fd)
     {
         size_t read_size = content_length - body.size() < READ_BUFFER_SIZE ? content_length - body.size() : READ_BUFFER_SIZE;
         size_t prev_body_size = body.size();
+        body.resize(body.size() + read_size);
         ssize_t nb_readytes = read(read_fd, (void *)(body.data() + prev_body_size), read_size);
         if (nb_readytes == -1)
             throw runtime_error("Could not read on fd to cosntruct HTTP message.");
         if (nb_readytes == 0)
             throw NoBytesToReadException();
-        body.resize(body.size() + nb_readytes);
+        body.resize(body.size() - (read_size - nb_readytes));
     }
 	// void construct_from_socket(int socket_fd)
 	// {

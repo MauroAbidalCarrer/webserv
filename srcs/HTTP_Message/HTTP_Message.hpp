@@ -16,7 +16,7 @@ std::string ws_read(int fd, size_t buffer_size, ssize_t *nb_read_bytes_ptr);
 std::string ws_read(int fd, size_t buffer_size);
 void throw_WSexcetpion(const string& status_code, const string& what_msg);
 void throw_WSexcetpion(const string& status_code);
-# define READ_BUFFER_SIZE 1000
+# define READ_BUFFER_SIZE 100
 # define MAX_HEADER_SIZE 3000
 
 class HTTP_Message
@@ -116,11 +116,13 @@ protected:
     {
         ssize_t nb_read_bytes = 0;
         construct_buffer += ws_read(read_fd, READ_BUFFER_SIZE, &nb_read_bytes);
-        if (construct_buffer.size() > MAX_HEADER_SIZE)
-            throw_WSexcetpion(header_too_long_status_code);
         size_t double_CRLF_index = construct_buffer.find("\r\n\r\n");
         if (double_CRLF_index == string::npos)
+        {
+            if (construct_buffer.size() > MAX_HEADER_SIZE)
+                throw_WSexcetpion(header_too_long_status_code);
             return nb_read_bytes;
+        }
         string header_as_string = construct_buffer.substr(0, double_CRLF_index);
         parsing::tokenized_HTTP_t tokenized_header = parsing::tokenize_HTTP_message(header_as_string);
         if (tokenized_header.size() == 0 || tokenized_header[0].size() != 3)
