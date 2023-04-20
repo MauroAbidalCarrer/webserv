@@ -91,7 +91,7 @@ class GlobalContext
         if (default_server_context == NULL)
         {
             string error_msg = "Could not found server context, hostname: " + hostname + ", listen_ip: " + listen_ip + ", listen_port: " + listen_port;
-            throw WSexception("404", runtime_error(error_msg));
+            throw WSexception("400", runtime_error(error_msg));
         }
         return *default_server_context;
     }

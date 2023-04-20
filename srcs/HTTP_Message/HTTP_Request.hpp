@@ -71,7 +71,11 @@ class HTTP_Request : public HTTP_Message
 	}
 	void construct_from_socket(int socket_fd)
 	{
-		HTTP_Message::partial_constructor(socket_fd/* , RECV_FLAGS */);
+		HTTP_Message::construct_header(socket_fd);
+		if (header_is_constructed)
+		{
+			
+		}
 		if (is_fully_constructed)
 		{
 			request_line = first_line;
@@ -94,6 +98,31 @@ class HTTP_Request : public HTTP_Message
 			}
 		}
 	}
+	// void construct_from_socket(int socket_fd)
+	// {
+	// 	HTTP_Message::partial_constructor(socket_fd);
+	// 	if (is_fully_constructed)
+	// 	{
+	// 		request_line = first_line;
+	// 		HTTP_method = request_line[0];
+	// 		target_URL = request_line[1];
+	// 		std::size_t	d = target_URL.find("?");
+	// 		this->_path = target_URL.substr(0, d);
+	// 		try
+	// 		{
+	// 			if (d != std::string::npos)
+	// 			this->_queryString = target_URL.substr(d + 1, target_URL.size() - d);
+	// 			this->_hostname = this->get_header_fields("Host")[HOST];
+	// 			if (this->get_header_fields("Host").size() > 2)
+	// 				this->_ports = this->get_header_fields("Host")[PORT];
+	// 		}
+	// 		catch(NoHeaderFieldFoundException& e)
+	// 		{
+	// 			PRINT_ERROR("Caught exception while trying to get \"Host\" header.");
+	// 			cout << "request:" << endl << serialize() << endl;
+	// 		}
+	// 	}
+	// }
 
 	void	printContent()	{
 		std::cout << "[++++++++++++++++ V*A*L*U*E*S +++++++++++++++++++]" << std::endl;

@@ -1,28 +1,26 @@
 #ifndef HTTP_Message_HPP
-#define HTTP_Message_HPP
-#include <iostream>
-#include <string>
-#include <cstdlib>
-#include <algorithm>
+# define HTTP_Message_HPP
+# include <iostream>
+# include <string>
+# include <cstdlib>
+# include <algorithm>
 
-#include "parsing.hpp"
-#include "typedefs.hpp"
-#include "sys_calls_warp_arounds.hpp"
+# include "parsing.hpp"
+# include "typedefs.hpp"
+# include "sys_calls_warp_arounds.hpp"
 // # include "WSexception.hpp"
 
 // sys call functions declarations to avoid circular dependencies (-_-)
-std::string ws_recv(int socket_fd, size_t buffer_size, int flags, ssize_t *nb_read_bytes_ptr);
 std::string ws_read(int fd, size_t buffer_size, ssize_t *nb_read_bytes_ptr);
-std::string ws_recv(int socket_fd, size_t buffer_size, int flags);
 std::string ws_read(int fd, size_t buffer_size);
-#define READ_BUFFER_SIZE 1000
+# define READ_BUFFER_SIZE 1000
+# define MAX_HEADER_SIZE 1000
 
 class HTTP_Message
 {
 private:
     // size_t nb_partial_constructs, total_nb_bytes_read;
     int read_fd;
-    int recv_flags;
     string construct_buffer;
     // string tmp_header_as_string;
 
@@ -40,7 +38,6 @@ public:
     // nb_partial_constructs(0),
     // total_nb_bytes_read(0),
     read_fd(-1),
-    recv_flags(0),
     // tmp_header_as_string(),
     content_length(0),
     header_is_constructed(false),
@@ -54,7 +51,6 @@ protected:
     void partial_constructor(int read_fd, bool expect_EOF_as_end_of_message = false)
     {
         ssize_t nb_read_bytes = 0;
-        size_t header_separator_size = 4;
         if (header_is_constructed == false)
         {
             construct_buffer += ws_read(read_fd, READ_BUFFER_SIZE, &nb_read_bytes);
@@ -63,21 +59,17 @@ protected:
             size_t double_CRLF_index = construct_buffer.find("\r\n\r\n");
             if (double_CRLF_index == string::npos)
             {
-                double_CRLF_index = construct_buffer.find("\n\n");
-                header_separator_size = 2;
-            }
-            if (double_CRLF_index == string::npos)
-            {
-                PRINT("no double CRLF found, message not yet constructed");
+                PRINT("no double CRLF or \n\n found, message not yet constructed");
                 return ;
             }
             string header_as_string = construct_buffer.substr(0, double_CRLF_index);
             parsing::tokenized_HTTP_t tokenized_header = parsing::tokenize_HTTP_message(header_as_string);
             first_line = tokenized_header[0];
             header = parsing::tokenized_HTTP_t(tokenized_header.begin() + 1, tokenized_header.end());
+
             if (expect_EOF_as_end_of_message)
             {
-                body.insert(body.begin(), construct_buffer.begin() + double_CRLF_index + header_separator_size, construct_buffer.end());
+                body.insert(body.begin(), construct_buffer.begin() + double_CRLF_index + 4, construct_buffer.end());
                 header_is_constructed = true;
                 PRINT("In Header construcion:");
                 PRINT("Construction of HTTP message expects EOF as end of message, nb_read_bytes: " << nb_read_bytes << ", READ_BUFFER_SIZE: " << READ_BUFFER_SIZE << ", nb_read_bytes < READ_BUFFER_SIZE: " << (nb_read_bytes < READ_BUFFER_SIZE));
@@ -88,7 +80,7 @@ protected:
             {
                 content_length =  get_content_length_from_header();
                 body.reserve(content_length);
-                body.insert(body.begin(), construct_buffer.begin() + double_CRLF_index + header_separator_size, construct_buffer.end());
+                body.insert(body.begin(), construct_buffer.begin() + double_CRLF_index + 4, construct_buffer.end());
             }
             catch(const std::exception& e)
             {
@@ -97,6 +89,7 @@ protected:
                 is_fully_constructed = true;
             }
             header_is_constructed = true;
+            
         }
         else
         {
@@ -116,6 +109,28 @@ protected:
         }
         else
             is_fully_constructed = body.length() >= content_length;
+    }
+    ssize_t construct_header(int read_fd, const string& header_too_long_status_code, const string& bad_header_status_code)
+    {
+        ssize_t nb_read_bytes = 0;
+        construct_buffer += ws_read(read_fd, READ_BUFFER_SIZE, &nb_read_bytes);
+        if (nb_read_bytes == 0)
+            throw NoBytesToReadException();
+        size_t double_CRLF_index = construct_buffer.find("\r\n\r\n");
+        if (double_CRLF_index == string::npos)
+        {
+            if (construct_buffer.size() > MAX_HEADER_SIZE)
+                throw WSexception(header_too_long_status_code);
+            return nb_read_bytes;
+        }
+        string header_as_string = construct_buffer.substr(0, double_CRLF_index);
+        parsing::tokenized_HTTP_t tokenized_header = parsing::tokenize_HTTP_message(header_as_string);
+        if (tokenized_header.size() == 0 || tokenized_header[0].size() != 3)
+            throw WSexception(bad_header_status_code);
+        first_line = tokenized_header[0];
+        header = parsing::tokenized_HTTP_t(tokenized_header.begin() + 1, tokenized_header.end());
+        header_is_constructed = true;
+        return nb_read_bytes;
     }
     ssize_t construct_body(int read_fd)
     {
@@ -153,7 +168,6 @@ public:
     HTTP_Message &operator=(const HTTP_Message &rhs)
     {
         read_fd = rhs.read_fd;
-        recv_flags = rhs.recv_flags;
         first_line = rhs.first_line;
         header = rhs.header;
         body = rhs.body;

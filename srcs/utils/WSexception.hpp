@@ -17,7 +17,7 @@ class WSexception : public std::exception
     HTTP_Response response;
 
     public:
-    WSexception(std::string status_code) 
+    WSexception(const std::string& status_code) 
     {
         response = HTTP_Response::Mk_default_response(status_code);
         // exception_ptr = NULL;
