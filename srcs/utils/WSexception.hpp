@@ -35,6 +35,11 @@ class WSexception : public std::exception
         std::cerr << "WSexception constructed with default HTTP_response for status code " << status_code << std::endl;
         exception_what = exception.what();
     }
+    WSexception(const string& status_code, const string& what_msg)
+    {
+        response = HTTP_Response::Mk_default_response(status_code);
+        exception_what = what_msg;
+    }
     WSexception(const WSexception& other)
     {
         *this = other;
@@ -53,6 +58,9 @@ class WSexception : public std::exception
         // if (exception_ptr != NULL)
         //     delete exception_ptr;
     }
+
+    //methods
+    
     const char* what() const throw()
     {
         // if (exception_ptr != NULL)
@@ -61,4 +69,12 @@ class WSexception : public std::exception
         return exception_what.data();
     }
 };
+void throw_WSexcetpion(const string& status_code, const string& what_msg)
+{
+    throw WSexception(status_code, what_msg);
+}
+void throw_WSexcetpion(const string& status_code)
+{
+    throw WSexception(status_code);
+}
 #endif

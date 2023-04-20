@@ -71,14 +71,20 @@ class HTTP_Request : public HTTP_Message
 	}
 	void construct_from_socket(int socket_fd)
 	{
-		HTTP_Message::construct_header(socket_fd);
+		if (header_is_constructed == false)
+			construct_header(socket_fd);
+		else
+			construct_body(socket_fd);
+        is_fully_constructed = body.length() >= content_length;
+	}
+	void construct_header(int socket_fd)
+	{
+		HTTP_Message::construct_header(socket_fd, "431", "400");
 		if (header_is_constructed)
 		{
-			
-		}
-		if (is_fully_constructed)
-		{
 			request_line = first_line;
+			if (request_line[2] != "HTTP/1.1")
+				throw_WSexcetpion("505");
 			HTTP_method = request_line[0];
 			target_URL = request_line[1];
 			std::size_t	d = target_URL.find("?");
@@ -92,12 +98,32 @@ class HTTP_Request : public HTTP_Message
 					this->_ports = this->get_header_fields("Host")[PORT];
 			}
 			catch(NoHeaderFieldFoundException& e)
+			{ throw_WSexcetpion("400", "No header field \"Host\" found."); }
+			try
 			{
-				PRINT_ERROR("Caught exception while trying to get \"Host\" header.");
-				cout << "request:" << endl << serialize() << endl;
+				content_length = get_content_length_from_header();
+				PRINT("Content_length: " << content_length);
+				body.reserve(content_length);
+				body.insert(body.begin(), construct_buffer.begin() + construct_buffer.find("\r\n\r\n") + 4, construct_buffer.end());
+			}
+			catch(const std::exception& e)
+			{
+				PRINT_FAINT("No header \"Content-Length\"(match is case sensitive) was found while constructing request, assuming that there is no body(Could be chunked, not yet supported).");
+				is_fully_constructed = true;
 			}
 		}
 	}
+    void construct_body(int read_fd)
+    {
+        size_t read_size = content_length - body.size() < READ_BUFFER_SIZE ? content_length - body.size() : READ_BUFFER_SIZE;
+        size_t prev_body_size = body.size();
+        ssize_t nb_readytes = read(read_fd, (void *)(body.data() + prev_body_size), read_size);
+        if (nb_readytes == -1)
+            throw runtime_error("Could not read on fd to cosntruct HTTP message.");
+        if (nb_readytes == 0)
+            throw NoBytesToReadException();
+        body.resize(body.size() + nb_readytes);
+    }
 	// void construct_from_socket(int socket_fd)
 	// {
 	// 	HTTP_Message::partial_constructor(socket_fd);

@@ -115,7 +115,7 @@ class IO_Manager
         Template_IO_interest(void (T::*read_cb)(int), void (T::*write_cb)(int), void (T::*timeout_cb)(int), void (T::*hungup_cb)(int), time_t timeout_in_mill, timeout_mode_e timeout_mode, int fd, T* instance) :
         FD_interest(timeout_in_mill, timeout_mode, fd),
         read_cb(read_cb),
-        write_cb(write_cb), 
+        write_cb(write_cb),
         timeout_cb(timeout_cb), 
         hungup_cb(hungup_cb),
         instance(instance)
