@@ -122,7 +122,6 @@ protected:
         if (double_CRLF_index == string::npos)
             return nb_read_bytes;
         string header_as_string = construct_buffer.substr(0, double_CRLF_index);
-        PRINT("hwader as string: " << header_as_string);
         parsing::tokenized_HTTP_t tokenized_header = parsing::tokenize_HTTP_message(header_as_string);
         if (tokenized_header.size() == 0 || tokenized_header[0].size() != 3)
             throw_WSexcetpion(bad_header_status_code);
