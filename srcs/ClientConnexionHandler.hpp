@@ -43,8 +43,11 @@ class ClientHandler : public IO_Manager::FD_interest
 	HTTP_Response response;
 	VirtualServerContext virtualServerContext;
 	LocationContext locationContext;
-	std::map<int, pid_t> pipe_fds_to_cgi_pids;
-	vector<pair<string, string> > url_encoded_collector;
+	vector<pair<string, string> > 	url_encoded_collector;
+	std::map<int, pid_t> 			pipe_fds_to_cgi_pids;
+	vector<string>					multipart_header;
+	vector<char>					multipart_data;
+	string							multipart_boundary;
 
 	public:
 	string listening_ip, listening_port;
@@ -116,8 +119,71 @@ class ClientHandler : public IO_Manager::FD_interest
 	}
 
 	//POST mehtod
+	void	get_header_multipart_formdata(string body, size_t *i)	{
+		string	content_form = "";
+		string	end_header = "\n\r";
+		string	tmp = body.substr(*i, 2);
+
+		for (; tmp.compare(end_header); (*i)++)	{
+			content_form += body[*i];
+			tmp = body.substr(*i, 2);
+		}
+		for (size_t d = 0; ;)	{
+			d = content_form.find(";", 0);
+			multipart_header.push_back(content_form.substr(0, d + 1));
+			if (d == std::string::npos)
+				break;
+			content_form.erase(0, d + 1);
+		}
+		for (size_t d = 0; ;)	{
+			d = content_form.find("\n", 0);
+			multipart_header.push_back(content_form.substr(0, d));
+			if (d == std::string::npos)
+				break;
+			content_form.erase(0, d + 1);
+		}
+		(*i) += 2;
+	}
+	void	upload_data_multiform(string body, bool *end, size_t *i)	{
+		string	upload_content = "";
+		string	end_boundary = "--\r\n";
+		for (;*i < body.size(); (*i)++)	{
+			if (!body.substr(*i, multipart_boundary.size()).compare(multipart_boundary))	{
+				(*i) +=  multipart_boundary.size();
+				if (!end_boundary.compare(&body[*i]))
+					(*end) = true;
+				break ;
+			}
+			multipart_data.push_back(body[*i]);
+		}
+	}
+	void	create_file_multiform()	{
+		string			filename = "web_ressources/users/upload/test.iso";
+		std::ofstream	outp(filename.c_str(), std::ios::out);
+		if (!outp.is_open())
+			throw WSexception("500");
+		vector<char>::iterator it = multipart_data.begin();
+		for (; it != multipart_data.end(); it++)
+			outp << *it;
+		outp.close();
+	}
+
 	void	treat_multipart_body_boundaries(std::string body)	{
-		(void)body;
+		bool	data_end = false;
+		size_t	i = 0;
+		while (true)	{
+			if (!body.substr(0, multipart_boundary.size()).compare(multipart_boundary))	{
+				i += multipart_boundary.size() + 2;
+				get_header_multipart_formdata(body, &i);
+				upload_data_multiform(body, &data_end, &i);
+				create_file_multiform();
+				if (data_end == true)
+					break ;
+				body.erase(0, i);
+				break ;
+			}
+			i++;
+		}
 	}
 	void	treat_encoded_url(std::string body)	{
 		size_t	value = 0;
@@ -162,7 +228,8 @@ class ClientHandler : public IO_Manager::FD_interest
 	}
 	unsigned int	redirect_post_request_on_content_type(vector<string> content_type)	{
 		if (!content_type[1].compare("multipart/form-data;"))	{
-			treat_multipart_body_boundaries(std::string(request.body));
+			multipart_boundary = "--" + content_type[2].substr(std::string("boundary=").size(), content_type[2].size());
+			treat_multipart_body_boundaries(string(request.body));
 			return 0;
 		}
 		else if (!content_type[1].compare("application/x-www-form-urlencoded"))	{
@@ -176,7 +243,6 @@ class ClientHandler : public IO_Manager::FD_interest
 		vector<string>	content_type = request.get_header_fields("Content-Type");
 		switch (redirect_post_request_on_content_type(content_type))	{
 			case 0:
-				treat_multipart_body_boundaries(string(request.body));
 				response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);
 				break;
 			case 1:
