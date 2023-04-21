@@ -394,11 +394,7 @@ class ClientHandler : public IO_Manager::FD_interest
 # ifndef NO_DEBUG
 			PRINT("Sending response to client on socket " << fd << ":" << std::endl << FAINT_AINSI << response.debug() << END_AINSI);
 # endif
-
-	        time_t clock_1 = ws_epoch_time_in_mill();
 			ws_send(fd, response.serialize(), 0);
-    	    time_t clock_2 = ws_epoch_time_in_mill();
-        	PRINT("Time to send response milli seconds: " << (clock_1 - clock_2) << endl);
 			IO_Manager::change_interest_epoll_mask(fd, EPOLLIN);
 			// request.clear();
 			// response.clear();

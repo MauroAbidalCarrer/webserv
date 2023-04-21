@@ -164,10 +164,7 @@ class HTTP_Response : public HTTP_Message
         HTTP_Response response;
         
         //set body content
-        time_t clock_1 = ws_epoch_time_in_mill();
         response.body = read_file_into_string(pathname);
-        time_t clock_2 = ws_epoch_time_in_mill();
-        PRINT("Time to read file into body string in milli seconds: " << (clock_1 - clock_2) << "(clock_1: " << clock_1 << ", clock_2: " << clock_2 << ")");
         
         //set content-Type
         response.set_header_fields("Content-Type", "text/plain;");
