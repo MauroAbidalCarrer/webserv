@@ -41,11 +41,16 @@ typedef std::map<std::string, std::map<std::string, std::string> > CSV_maps_t;
 # define YELLOW_WARNING "\e[38;5;11mWarning\e[0m: "
 # define ERROR_WARNING "\e[38;5;11mError\e[0m: "
 //prints
+
+// #ifdef NO_DEBUG
+// #define PRINT(x) ;
+// #else
 # define PRINT(x) cout /* << g_pid << ": " */ << x << endl
 # define PRINT_WARNING(x) cout /* << g_pid << ": "  */<<  YELLOW_WARNING << x << endl
 # define PRINT_ERROR(x) cerr /* << g_pid << ": "  */<<  RED_ERROR << x << endl
 # define PRINT_FAINT(x) cout /* << g_pid << ": "  */<<  FAINT_AINSI << x << END_AINSI << endl
 # define END_AINSI "\e[0m"
+// #endif
 
 #include <sstream>
 #define SSTR( x ) static_cast< std::ostringstream & >( ( std::ostringstream() << std::dec << x ) ).str()

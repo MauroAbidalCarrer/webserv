@@ -10,6 +10,7 @@
 # define CLOCKS_PER_MILLISECONDS CLOCKS_PER_SEC / 1000
 # define MAX_EPOLL_EVENTS_TO_HANDLE_AT_ONCE 64
 
+extern bool received_SIGINT;
 
 typedef void (*static_fd_callback_t)(int);
 enum timeout_mode_e
@@ -263,12 +264,12 @@ class IO_Manager
         if (interest_map.size() == 0)
         {
             PRINT_WARNING("calling IO_Manager::" << __func__ << " with zero fd interests.");
-            cout << "\tNot starting the epoll_wait lopp to avoid endless loop." << endl;
+            PRINT("\tNot starting the epoll_wait lopp to avoid endless loop.");
             return ;
         }
         try
         {
-            while (true)
+            while (!received_SIGINT)
             {
                 current_time_in_mill = ws_epoch_time_in_mill();
                 static epoll_event events[MAX_EPOLL_EVENTS_TO_HANDLE_AT_ONCE];

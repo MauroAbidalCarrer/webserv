@@ -92,7 +92,9 @@ class ClientHandler : public IO_Manager::FD_interest
 			{
 				string redirected_url = virtualServerContext.redirected_URLs[request._path];
 				HTTP_Response::set_redirection_response(response, redirected_url);
-				cout << BLUE_AINSI << "Redirecting request with path \"" << request._path << "\" to \"" << redirected_url << "." << END_AINSI << endl; 
+# ifndef NO_DEBUG
+				PRINT(BLUE_AINSI << "Redirecting request with path \"" << request._path << "\" to \"" << redirected_url << "." << END_AINSI); 
+# endif
 				IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
 			}
 			//start processing request
@@ -389,9 +391,14 @@ class ClientHandler : public IO_Manager::FD_interest
 			internally_redirect_error_response_to_default_page();
 		else try
 		{
-			PRINT("Sending response to client on socket " << fd << ":" << std::endl
-					  << FAINT_AINSI << response.debug() << END_AINSI);
+# ifndef NO_DEBUG
+			PRINT("Sending response to client on socket " << fd << ":" << std::endl << FAINT_AINSI << response.debug() << END_AINSI);
+# endif
+
+	        time_t clock_1 = ws_epoch_time_in_mill();
 			ws_send(fd, response.serialize(), 0);
+    	    time_t clock_2 = ws_epoch_time_in_mill();
+        	PRINT("Time to send response milli seconds: " << (clock_1 - clock_2) << endl);
 			IO_Manager::change_interest_epoll_mask(fd, EPOLLIN);
 			// request.clear();
 			// response.clear();
@@ -419,7 +426,9 @@ class ClientHandler : public IO_Manager::FD_interest
 		virtualServerContext = VirtualServerContext();
 		locationContext = LocationContext();
 		IO_Manager::change_interest_epoll_mask(fd, EPOLLIN);
+# ifndef NO_DEBUG
 		PRINT(BLUE_AINSI << "Handling redirected request, new request is GET " << request._path << END_AINSI);
+# endif
 		handle_request();
 	}
 
@@ -441,13 +450,15 @@ class ClientHandler : public IO_Manager::FD_interest
 				if (request.is_fully_constructed)
 				{
 					timeout_mode = no_timeout;
+# ifndef NO_DEBUG
 					PRINT("New request from client on socket " << fd << ":");
 					PRINT_FAINT(request.serialize());
 					PRINT_FAINT("request.body.size: " << request.body.size());
+# endif
 					handle_request();
 				}
 			}
-			catch (const HTTP_Message::NoBytesToReadException &e) { close_connexion(); }
+			catch (const HTTP_Message::NoBytesToReadException &e) { close_connexion();}
 			catch (const WSexception& e) { handle_WSexception(e); }
 			catch (const std::exception& e) { handle_unexpected_exception(e); }
 		}
@@ -483,7 +494,7 @@ class ClientHandler : public IO_Manager::FD_interest
 	void handle_unexpected_exception(const std::exception& e)
 	{
 		response = HTTP_Response::Mk_default_response("500");
-		std::cerr << RED_AINSI << "ERROR" << END_AINSI << ": Caught Unexpected exception while processing request. Setting response to default 500 response. " << std::endl;
+		PRINT_ERROR("Caught Unexpected exception while processing request. Setting response to default 500 response.");
 		std::cerr << "e.what(): " << e.what() << std::endl;
 		IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
 	}

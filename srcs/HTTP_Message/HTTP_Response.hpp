@@ -12,6 +12,7 @@ extern std::map<std::string, std::map<std::string, std::string> > CSV_maps;
 
 //sys call functions declarations to avoid circular dependencies (-_-)
 std::string read_file_into_string(const std::string& filename);
+time_t ws_epoch_time_in_mill();
 
 class HTTP_Response : public HTTP_Message
 {
@@ -163,14 +164,14 @@ class HTTP_Response : public HTTP_Message
         HTTP_Response response;
         
         //set body content
-        // response.body = read_file_content(pathname);
+        time_t clock_1 = ws_epoch_time_in_mill();
         response.body = read_file_into_string(pathname);
+        time_t clock_2 = ws_epoch_time_in_mill();
+        PRINT("Time to read file into body string in milli seconds: " << (clock_1 - clock_2) << "(clock_1: " << clock_1 << ", clock_2: " << clock_2 << ")");
         
         //set content-Type
         response.set_header_fields("Content-Type", "text/plain;");
         //If file has an extension overwrite content-Type. Yes, this is ineffcient, but it's midnight I have to get things done.
-        // std::cout << "pathname = " << pathname << std::endl;
-        // std::cout << "pathname.find('.') = " << pathname.find('.') << ", std::string::npos = " << std::string::npos << std::endl;
         if (pathname.find('.') != std::string::npos && pathname.find('.') != pathname.length())
         {
             std::string file_extension = pathname.substr(pathname.find('.') + 1, std::string::npos);

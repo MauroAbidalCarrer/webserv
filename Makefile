@@ -11,6 +11,12 @@ DEPS	=	$(OBJS:.o=.d)
 CXX	:= c++
 CXXFLAGS := -std=c++98 -g3 -Wall -Werror -Wextra -MMD -MP 
 
+no_debug: CXXFLAGS += -DNO_DEBUG
+no_debug: $(OBJS)
+	mkdir -p objs
+	$(CXX) $(INCS) $(CXXFLAGS) -o $(NAME) $(OBJS)
+
+
 all: $(NAME)
 
 $(NAME): $(OBJS)
@@ -18,6 +24,7 @@ $(NAME): $(OBJS)
 	$(CXX) $(OBJS) -o $@
 
 %.o: %.cpp 
+	mkdir -p objs
 	$(CXX) $(INCS) $(CXXFLAGS) -o $@ -c $<
 
 clean:
