@@ -91,7 +91,40 @@ class HTTP_Response : public HTTP_Message
         }
         else
             throw runtime_error("Failed to list directory, opendir failed.");
-        static char last_part[] =   "\t\t</table>"
+        if (std::find(locationContext.allowed_methods.begin(), locationContext.allowed_methods.end(), "DELETE") != locationContext.allowed_methods.end())
+        {
+            response_dst.body.append(
+                                "\t\t</table>"
+                                "<form id=\"delete-form\" method=\"POST\">"
+                                "<label for=\"url-input\">URL:</label>"
+                                "<input type=\"text\" id=\"url-input\" name=\"url\" value=\"/your/api/endpoint\">"
+                                "<!-- add any other form fields you need here -->"
+                                "<button type=\"submit\">Delete</button>"
+                                "</form>"
+                                ""
+                                "<div id=\"message\"></div>"
+                                ""
+                                "<script>"
+                                "const form = document.getElementById('delete-form');"
+                                "const message = document.getElementById('message');"
+                                "form.addEventListener('submit', (event) => {"
+                                "event.preventDefault();"
+                                "const xhr = new XMLHttpRequest();"
+                                "const url = document.getElementById('url-input').value;"
+                                "xhr.open('DELETE', url);"
+                                "xhr.onload = function() {"
+                                "if (xhr.status === 200) {"
+                                "message.textContent = 'Deleted successfully!';"
+                                "} else {"
+                                "message.textContent = 'Error deleting: ' + xhr.statusText;"
+                                "}"
+                                "};"
+                                "xhr.send(new FormData(form));"
+                                "});"
+                                "</script>"
+                                );
+        }
+        static char last_part[] =   
                                     "\t</main>\n"
                                     "</body>\n"
                                     "</html>\n";
