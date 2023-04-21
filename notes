@@ -2,8 +2,7 @@ handle multi part data
 handle chunked transfer encoding
 
 test convoluted config file
-    set multiple hosts on 
-
+    set multiple hosts on /etc/hots
 test CGI that overflows pipe
 test request timeout
 
@@ -20,3 +19,125 @@ test request timeout
 
 
 
+Path after applying context: web_ressources/img/image-homepage-head.png
+ERROR: Caught Unexpected exception while processing request. Setting response to default 500 response. 
+e.what(): Could not read on fd to cosntruct HTTP message.
+ERROR: Caught Unexpected exception while processing request. Setting response to default 500 response. 
+e.what(): Could not read on fd to cosntruct HTTP message.
+New client connexion on socket 12, listening interface: 127.0.0.1:8080
+Sending response to client on socket 8:
+Default 500 response.
+
+==165715== FILE DESCRIPTORS: 13 open (3 std) at exit.
+==165715== Open AF_INET socket 12: 127.0.0.1:8080 <-> 127.0.0.1:34882
+==165715==    at 0x4CCC5D7: accept (accept.c:26)
+==165715==    by 0x407482: ws_accept(int, sockaddr*, unsigned int*) (sys_calls_warp_arounds.hpp:157)
+==165715==    by 0x41EDFC: Server::accept_client_connexion(int) (Server.hpp:178)
+==165715==    by 0x41F739: IO_Manager::static_FD_interest::internal_call_event_callbacks(epoll_event) (IO_Manager.hpp:93)
+==165715==    by 0x4310F2: IO_Manager::FD_interest::call_event_callbacks(epoll_event, long) (IO_Manager.hpp:60)
+==165715==    by 0x430E8D: IO_Manager::non_static_wait__for_events_and_call_callbacks() (IO_Manager.hpp:290)
+==165715==    by 0x414D70: IO_Manager::wait__for_events_and_call_callbacks() (IO_Manager.hpp:302)
+==165715==    by 0x40BC6D: Server::Run(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (Server.hpp:62)
+==165715==    by 0x40A08E: main (main.cpp:30)
+==165715== 
+==165715== Open AF_INET socket 11: 127.0.0.1:8080 <-> 127.0.0.1:34874
+==165715==    at 0x4CCC5D7: accept (accept.c:26)
+==165715==    by 0x407482: ws_accept(int, sockaddr*, unsigned int*) (sys_calls_warp_arounds.hpp:157)
+==165715==    by 0x41EDFC: Server::accept_client_connexion(int) (Server.hpp:178)
+==165715==    by 0x41F739: IO_Manager::static_FD_interest::internal_call_event_callbacks(epoll_event) (IO_Manager.hpp:93)
+==165715==    by 0x4310F2: IO_Manager::FD_interest::call_event_callbacks(epoll_event, long) (IO_Manager.hpp:60)
+==165715==    by 0x430E8D: IO_Manager::non_static_wait__for_events_and_call_callbacks() (IO_Manager.hpp:290)
+==165715==    by 0x414D70: IO_Manager::wait__for_events_and_call_callbacks() (IO_Manager.hpp:302)
+==165715==    by 0x40BC6D: Server::Run(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (Server.hpp:62)
+==165715==    by 0x40A08E: main (main.cpp:30)
+==165715== 
+==165715== Open AF_INET socket 10: 127.0.0.1:8080 <-> 127.0.0.1:34862
+==165715==    at 0x4CCC5D7: accept (accept.c:26)
+==165715==    by 0x407482: ws_accept(int, sockaddr*, unsigned int*) (sys_calls_warp_arounds.hpp:157)
+==165715==    by 0x41EDFC: Server::accept_client_connexion(int) (Server.hpp:178)
+==165715==    by 0x41F739: IO_Manager::static_FD_interest::internal_call_event_callbacks(epoll_event) (IO_Manager.hpp:93)
+==165715==    by 0x4310F2: IO_Manager::FD_interest::call_event_callbacks(epoll_event, long) (IO_Manager.hpp:60)
+==165715==    by 0x430E8D: IO_Manager::non_static_wait__for_events_and_call_callbacks() (IO_Manager.hpp:290)
+==165715==    by 0x414D70: IO_Manager::wait__for_events_and_call_callbacks() (IO_Manager.hpp:302)
+==165715==    by 0x40BC6D: Server::Run(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (Server.hpp:62)
+==165715==    by 0x40A08E: main (main.cpp:30)
+==165715== 
+==165715== Open AF_INET socket 7: 127.0.0.1:8080 <-> 127.0.0.1:34850
+==165715==    at 0x4CCC5D7: accept (accept.c:26)
+==165715==    by 0x407482: ws_accept(int, sockaddr*, unsigned int*) (sys_calls_warp_arounds.hpp:157)
+==165715==    by 0x41EDFC: Server::accept_client_connexion(int) (Server.hpp:178)
+==165715==    by 0x41F739: IO_Manager::static_FD_interest::internal_call_event_callbacks(epoll_event) (IO_Manager.hpp:93)
+==165715==    by 0x4310F2: IO_Manager::FD_interest::call_event_callbacks(epoll_event, long) (IO_Manager.hpp:60)
+==165715==    by 0x430E8D: IO_Manager::non_static_wait__for_events_and_call_callbacks() (IO_Manager.hpp:290)
+==165715==    by 0x414D70: IO_Manager::wait__for_events_and_call_callbacks() (IO_Manager.hpp:302)
+==165715==    by 0x40BC6D: Server::Run(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (Server.hpp:62)
+==165715==    by 0x40A08E: main (main.cpp:30)
+==165715== 
+==165715== Open AF_INET socket 9: 127.0.0.1:8080 <-> unbound
+==165715==    at 0x4CCC5D7: accept (accept.c:26)
+==165715==    by 0x407482: ws_accept(int, sockaddr*, unsigned int*) (sys_calls_warp_arounds.hpp:157)
+==165715==    by 0x41EDFC: Server::accept_client_connexion(int) (Server.hpp:178)
+==165715==    by 0x41F739: IO_Manager::static_FD_interest::internal_call_event_callbacks(epoll_event) (IO_Manager.hpp:93)
+==165715==    by 0x4310F2: IO_Manager::FD_interest::call_event_callbacks(epoll_event, long) (IO_Manager.hpp:60)
+==165715==    by 0x430E8D: IO_Manager::non_static_wait__for_events_and_call_callbacks() (IO_Manager.hpp:290)
+==165715==    by 0x414D70: IO_Manager::wait__for_events_and_call_callbacks() (IO_Manager.hpp:302)
+==165715==    by 0x40BC6D: Server::Run(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (Server.hpp:62)
+==165715==    by 0x40A08E: main (main.cpp:30)
+==165715== 
+==165715== Open AF_INET socket 8: 127.0.0.1:8080 <-> unbound
+==165715==    at 0x4CCC5D7: accept (accept.c:26)
+==165715==    by 0x407482: ws_accept(int, sockaddr*, unsigned int*) (sys_calls_warp_arounds.hpp:157)
+==165715==    by 0x41EDFC: Server::accept_client_connexion(int) (Server.hpp:178)
+==165715==    by 0x41F739: IO_Manager::static_FD_interest::internal_call_event_callbacks(epoll_event) (IO_Manager.hpp:93)
+==165715==    by 0x4310F2: IO_Manager::FD_interest::call_event_callbacks(epoll_event, long) (IO_Manager.hpp:60)
+==165715==    by 0x430E8D: IO_Manager::non_static_wait__for_events_and_call_callbacks() (IO_Manager.hpp:290)
+==165715==    by 0x414D70: IO_Manager::wait__for_events_and_call_callbacks() (IO_Manager.hpp:302)
+==165715==    by 0x40BC6D: Server::Run(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (Server.hpp:62)
+==165715==    by 0x40A08E: main (main.cpp:30)
+==165715== 
+==165715== Open AF_INET socket 6: 127.0.0.1:8080 <-> unbound
+==165715==    at 0x4CCC5D7: accept (accept.c:26)
+==165715==    by 0x407482: ws_accept(int, sockaddr*, unsigned int*) (sys_calls_warp_arounds.hpp:157)
+==165715==    by 0x41EDFC: Server::accept_client_connexion(int) (Server.hpp:178)
+==165715==    by 0x41F739: IO_Manager::static_FD_interest::internal_call_event_callbacks(epoll_event) (IO_Manager.hpp:93)
+==165715==    by 0x4310F2: IO_Manager::FD_interest::call_event_callbacks(epoll_event, long) (IO_Manager.hpp:60)
+==165715==    by 0x430E8D: IO_Manager::non_static_wait__for_events_and_call_callbacks() (IO_Manager.hpp:290)
+==165715==    by 0x414D70: IO_Manager::wait__for_events_and_call_callbacks() (IO_Manager.hpp:302)
+==165715==    by 0x40BC6D: Server::Run(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (Server.hpp:62)
+==165715==    by 0x40A08E: main (main.cpp:30)
+==165715== 
+==165715== Open AF_INET socket 5: 127.0.0.1:8080 <-> unbound
+==165715==    at 0x4CCC5D7: accept (accept.c:26)
+==165715==    by 0x407482: ws_accept(int, sockaddr*, unsigned int*) (sys_calls_warp_arounds.hpp:157)
+==165715==    by 0x41EDFC: Server::accept_client_connexion(int) (Server.hpp:178)
+==165715==    by 0x41F739: IO_Manager::static_FD_interest::internal_call_event_callbacks(epoll_event) (IO_Manager.hpp:93)
+==165715==    by 0x4310F2: IO_Manager::FD_interest::call_event_callbacks(epoll_event, long) (IO_Manager.hpp:60)
+==165715==    by 0x430E8D: IO_Manager::non_static_wait__for_events_and_call_callbacks() (IO_Manager.hpp:290)
+==165715==    by 0x414D70: IO_Manager::wait__for_events_and_call_callbacks() (IO_Manager.hpp:302)
+==165715==    by 0x40BC6D: Server::Run(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (Server.hpp:62)
+==165715==    by 0x40A08E: main (main.cpp:30)
+==165715== 
+==165715== Open file descriptor 4:
+==165715==    at 0x4CCBCFB: epoll_create1 (syscall-template.S:120)
+==165715==    by 0x407159: ws_epoll_create1(int, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (sys_calls_warp_arounds.hpp:114)
+==165715==    by 0x41F848: IO_Manager::IO_Manager() (IO_Manager.hpp:167)
+==165715==    by 0x41F427: IO_Manager::singleton() (IO_Manager.hpp:179)
+==165715==    by 0x41F33D: IO_Manager::set_interest(int, void (*)(int), void (*)(int), void (*)(int), long, timeout_mode_e) (IO_Manager.hpp:218)
+==165715==    by 0x41EDD3: IO_Manager::set_interest(int, void (*)(int), void (*)(int)) (IO_Manager.hpp:208)
+==165715==    by 0x41EC5E: Server::setup_connexion_queue(addrinfo) (Server.hpp:149)
+==165715==    by 0x41E2ED: Server::setup_connexion_queue(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (Server.hpp:114)
+==165715==    by 0x414BA7: Server::setup_connexion_queues() (Server.hpp:92)
+==165715==    by 0x40BC63: Server::Run(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (Server.hpp:61)
+==165715==    by 0x40A08E: main (main.cpp:30)
+==165715== 
+==165715== Open AF_INET socket 3: 127.0.0.1:8080 <-> unbound
+==165715==    at 0x4CCCCEB: socket (syscall-template.S:120)
+==165715==    by 0x406D1E: ws_socket(int, int, int) (sys_calls_warp_arounds.hpp:79)
+==165715==    by 0x41EBFA: Server::setup_connexion_queue(addrinfo) (Server.hpp:137)
+==165715==    by 0x41E2ED: Server::setup_connexion_queue(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (Server.hpp:114)
+==165715==    by 0x414BA7: Server::setup_connexion_queues() (Server.hpp:92)
+==165715==    by 0x40BC63: Server::Run(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) (Server.hpp:61)
+==165715==    by 0x40A08E: main (main.cpp:30)
+==165715== 
+==165715== 
+==165715== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0

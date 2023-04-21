@@ -12,6 +12,7 @@ extern std::map<std::string, std::map<std::string, std::string> > CSV_maps;
 
 //sys call functions declarations to avoid circular dependencies (-_-)
 std::string read_file_into_string(const std::string& filename);
+time_t ws_epoch_time_in_mill();
 
 class HTTP_Response : public HTTP_Message
 {
@@ -90,7 +91,40 @@ class HTTP_Response : public HTTP_Message
         }
         else
             throw runtime_error("Failed to list directory, opendir failed.");
-        static char last_part[] =   "\t\t</table>"
+        if (std::find(locationContext.allowed_methods.begin(), locationContext.allowed_methods.end(), "DELETE") != locationContext.allowed_methods.end())
+        {
+            response_dst.body.append(
+                                "\t\t</table>"
+                                "<form id=\"delete-form\" method=\"POST\">"
+                                "<label for=\"url-input\">URL:</label>"
+                                "<input type=\"text\" id=\"url-input\" name=\"url\" value=\"/your/api/endpoint\">"
+                                "<!-- add any other form fields you need here -->"
+                                "<button type=\"submit\">Delete</button>"
+                                "</form>"
+                                ""
+                                "<div id=\"message\"></div>"
+                                ""
+                                "<script>"
+                                "const form = document.getElementById('delete-form');"
+                                "const message = document.getElementById('message');"
+                                "form.addEventListener('submit', (event) => {"
+                                "event.preventDefault();"
+                                "const xhr = new XMLHttpRequest();"
+                                "const url = document.getElementById('url-input').value;"
+                                "xhr.open('DELETE', url);"
+                                "xhr.onload = function() {"
+                                "if (xhr.status === 200) {"
+                                "message.textContent = 'Deleted successfully!';"
+                                "} else {"
+                                "message.textContent = 'Error deleting: ' + xhr.statusText;"
+                                "}"
+                                "};"
+                                "xhr.send(new FormData(form));"
+                                "});"
+                                "</script>"
+                                );
+        }
+        static char last_part[] =   
                                     "\t</main>\n"
                                     "</body>\n"
                                     "</html>\n";
@@ -163,14 +197,11 @@ class HTTP_Response : public HTTP_Message
         HTTP_Response response;
         
         //set body content
-        // response.body = read_file_content(pathname);
         response.body = read_file_into_string(pathname);
         
         //set content-Type
         response.set_header_fields("Content-Type", "text/plain;");
         //If file has an extension overwrite content-Type. Yes, this is ineffcient, but it's midnight I have to get things done.
-        // std::cout << "pathname = " << pathname << std::endl;
-        // std::cout << "pathname.find('.') = " << pathname.find('.') << ", std::string::npos = " << std::string::npos << std::endl;
         if (pathname.find('.') != std::string::npos && pathname.find('.') != pathname.length())
         {
             std::string file_extension = pathname.substr(pathname.find('.') + 1, std::string::npos);

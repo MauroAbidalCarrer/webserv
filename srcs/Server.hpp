@@ -63,7 +63,6 @@ class Server
         }
         catch(const std::exception& e)
         {
-            
             PRINT_ERROR("caught (very)unexpected exception: " << e.what() << ", stopping server.");
         }
     }
@@ -74,8 +73,6 @@ class Server
     {
         vector<pair<string, string> > network_interfaces_already_used;
         vector<int> binded_sockets;
-        // try
-        // {
             for (size_t i = 0; i < GlobalContextSingleton.virtual_server_contexts.size(); i++)
             {
                 VirtualServerContext virtual_server_context = GlobalContextSingleton.virtual_server_contexts[i];
@@ -92,13 +89,6 @@ class Server
                 setup_connexion_queue(ip, port);
                 network_interfaces_already_used.push_back(network_interface);
             }
-        // }
-        // catch(std::exception& e)
-        // {
-        //     for (size_t i = 0; i < binded_sockets.size(); i++)
-        //         close(binded_sockets[i]);
-        //     throw e;
-        // }
     }
     void setup_connexion_queue(string ip, string port)
     {
@@ -108,9 +98,6 @@ class Server
         {
             try
             {
-                // cout << "\tTrying to listen on ";
-                // print_socket_address_and_port(addr_info_ptr);
-                // cout << endl;
                 setup_connexion_queue(*addr_info_ptr);
             }
             catch(const std::exception& e)
@@ -135,11 +122,9 @@ class Server
     {
         //create socket
         int listen_socket_fd = ws_socket(AF_INET, SOCK_STREAM, 0);
-        //set socket to non blocking
-        // ws_fcntl(listen_socket_fd, F_SETFL, O_NONBLOCK);
-        //set sock option SO_REUSEADDR to prevent TCP related error 'Adress already in use' when restarting
         try
         {
+            //set sock option SO_REUSEADDR to prevent TCP related error 'Adress already in use' when restarting server
             int dump = 1;
             ws_setsockopt(listen_socket_fd, SOL_SOCKET, SO_REUSEADDR, &dump, sizeof(int));
             //binding of socket to port

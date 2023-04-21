@@ -95,7 +95,9 @@ class ClientHandler : public IO_Manager::FD_interest
 			{
 				string redirected_url = virtualServerContext.redirected_URLs[request._path];
 				HTTP_Response::set_redirection_response(response, redirected_url);
-				cout << BLUE_AINSI << "Redirecting request with path \"" << request._path << "\" to \"" << redirected_url << "." << END_AINSI << endl; 
+# ifndef NO_DEBUG
+				PRINT(BLUE_AINSI << "Redirecting request with path \"" << request._path << "\" to \"" << redirected_url << "." << END_AINSI); 
+# endif
 				IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
 			}
 			//start processing request
@@ -115,7 +117,11 @@ class ClientHandler : public IO_Manager::FD_interest
 		}
 		// make sure to take a reference instead of a copy, otherwise the destructor will be called twice and will potentially call delete twice on the same pointer
 		catch (const WSexception &e) { handle_WSexception(e); }
-		catch (const std::exception &e) { handle_unexpected_exception(e); }
+		catch (const std::exception &e) 
+		{ 
+			handle_unexpected_exception(e); 
+			close_connexion();
+		}
 	}
 
 	//POST mehtod
@@ -444,8 +450,6 @@ class ClientHandler : public IO_Manager::FD_interest
 			pipe_fds_to_cgi_pids[p[READ]] = cgi_pid;
 			IO_Manager::set_interest<ClientHandler>(r[WRITE], NULL, &ClientHandler::write_request_on_cgi_stdin, NULL, NULL, -1, no_timeout, this);
 			IO_Manager::set_interest<ClientHandler>(p[READ], &ClientHandler::closeChannelServerCgi, NULL, &ClientHandler::handle_cgi_timeout, &ClientHandler::handle_cgi_read_pipe_hungup, CGI_TIMEOUT_IN_MILL, do_not_renew, this);
-			// response = HTTP_Response::Mk_default_response("200");
-			// IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
 		}
 	}
 
@@ -455,12 +459,11 @@ class ClientHandler : public IO_Manager::FD_interest
 			internally_redirect_error_response_to_default_page();
 		else try
 		{
-			PRINT("Sending response to client on socket " << fd << ":" << std::endl
-					  << FAINT_AINSI << response.debug() << END_AINSI);
+# ifndef NO_DEBUG
+			PRINT("Sending response to client on socket " << fd << ":" << std::endl << FAINT_AINSI << response.debug() << END_AINSI);
+# endif
 			ws_send(fd, response.serialize(), 0);
 			IO_Manager::change_interest_epoll_mask(fd, EPOLLIN);
-			// request.clear();
-			// response.clear();
 			request = HTTP_Request();
 			response = HTTP_Response();
 			virtualServerContext = VirtualServerContext();
@@ -468,11 +471,10 @@ class ClientHandler : public IO_Manager::FD_interest
 		}
 		catch (std::exception e)
 		{
-			std::cerr << "Exception caught in ClientHandler::" << __func__ << ", client connexion socket fd: " << fd << "." << std::endl;
+			PRINT_WARNING("Exception caught in ClientHandler::" << __func__ << ", client connexion socket fd: " << fd << ".");
 			std::cerr << "exception.what() = " << e.what() << std::endl;
-			std::cerr << "Response: " << response.debug() << std::endl;
-			std::cerr << BOLD_AINSI << "Closing" << FAINT_AINSI << " client connexion " << BOLD_AINSI << fd << END_AINSI << "." << std::endl;
 			close_connexion();
+			cout << endl;
 		}
 	}
 	void internally_redirect_error_response_to_default_page()
@@ -485,42 +487,55 @@ class ClientHandler : public IO_Manager::FD_interest
 		virtualServerContext = VirtualServerContext();
 		locationContext = LocationContext();
 		IO_Manager::change_interest_epoll_mask(fd, EPOLLIN);
+# ifndef NO_DEBUG
 		PRINT(BLUE_AINSI << "Handling redirected request, new request is GET " << request._path << END_AINSI);
+# endif
 		handle_request();
 	}
 
 	void internal_call_event_callbacks(epoll_event event)
 	{
+		if (event.events & EPOLLHUP)
+		{
+			PRINT(BLUE_AINSI << "event with mask EPOLLHUP on socket " << fd << END_AINSI);
+			close_connexion();
+			cout << endl;
+			return;
+		}
 		if ((event.events & EPOLLIN) && (event.events & EPOLLOUT))
-			std::cerr << "Warning: called ClientHandler::" << __func__ << " with both EPOLLIN and OUT, this is not supposed to happen!" << std::endl;
+			PRINT_WARNING("called ClientHandler::" << __func__ << " with both EPOLLIN and OUT, this is not supposed to happen!");
 		if (event.events & EPOLLOUT)
 			send_response();
 		if (event.events & EPOLLIN)
 		{
 			try
 			{
-				// PRINT("Setting timeout mode to " << renew_after_IO_operation);
 				timeout_mode = renew_after_IO_operation;
 				timeout_in_mill = REQUEST_TIMEOUT_IN_MILL;
-				// request = HTTP_Request(fd, MAXIMUM_HTTP_HEADER_SIZE);
 				request.construct_from_socket(fd);
 				if (request.is_fully_constructed)
 				{
 					timeout_mode = no_timeout;
+# ifndef NO_DEBUG
 					PRINT("New request from client on socket " << fd << ":");
 					PRINT_FAINT(request.serialize());
 					PRINT_FAINT("request.body.size: " << request.body.size());
+# endif
 					handle_request();
 				}
 			}
-			catch (const HTTP_Message::NoBytesToReadException &e) { close_connexion(); }
+			catch (const HTTP_Message::NoBytesToReadException &e) { close_connexion();}
 			catch (const WSexception& e) { handle_WSexception(e); }
-			catch (const std::exception& e) { handle_unexpected_exception(e); }
+			catch (const std::exception& e) 
+			{ 
+				handle_unexpected_exception(e); 
+				close_connexion();
+				cout << endl;
+			}
 		}
 	}
 	void call_timeout_callback()
 	{
-		// cerr << YELLOW_WARNING << "ClientHandler::" << __func__ << " called but client is not supposed to have timeout!(not closing connexion)" << endl;
 		PRINT_WARNING("Connexion on socket " << fd << " timed out.");
 		close_connexion();
 	}
@@ -549,7 +564,7 @@ class ClientHandler : public IO_Manager::FD_interest
 	void handle_unexpected_exception(const std::exception& e)
 	{
 		response = HTTP_Response::Mk_default_response("500");
-		std::cerr << RED_AINSI << "ERROR" << END_AINSI << ": Caught Unexpected exception while processing request. Setting response to default 500 response. " << std::endl;
+		PRINT_ERROR("Caught Unexpected exception while processing request. Setting response to default 500 response.");
 		std::cerr << "e.what(): " << e.what() << std::endl;
 		IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
 	}
