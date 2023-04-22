@@ -59,7 +59,6 @@ protected:
         {
             if (construct_buffer.size() > MAX_HEADER_SIZE)
                 throw_WSexcetpion(header_too_long_status_code);
-            
             return nb_read_bytes;
         }
         string header_as_string = construct_buffer.substr(0, double_CRLF_index);
@@ -158,6 +157,18 @@ public:
             if (header[i].size() > 1 && header[i][0] == header_name)
                 return header[i];
         throw NoHeaderFieldFoundException();
+    }
+    bool try_get_header_fields(string header_name, vector<string>& vector_dst)
+    {
+        for (size_t i = 0; i < header.size(); i++)
+        {
+            if (header[i].size() > 1 && header[i][0] == header_name)
+            {
+                vector_dst = header[i];
+                return true;
+            }
+        }
+        return false;
     }
 
 protected:

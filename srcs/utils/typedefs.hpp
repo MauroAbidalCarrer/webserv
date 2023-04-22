@@ -16,6 +16,7 @@ using std::cerr;
 using std::endl;
 
 //parsing
+# define CRLF "\r\n"
 typedef std::vector<std::string> string_vec_t;
 typedef string_vec_t::iterator string_vec_it_t;
 typedef std::pair<std::string&, std::string*> directive_fields_dsts_t;

@@ -124,20 +124,14 @@ class HTTP_Response : public HTTP_Message
                                 "</script>"
                                 );
         }
-        static char last_part[] =   
-                                    "\t</main>\n"
-                                    "</body>\n"
-                                    "</html>\n";
-        response_dst.body.append(last_part);
+        response_dst.body.append("\t</main>\n"
+                                 "</body>\n"
+                                 "</html>\n");
         response_dst.set_header_fields("Content-Type", "text/html;");
         response_dst.set_content_length();
     }
     
     //methods
-    // void partial_constructor_from_fd(int read_fd, bool expect_EOF_as_end_of_message = false)
-    // {
-    //     HTTP_Message::partial_constructor(read_fd, expect_EOF_as_end_of_message);
-    // }
     void construct_from_CGI_output(int read_fd)
     {
         ssize_t nb_read_bytes = 0;

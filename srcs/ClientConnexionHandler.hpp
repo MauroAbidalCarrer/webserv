@@ -462,7 +462,6 @@ class ClientHandler : public IO_Manager::FD_interest
 			catch (const WSexception& e) { handle_WSexception(e); }
 			catch (const std::exception& e) 
 			{ 
-				handle_unexpected_exception(e); 
 				close_connexion();
 				cout << endl;
 			}
