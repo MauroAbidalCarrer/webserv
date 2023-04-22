@@ -134,19 +134,15 @@ class ClientHandler : public IO_Manager::FD_interest
 			content_form += body[*i];
 			tmp = body.substr(*i, 2);
 		}
-		for (size_t d = 0; ;)	{
-			d = content_form.find(";", 0);
-			multipart_header.push_back(content_form.substr(0, d + 1));
-			if (d == std::string::npos)
-				break;
-			content_form.erase(0, d + 1);
-		}
-		for (size_t d = 0; ;)	{
-			d = content_form.find("\n", 0);
-			multipart_header.push_back(content_form.substr(0, d));
-			if (d == std::string::npos)
-				break;
-			content_form.erase(0, d + 1);
+		char	*header_content;
+		header_content = strtok(const_cast<char *>(content_form.c_str()), ";\n");
+		for(size_t i = 0; header_content; i++) 	{
+			multipart_header.push_back(header_content);
+			for (size_t j = 0; j < multipart_header[i].size(); j++)	{
+				if (isspace(multipart_header[i][j]))
+					multipart_header[i].erase(j, 1);
+			}
+			header_content = strtok(NULL, ";\n");
 		}
 		(*i) += 2;
 	}
@@ -164,8 +160,18 @@ class ClientHandler : public IO_Manager::FD_interest
 		}
 	}
 	void	create_file_multiform()	{
-		string			filename = "web_ressources/users/upload/test.iso";
-		std::ofstream	outp(filename.c_str(), std::ios::out);
+		string			file = "filename";
+		for (size_t i = 0; i < multipart_header.size(); i++)	{
+			string	comp = multipart_header[i].substr(0, file.size());
+			if (!comp.compare(file))	{
+				file = multipart_header[i].substr(file.size() + 2, multipart_header[i].size());
+				file = strtok(const_cast<char *>(file.c_str()), "\"");
+				break ;
+			}
+		}
+
+		string			outs = "web_ressources/users/upload/" + file;
+		std::ofstream	outp(outs.c_str(), std::ios::out);
 		if (!outp.is_open())
 			throw WSexception("500");
 		vector<char>::iterator it = multipart_data.begin();
