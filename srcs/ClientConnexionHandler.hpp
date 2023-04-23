@@ -521,23 +521,24 @@ class ClientHandler : public IO_Manager::FD_interest
 				timeout_mode = renew_after_IO_operation;
 				timeout_in_mill = REQUEST_TIMEOUT_IN_MILL;
 				request.construct_from_socket(fd);
-				if (request.is_fully_constructed)
-				{
-					timeout_mode = no_timeout;
-# ifndef NO_DEBUG
-					PRINT("New request from client on socket " << fd << ":");
-					PRINT_FAINT(request.serialize());
-					PRINT_FAINT("request.body.size: " << request.body.size());
-# endif
-					handle_request();
-				}
 			}
 			catch (const HTTP_Message::NoBytesToReadException &e) { close_connexion();}
 			catch (const WSexception& e) { handle_WSexception(e); }
 			catch (const std::exception& e) 
-			{ 
+			{
+				PRINT_WARNING("Caught unexpected exception while trying to construct request." << endl << "exception.what(): " << e.what());
 				close_connexion();
 				cout << endl;
+			}
+			if (request.is_fully_constructed)
+			{
+				timeout_mode = no_timeout;
+// # ifndef NO_DEBUG
+				PRINT("New request from client on socket " << fd << ":");
+				PRINT_FAINT(request.serialize());
+				PRINT_FAINT("request.body.size: " << request.body.size());
+// # endif
+				handle_request();
 			}
 		}
 	}

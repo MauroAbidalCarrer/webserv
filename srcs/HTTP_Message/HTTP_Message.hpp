@@ -17,7 +17,7 @@ std::string ws_read(int fd, size_t buffer_size, ssize_t *nb_read_bytes_ptr);
 // std::string ws_read(int fd, size_t buffer_size);
 void throw_WSexcetpion(const string& status_code, const string& what_msg);
 void throw_WSexcetpion(const string& status_code);
-# define READ_BUFFER_SIZE 100000
+# define READ_BUFFER_SIZE 10000
 # define MAX_HEADER_SIZE 3000
 
 class HTTP_Message
@@ -89,6 +89,14 @@ public:
     // methods
     std::string serialize()
     {
+        std::string str = get_header_as_string();
+        str.append(parsing::CLRF);
+        str.append(body);
+        str.append(parsing::CLRF);
+        return str;
+    }
+    string get_header_as_string()
+    {
         std::string str;
         for (size_t i = 0; i < first_line.size(); i++)
         {
@@ -107,9 +115,6 @@ public:
             }
             str.append(parsing::CLRF);
         }
-        str.append(parsing::CLRF);
-        str.append(body);
-        str.append(parsing::CLRF);
         return str;
     }
     virtual string debug()
@@ -223,7 +228,7 @@ public:
     {
         for (size_t i = 0; i < body.length(); i++)
             cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(body[i]) << " ";
-        cout << endl;
+        cout << std::dec << endl;
     }
 
     // nested classes

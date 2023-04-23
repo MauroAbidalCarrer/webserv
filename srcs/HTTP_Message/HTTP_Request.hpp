@@ -82,9 +82,15 @@ class HTTP_Request : public HTTP_Message
 			if (body_type == chunked_body)
 			{
 				body += ws_read(socket_fd, READ_BUFFER_SIZE);
-				PRINT("body:" << endl << body);
+				PRINT("current chunk after read:" << endl << FAINT_AINSI << (body.c_str() + chunk_begin_i) << END_AINSI);
 				handle_new_chunked_body_content();
 			}
+		}
+		if (is_fully_constructed)
+		{
+			string file = "test.mp4";
+			std::ofstream output_file(file.c_str(), std::ofstream::out);
+			output_file << body;
 		}
 	}
 	void construct_header(int socket_fd)
@@ -128,7 +134,8 @@ class HTTP_Request : public HTTP_Message
 					throw_WSexcetpion("501", "Transfer-Encoding " + type_encoding_header_fiels[1] + " is not supported!");
 				body_type = chunked_body;
 				body.insert(body.begin(), construct_buffer.begin() + construct_buffer.find("\r\n\r\n") + 4, construct_buffer.end());
-				PRINT("Request has chunked body, before handling it:" << endl << body);
+				PRINT("Header:" << endl << FAINT_AINSI << get_header_as_string() << END_AINSI);
+				// PRINT("Body:"  << FAINT_AINSI << END_AINSI << endl << body);
 				handle_new_chunked_body_content();
 			}
 			if (type_encoding_header_fiels.empty() == false && content_length_header_fields.empty() == false)
@@ -160,27 +167,54 @@ class HTTP_Request : public HTTP_Message
 		size_t chunk_size;
 		do
 		{
+			//check that there actually is a chunk header.
+			size_t chunk_header_end_i = get_next_CRLF();
+			if (chunk_header_end_i == string::npos)
+			{
+				PRINT("No chunk header found, body:" << endl << body.c_str() + chunk_begin_i);
+				return ;
+			}
 			//get chunk size in chunk header
 			chunk_size = std::strtoul(body.c_str() + chunk_begin_i, NULL, 16);
-			PRINT("chunk size: " << chunk_size << ", chunk_begin_i: " << chunk_begin_i << ", body.length(): " << body.length());
-			if (body.length() - chunk_begin_i < chunk_size)
+			PRINT("chunk size: " << chunk_size << ", chunk_begin_i: " << chunk_begin_i << ", body.size(): " << body.size());
+			bool full_chunk_is_in_body = body.length() - chunk_begin_i < chunk_size + 2 + chunk_header_end_i;
+			PRINT("body.length() - chunk_begin_i < chunk_size + 2 + chunk_header_end_i: " << (full_chunk_is_in_body ? "TRUE" : "FALSE"));
+			if (full_chunk_is_in_body)
 				break;
+			//erase chunk header debugging
+			PRINT("get_next_CRLF(): " << get_next_CRLF() << ", chunk begin: " << chunk_begin_i);
+			cout << "first 20 chars: [ ";
+			for (size_t i = 0; i < 20 && chunk_begin_i + i < body.length(); i++)
+				cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(body[chunk_begin_i + i]) << " ";
+			PRINT(std::dec << "]");
+			cout << "CRLF: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>('\r') << " " << std::setw(2) << std::setfill('0') << static_cast<int>('\n') << std::dec << endl;
 			//erase chunk header
-			body.erase(chunk_begin_i, body.find(CRLF, chunk_begin_i) + 2);
-			PRINT("Erased chunk header, body after deletion:");
-			PRINT_FAINT(body);
+			body.erase(chunk_begin_i, get_next_CRLF() + 2);
+			PRINT("Erased chunk header, body after deletion:" << ", body.size(): " << body.size());
+			PRINT_FAINT((body.c_str() + chunk_begin_i));
 			//skip chunk content
 			chunk_begin_i += chunk_size;
 			//erase chunk terminating CRLF
+			PRINT("Going to erase chunk terminating CRLF, chunk_begin_i: " << chunk_begin_i << ", body.size(): " << body.size());
 			body.erase(chunk_begin_i, 2);
 			PRINT("Erased chunk terminating CRLF, body after deletion:");
-			PRINT_FAINT(body);
-		} 
+			PRINT_FAINT((body.c_str() + chunk_begin_i));
+		}
 		while (chunk_size != 0);
 		is_fully_constructed = chunk_size == 0;
 		PRINT("is_fully_constructed: " << is_fully_constructed << endl);
 	}
-	void	printContent()	{
+	size_t get_next_CRLF()
+	{
+		for (size_t i = 0; chunk_begin_i + i + 1 < body.size(); i++)
+		{
+			if (body[chunk_begin_i + i] == '\r' && body[chunk_begin_i + i + 1] == '\n')
+				return i;
+		}
+		return string::npos;
+	}
+	void	printContent()	
+	{
 		PRINT("[++++++++++++++++ V*A*L*U*E*S +++++++++++++++++++]");
 		PRINT("HTPP_Serveur: Port: " << this->_ports);
 		PRINT("HTPP_Serveur: Path: " << this->_path);
