@@ -535,7 +535,7 @@ class ClientHandler : public IO_Manager::FD_interest
 				timeout_mode = no_timeout;
 // # ifndef NO_DEBUG
 				PRINT("New request from client on socket " << fd << ":");
-				PRINT_FAINT(request.serialize());
+				PRINT_FAINT(request.debug());
 				PRINT_FAINT("request.body.size: " << request.body.size());
 // # endif
 				handle_request();

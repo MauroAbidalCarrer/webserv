@@ -82,7 +82,7 @@ class HTTP_Request : public HTTP_Message
 			if (body_type == chunked_body)
 			{
 				body += ws_read(socket_fd, READ_BUFFER_SIZE);
-				PRINT("current chunk after read:" << endl << FAINT_AINSI << (body.c_str() + chunk_begin_i) << END_AINSI);
+				// PRINT("current chunk after read:" << endl << FAINT_AINSI << (body.c_str() + chunk_begin_i) << END_AINSI);
 				handle_new_chunked_body_content();
 			}
 		}
@@ -168,7 +168,7 @@ class HTTP_Request : public HTTP_Message
 		do
 		{
 			//check that there actually is a chunk header.
-			size_t chunk_header_end_i = get_next_CRLF();
+			size_t chunk_header_end_i = get_next_CRLF_index();
 			if (chunk_header_end_i == string::npos)
 			{
 				PRINT("No chunk header found, body:" << endl << body.c_str() + chunk_begin_i);
@@ -176,35 +176,35 @@ class HTTP_Request : public HTTP_Message
 			}
 			//get chunk size in chunk header
 			chunk_size = std::strtoul(body.c_str() + chunk_begin_i, NULL, 16);
-			PRINT("chunk size: " << chunk_size << ", chunk_begin_i: " << chunk_begin_i << ", body.size(): " << body.size());
-			bool full_chunk_is_in_body = body.length() - chunk_begin_i < chunk_size + 2 + chunk_header_end_i;
-			PRINT("body.length() - chunk_begin_i < chunk_size + 2 + chunk_header_end_i: " << (full_chunk_is_in_body ? "TRUE" : "FALSE"));
-			if (full_chunk_is_in_body)
+			// PRINT("chunk size: " << chunk_size << ", chunk_begin_i: " << chunk_begin_i << ", body.size(): " << body.size());
+			bool full_chunk_is_in_body = body.length() - chunk_begin_i >= chunk_size + 2 + chunk_header_end_i;
+			// PRINT("body.length() - chunk_begin_i < chunk_size + 2 + chunk_header_end_i: " << (full_chunk_is_in_body ? "TRUE" : "FALSE"));
+			if (full_chunk_is_in_body == false)
 				break;
 			//erase chunk header debugging
-			PRINT("get_next_CRLF(): " << get_next_CRLF() << ", chunk begin: " << chunk_begin_i);
-			cout << "first 20 chars: [ ";
-			for (size_t i = 0; i < 20 && chunk_begin_i + i < body.length(); i++)
-				cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(body[chunk_begin_i + i]) << " ";
-			PRINT(std::dec << "]");
-			cout << "CRLF: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>('\r') << " " << std::setw(2) << std::setfill('0') << static_cast<int>('\n') << std::dec << endl;
+			// PRINT("get_next_CRLF_index(): " << get_next_CRLF_index() << ", chunk begin: " << chunk_begin_i);
+			// cout << "first 20 chars: [ ";
+			// for (size_t i = 0; i < 20 && chunk_begin_i + i < body.length(); i++)
+			// 	cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(body[chunk_begin_i + i]) << " ";
+			// PRINT(std::dec << "]");
+			// cout << "CRLF: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>('\r') << " " << std::setw(2) << std::setfill('0') << static_cast<int>('\n') << std::dec << endl;
 			//erase chunk header
-			body.erase(chunk_begin_i, get_next_CRLF() + 2);
-			PRINT("Erased chunk header, body after deletion:" << ", body.size(): " << body.size());
-			PRINT_FAINT((body.c_str() + chunk_begin_i));
+			body.erase(chunk_begin_i, get_next_CRLF_index() + 2);
+			// PRINT("Erased chunk header, body after deletion:" << ", body.size(): " << body.size());
+			// PRINT_FAINT((body.c_str() + chunk_begin_i));
 			//skip chunk content
 			chunk_begin_i += chunk_size;
 			//erase chunk terminating CRLF
-			PRINT("Going to erase chunk terminating CRLF, chunk_begin_i: " << chunk_begin_i << ", body.size(): " << body.size());
+			// PRINT("Going to erase chunk terminating CRLF, chunk_begin_i: " << chunk_begin_i << ", body.size(): " << body.size());
 			body.erase(chunk_begin_i, 2);
-			PRINT("Erased chunk terminating CRLF, body after deletion:");
-			PRINT_FAINT((body.c_str() + chunk_begin_i));
+			// PRINT("Erased chunk terminating CRLF, body after deletion:");
+			// PRINT_FAINT((body.c_str() + chunk_begin_i));
 		}
 		while (chunk_size != 0);
 		is_fully_constructed = chunk_size == 0;
 		PRINT("is_fully_constructed: " << is_fully_constructed << endl);
 	}
-	size_t get_next_CRLF()
+	size_t get_next_CRLF_index()
 	{
 		for (size_t i = 0; chunk_begin_i + i + 1 < body.size(); i++)
 		{
