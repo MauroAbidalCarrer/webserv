@@ -15,11 +15,10 @@ class HTTP_Request : public HTTP_Message
 {
 	private:
 	//fields
-	enum body_type_t { no_body, chumked_body, fixed_size_body };
+	enum body_type_t { no_body, chunked_body, fixed_size_body };
 	//chunk body fields
 	body_type_t body_type;
-	size_t chunk_begin_i = 0;
-	size_t chunk_size;
+	size_t chunk_begin_i;
 	//request fields
 	vector<string> request_line;
 	public:
@@ -37,6 +36,7 @@ class HTTP_Request : public HTTP_Message
 	HTTP_Request() :
 	HTTP_Message(),
 	body_type(no_body),
+	chunk_begin_i(0),
 	request_line(),
 	HTTP_method(),
 	target_URL(),
@@ -48,8 +48,9 @@ class HTTP_Request : public HTTP_Message
 	{ }
 	//construct redirected GET request
 	HTTP_Request(string redirected_path, HTTP_Request initial_request) : 
-	HTTP_method("GET"),
 	body_type(no_body),
+	chunk_begin_i(0),
+	HTTP_method("GET"),
 	_path(redirected_path),
 	is_redirected(true)
 	{
@@ -78,8 +79,12 @@ class HTTP_Request : public HTTP_Message
 		{
 			if (body_type == fixed_size_body)
 				construct_body_with_fixed_size(socket_fd);
-			if (body_type == chumked_body)
-				construct_chunked_body(socket_fd);
+			if (body_type == chunked_body)
+			{
+				body += ws_read(socket_fd, READ_BUFFER_SIZE);
+				PRINT("body:" << endl << body);
+				handle_new_chunked_body_content();
+			}
 		}
 	}
 	void construct_header(int socket_fd)
@@ -94,28 +99,44 @@ class HTTP_Request : public HTTP_Message
 			target_URL = request_line[1];
 			std::size_t	d = target_URL.find("?");
 			this->_path = target_URL.substr(0, d);
-			try
-			{
-				if (d != std::string::npos)
-				this->_queryString = target_URL.substr(d + 1, target_URL.size() - d);
-				this->_hostname = this->get_header_fields("Host")[HOST];
-				if (this->get_header_fields("Host").size() > 2)
-					this->_ports = this->get_header_fields("Host")[PORT];
-			}
-			catch(NoHeaderFieldFoundException& e)
-			{ throw_WSexcetpion("400", "No header field \"Host\" found."); }
-			try
+			if (d != std::string::npos)
+			this->_queryString = target_URL.substr(d + 1, target_URL.size() - d);
+			vector<string> host_header_fields;
+			//parse Host header field
+			if (try_get_header_fields("Host", host_header_fields) == false)
+				throw_WSexcetpion("400", "No header field \"Host\" found!");
+			if (host_header_fields.size() < 1)
+				throw_WSexcetpion("400", "\"Host\" header has no value!");
+			this->_hostname = this->get_header_fields("Host")[HOST];
+			if (this->get_header_fields("Host").size() > 2)
+				this->_ports = this->get_header_fields("Host")[PORT];
+			//parse Content-Length header
+			vector<string> content_length_header_fields ;
+			if (try_get_header_fields("Content-Length", content_length_header_fields))
 			{
 				content_length = get_content_length_from_header();
-				PRINT("Content_length: " << content_length);
+				PRINT("Request has fixed size body, content_length: " << content_length);
 				body.reserve(content_length);
 				body.insert(body.begin(), construct_buffer.begin() + construct_buffer.find("\r\n\r\n") + 4, construct_buffer.end());
 				is_fully_constructed = body.length() >= content_length;
+				body_type = fixed_size_body;
 			}
-			catch(const std::exception& e)
+			vector<string> type_encoding_header_fiels;
+			if (try_get_header_fields("Transfer-Encoding", type_encoding_header_fiels))
+			{
+				if (type_encoding_header_fiels.size() != 2 || type_encoding_header_fiels[1] != "chunked")
+					throw_WSexcetpion("501", "Transfer-Encoding " + type_encoding_header_fiels[1] + " is not supported!");
+				body_type = chunked_body;
+				body.insert(body.begin(), construct_buffer.begin() + construct_buffer.find("\r\n\r\n") + 4, construct_buffer.end());
+				PRINT("Request has chunked body, before handling it:" << endl << body);
+				handle_new_chunked_body_content();
+			}
+			if (type_encoding_header_fiels.empty() == false && content_length_header_fields.empty() == false)
+				throw_WSexcetpion("400", "Both \"Transfer-Encoding\" and \"Content-Length\" headers are present!");
+			if (type_encoding_header_fiels.empty() == true && content_length_header_fields.empty() == true)
 			{
 # ifndef NO_DEBUG
-				PRINT_FAINT("No header \"Content-Length\"(match is case sensitive) was found while constructing request, assuming that there is no body(Could be chunked, not yet supported).");
+				PRINT_FAINT("Neither \"Content-Length\" and \"Transfer-Encoding\" header fields were found, assuming that the request has no body.");
 # endif
 				is_fully_constructed = true;
 			}
@@ -134,29 +155,30 @@ class HTTP_Request : public HTTP_Message
         body.resize(body.size() - (read_size - nb_readytes));
 		is_fully_constructed = body.length() >= content_length;
     }
-	void construct_chunked_body(int socket_fd)
+	void handle_new_chunked_body_content()
 	{
-		body += ws_read(socket_fd, READ_BUFFER_SIZE);
-		if (body.length() - chunk_begin_i >= chunk_size)
+		size_t chunk_size;
+		do
 		{
+			//get chunk size in chunk header
+			chunk_size = std::strtoul(body.c_str() + chunk_begin_i, NULL, 16);
+			PRINT("chunk size: " << chunk_size << ", chunk_begin_i: " << chunk_begin_i << ", body.length(): " << body.length());
+			if (body.length() - chunk_begin_i < chunk_size)
+				break;
+			//erase chunk header
+			body.erase(chunk_begin_i, body.find(CRLF, chunk_begin_i) + 2);
+			PRINT("Erased chunk header, body after deletion:");
+			PRINT_FAINT(body);
 			//skip chunk content
 			chunk_begin_i += chunk_size;
 			//erase chunk terminating CRLF
-			body.erase(chunk_begin_i, 4);
-			set_new_chunk_size();
-		}
-	}
-	void set_new_chunk_size()
-	{
-		//get chunk size in chunk header
-		chunk_size = std::strtoul(body.c_str() + chunk_begin_i, NULL, 16);
-		//erase chunk header
-		body.erase(chunk_begin_i, body.find(CRLF, chunk_begin_i) + 4);
-		if (chunk_size == 0)
-		{
-			is_fully_constructed = true;
-			body.erase(chunk_begin_i, 4);
-		}
+			body.erase(chunk_begin_i, 2);
+			PRINT("Erased chunk terminating CRLF, body after deletion:");
+			PRINT_FAINT(body);
+		} 
+		while (chunk_size != 0);
+		is_fully_constructed = chunk_size == 0;
+		PRINT("is_fully_constructed: " << is_fully_constructed << endl);
 	}
 	void	printContent()	{
 		PRINT("[++++++++++++++++ V*A*L*U*E*S +++++++++++++++++++]");

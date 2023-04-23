@@ -14,7 +14,7 @@
 
 // sys call functions declarations to avoid circular dependencies (-_-)
 std::string ws_read(int fd, size_t buffer_size, ssize_t *nb_read_bytes_ptr);
-std::string ws_read(int fd, size_t buffer_size);
+// std::string ws_read(int fd, size_t buffer_size);
 void throw_WSexcetpion(const string& status_code, const string& what_msg);
 void throw_WSexcetpion(const string& status_code);
 # define READ_BUFFER_SIZE 10000
@@ -216,8 +216,7 @@ public:
     {
         vector<string> content_length_header = get_header_fields("Content-Length");
         if (content_length_header.size() < 2)
-            throw runtime_error("Header \"Content-Length\" is present but no actual length is specified");
-        // PRINT("in " << __func__ << ", content_length_header[1].c_str(): \"" << content_length_header[1].c_str() <<  "\"");
+            throw_WSexcetpion("400", "Header \"Content-Length\" has no value!");
         return std::strtoul(content_length_header[1].c_str(), NULL, 0);
     }
     void print_body_in_hexa()

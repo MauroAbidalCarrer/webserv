@@ -116,7 +116,9 @@ class ClientHandler : public IO_Manager::FD_interest
 		catch (const WSexception &e) { handle_WSexception(e); }
 		catch (const std::exception &e) 
 		{ 
-			handle_unexpected_exception(e); 
+			// handle_unexpected_exception(e); 
+			PRINT_WARNING("Caught unexpected exception while processing request, exception.what():" << endl);
+			cerr << e.what() << endl;
 			close_connexion();
 		}
 	}
