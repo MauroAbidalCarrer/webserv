@@ -198,7 +198,7 @@ class HTTP_Request : public HTTP_Message
 			// PRINT("Going to erase chunk terminating CRLF, chunk_begin_i: " << chunk_begin_i << ", body.size(): " << body.size());
 			body.erase(chunk_begin_i, 2);
 			// PRINT("Erased chunk terminating CRLF, body after deletion:");
-			// PRINT_FAINT((body.c_str() + chunk_begin_i));
+			PRINT_FAINT((body.c_str() + chunk_begin_i));
 		}
 		while (chunk_size != 0);
 		is_fully_constructed = chunk_size == 0;

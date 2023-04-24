@@ -176,8 +176,12 @@ class ClientHandler : public IO_Manager::FD_interest
 				break ;
 			}
 		}
-		string			outs = "web_ressources/users/upload/" + file;
-		std::ofstream	outp(outs.c_str(), std::ios::out | std::ios::app);
+		string	directory_path = request._path;
+		if (is_regular_file(request._path))
+			directory_path = directory_path.substr(0, directory_path.find_last_of("/"));
+		else if (!is_directory(request._path))
+			throw WSexception("400");
+		std::ofstream	outp((directory_path + "/" + file).c_str(), std::ios::out | std::ios::app);
 		if (!outp.is_open())
 			throw WSexception("500");
 		vector<char>::iterator	it = multipart_data.begin();
@@ -202,6 +206,9 @@ class ClientHandler : public IO_Manager::FD_interest
 			}
 			i++;
 		}
+	}
+	void	treat_transfer_encoding_chunked()	{
+
 	}
 	void	treat_encoded_url(std::string body)	{
 		size_t	value = 0;
@@ -247,8 +254,7 @@ class ClientHandler : public IO_Manager::FD_interest
 			return 0;
 		else if (!content_type[1].compare("application/x-www-form-urlencoded"))
 			return 1;
-		else
-			return 2;
+		return 2;
 	}
 	void	process_POST_request(std::string status_code, string target_ressource_path)	{
 		vector<string>	content_type = request.get_header_fields("Content-Type");
