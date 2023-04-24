@@ -161,9 +161,9 @@ struct LocationContext
 		// apply rewrite directive(not sure if it's the rewrite directive... the that completes target URLs finishing ini "/")(for no just index.html)
 		if (*(path.end() - 1) == '/')
 			path.append(default_file);
-# ifndef NO_DEBUG
+// # ifndef NO_DEBUG
 		cout << "Path after applying context: " << path << endl;
-# endif
+// # endif
     }
     void debug()
     {

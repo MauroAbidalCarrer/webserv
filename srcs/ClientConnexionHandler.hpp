@@ -123,7 +123,7 @@ class ClientHandler : public IO_Manager::FD_interest
 			// handle_unexpected_exception(e); 
 			PRINT_WARNING("Caught unexpected exception while processing request, exception.what():" << endl);
 			cerr << e.what() << endl;
-			close_connexion();
+			close_connexion("unexpected exception caught in ClientHandler::" + string(__func__));
 		}
 	}
 
@@ -176,7 +176,7 @@ class ClientHandler : public IO_Manager::FD_interest
 				break ;
 			}
 		}
-		string			outs = "web_ressources/users/upload/" + file;
+		string			outs = request._path + file;
 		std::ofstream	outp(outs.c_str(), std::ios::out | std::ios::app);
 		if (!outp.is_open())
 			throw WSexception("500");
@@ -251,6 +251,7 @@ class ClientHandler : public IO_Manager::FD_interest
 			return 2;
 	}
 	void	process_POST_request(std::string status_code, string target_ressource_path)	{
+		PRINT("ClientHandler::" << __func__ << " called.");
 		vector<string>	content_type = request.get_header_fields("Content-Type");
 		switch (redirect_post_request_on_content_type(content_type))	{
 			case 0:
@@ -271,7 +272,8 @@ class ClientHandler : public IO_Manager::FD_interest
 				if (is_regular_file(request._path))
 					response = HTTP_Response::mk_from_regualr_file_and_status_code("200", target_ressource_path);
 				else
-					response = HTTP_Response::Mk_default_response("404");	}
+					response = HTTP_Response::Mk_default_response("404");	
+		}
 		IO_Manager::change_interest_epoll_mask(fd , EPOLLOUT);
 	}
 	// GET method
@@ -482,7 +484,7 @@ class ClientHandler : public IO_Manager::FD_interest
 		{
 			PRINT_WARNING("Exception caught in ClientHandler::" << __func__ << ", client connexion socket fd: " << fd << ".");
 			std::cerr << "exception.what() = " << e.what() << std::endl;
-			close_connexion();
+			close_connexion("unexpected exception caught in ClientHandler::" + string(__func__));
 			cout << endl;
 		}
 	}
@@ -506,8 +508,7 @@ class ClientHandler : public IO_Manager::FD_interest
 	{
 		if (event.events & EPOLLHUP)
 		{
-			PRINT(BLUE_AINSI << "event with mask EPOLLHUP on socket " << fd << END_AINSI);
-			close_connexion();
+			close_connexion("EPOLLHUP");
 			cout << endl;
 			return;
 		}
@@ -519,38 +520,42 @@ class ClientHandler : public IO_Manager::FD_interest
 		{
 			try
 			{
+				// PRINT("Constructing request on socket " << fd);
 				timeout_mode = renew_after_IO_operation;
 				timeout_in_mill = REQUEST_TIMEOUT_IN_MILL;
 				request.construct_from_socket(fd);
 			}
-			catch (const HTTP_Message::NoBytesToReadException &e) { close_connexion();}
+			catch (const HTTP_Message::NoBytesToReadException &e) 
+			{ 
+				PRINT("NoBytesToReadException caught, request.body.size(): " << request.body.size() << ", request.serialize(): " << endl << FAINT_AINSI << request.serialize() << END_AINSI/* << ", request.in hexa: " */ /* << endl */);
+				// request.print_body_in_hexa();
+				close_connexion("Zero bytes read on socket, assuming client claused the connexion.");
+			}
 			catch (const WSexception& e) { handle_WSexception(e); }
 			catch (const std::exception& e) 
 			{
 				PRINT_WARNING("Caught unexpected exception while trying to construct request." << endl << "exception.what(): " << e.what());
-				close_connexion();
+				close_connexion("Caught unexpected exception");
 				cout << endl;
 			}
 			if (request.is_fully_constructed)
 			{
 				timeout_mode = no_timeout;
-// # ifndef NO_DEBUG
 				PRINT("New request from client on socket " << fd << ":");
 				PRINT_FAINT(request.debug());
-				PRINT_FAINT("request.body.size: " << request.body.size());
-// # endif
+				// PRINT_FAINT("request.body.size: " << request.body.size());
 				handle_request();
+				PRINT("------Request has been handled.");
 			}
 		}
 	}
 	void call_timeout_callback()
 	{
-		PRINT_WARNING("Connexion on socket " << fd << " timed out.");
-		close_connexion();
+		close_connexion("timed out");
 	}
-	void close_connexion()
+	void close_connexion(string cause)
 	{
-		PRINT("Closing client connexion on socket " << fd);
+		PRINT("Closing client connexion on socket " << fd << ", cause: " << cause);
 		IO_Manager::remove_interest_and_close_fd(fd);
 	}
 

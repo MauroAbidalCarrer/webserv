@@ -17,15 +17,13 @@ std::string ws_read(int fd, size_t buffer_size, ssize_t *nb_read_bytes_ptr);
 // std::string ws_read(int fd, size_t buffer_size);
 void throw_WSexcetpion(const string& status_code, const string& what_msg);
 void throw_WSexcetpion(const string& status_code);
-# define READ_BUFFER_SIZE 10000
+# define READ_BUFFER_SIZE 1000
 # define MAX_HEADER_SIZE 3000
 
 class HTTP_Message
 {
 private:
-    // size_t nb_partial_constructs, total_nb_bytes_read;
     int read_fd;
-    // string tmp_header_as_string;
 protected:
     string construct_buffer;
 

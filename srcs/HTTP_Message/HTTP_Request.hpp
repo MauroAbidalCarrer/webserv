@@ -74,7 +74,10 @@ class HTTP_Request : public HTTP_Message
 	void construct_from_socket(int socket_fd)
 	{
 		if (header_is_constructed == false)
+		{
 			construct_header(socket_fd);
+			// PRINT("header_is_constructed == false: " << header_is_constructed << ", Constuct buffer:" << endl << FAINT_AINSI << construct_buffer << END_AINSI);
+		}
 		else
 		{
 			if (body_type == fixed_size_body)
@@ -86,16 +89,10 @@ class HTTP_Request : public HTTP_Message
 				handle_new_chunked_body_content();
 			}
 		}
-		if (is_fully_constructed)
-		{
-			string file = "test.mp4";
-			std::ofstream output_file(file.c_str(), std::ofstream::out);
-			output_file << body;
-		}
 	}
 	void construct_header(int socket_fd)
 	{
-		HTTP_Message::construct_header(socket_fd, "431", "400");
+		PRINT("read " << HTTP_Message::construct_header(socket_fd, "431", "400") << " bytes while constructing header");
 		if (header_is_constructed)
 		{
 			request_line = first_line;
@@ -130,7 +127,9 @@ class HTTP_Request : public HTTP_Message
 			vector<string> type_encoding_header_fiels;
 			if (try_get_header_fields("Transfer-Encoding", type_encoding_header_fiels))
 			{
-				if (type_encoding_header_fiels.size() != 2 || type_encoding_header_fiels[1] != "chunked")
+				if (type_encoding_header_fiels.size() != 2)
+					throw_WSexcetpion("400", "Transfer-Encoding header field has no value.");
+				if (type_encoding_header_fiels[1] != "chunked")
 					throw_WSexcetpion("501", "Transfer-Encoding " + type_encoding_header_fiels[1] + " is not supported!");
 				body_type = chunked_body;
 				body.insert(body.begin(), construct_buffer.begin() + construct_buffer.find("\r\n\r\n") + 4, construct_buffer.end());
@@ -151,16 +150,15 @@ class HTTP_Request : public HTTP_Message
 	}	
     void construct_body_with_fixed_size(int read_fd)
     {
-        size_t read_size = content_length - body.size() < READ_BUFFER_SIZE ? content_length - body.size() : READ_BUFFER_SIZE;
-        size_t prev_body_size = body.size();
-        body.resize(body.size() + read_size);
-        ssize_t nb_readytes = read(read_fd, (void *)(body.data() + prev_body_size), read_size);
-        if (nb_readytes == -1)
+		ssize_t nb_readbytes = -1;
+		size_t prev_body_size = body.size();
+		body += ws_read(read_fd, READ_BUFFER_SIZE, &nb_readbytes);
+		PRINT("Read body.size() after body read: " << body.size() << ", prev_body_size: " << prev_body_size << ", nb_read_bytes:" << nb_readbytes);
+        if (nb_readbytes == -1)
             throw runtime_error("Could not read on fd to cosntruct HTTP message.");
-        if (nb_readytes == 0)
-            throw NoBytesToReadException();
-        body.resize(body.size() - (read_size - nb_readytes));
 		is_fully_constructed = body.length() >= content_length;
+        if (nb_readbytes == 0/*  && is_fully_constructed */)
+            throw NoBytesToReadException();
     }
 	void handle_new_chunked_body_content()
 	{
@@ -176,33 +174,22 @@ class HTTP_Request : public HTTP_Message
 			}
 			//get chunk size in chunk header
 			chunk_size = std::strtoul(body.c_str() + chunk_begin_i, NULL, 16);
-			// PRINT("chunk size: " << chunk_size << ", chunk_begin_i: " << chunk_begin_i << ", body.size(): " << body.size());
 			bool full_chunk_is_in_body = body.length() - chunk_begin_i >= chunk_size + 2 + chunk_header_end_i;
-			// PRINT("body.length() - chunk_begin_i < chunk_size + 2 + chunk_header_end_i: " << (full_chunk_is_in_body ? "TRUE" : "FALSE"));
 			if (full_chunk_is_in_body == false)
 				break;
 			//erase chunk header debugging
-			// PRINT("get_next_CRLF_index(): " << get_next_CRLF_index() << ", chunk begin: " << chunk_begin_i);
-			// cout << "first 20 chars: [ ";
-			// for (size_t i = 0; i < 20 && chunk_begin_i + i < body.length(); i++)
-			// 	cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(body[chunk_begin_i + i]) << " ";
-			// PRINT(std::dec << "]");
-			// cout << "CRLF: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>('\r') << " " << std::setw(2) << std::setfill('0') << static_cast<int>('\n') << std::dec << endl;
 			//erase chunk header
 			body.erase(chunk_begin_i, get_next_CRLF_index() + 2);
-			// PRINT("Erased chunk header, body after deletion:" << ", body.size(): " << body.size());
-			// PRINT_FAINT((body.c_str() + chunk_begin_i));
 			//skip chunk content
 			chunk_begin_i += chunk_size;
 			//erase chunk terminating CRLF
-			// PRINT("Going to erase chunk terminating CRLF, chunk_begin_i: " << chunk_begin_i << ", body.size(): " << body.size());
 			body.erase(chunk_begin_i, 2);
-			// PRINT("Erased chunk terminating CRLF, body after deletion:");
-			// PRINT_FAINT((body.c_str() + chunk_begin_i));
 		}
 		while (chunk_size != 0);
 		is_fully_constructed = chunk_size == 0;
-		PRINT("is_fully_constructed: " << is_fully_constructed << endl);
+		if (is_fully_constructed)
+			PRINT("Request fully constructed.");
+		// PRINT("is_fully_constructed: " << is_fully_constructed << endl);
 	}
 	size_t get_next_CRLF_index()
 	{

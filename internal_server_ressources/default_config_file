@@ -19,7 +19,7 @@ server
     {
         directory_listing;
         root web_ressources;
-        allowed_methods DELETE GET;
+        allowed_methods DELETE GET POST;
     }
 }
 server
