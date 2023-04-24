@@ -48,6 +48,7 @@ class ClientHandler : public IO_Manager::FD_interest
 	vector<string>					multipart_header;
 	vector<char>					multipart_data;
 	string							multipart_boundary;
+	string							status_code;
 
 	public:
 	string listening_ip, listening_port;
@@ -161,28 +162,31 @@ class ClientHandler : public IO_Manager::FD_interest
 			multipart_data.push_back(body[*i]);
 		}
 	}
-	void	create_file_multiform()	{
+	void	create_file_multiform(string *status_code)	{
 		string			file = "filename";
 		for (size_t i = 0; i < multipart_header.size(); i++)	{
 			string	comp = multipart_header[i].substr(0, file.size());
 			if (!comp.compare(file))	{
 				file = multipart_header[i].substr(file.size() + 2, multipart_header[i].size());
+				if (!file.compare("\"") || !file.size())	{
+					(*status_code) = "400";
+					return ;
+				}
 				file = strtok(const_cast<char *>(file.c_str()), "\"");
 				break ;
 			}
 		}
-
 		string			outs = "web_ressources/users/upload/" + file;
-		std::ofstream	outp(outs.c_str(), std::ios::out);
+		std::ofstream	outp(outs.c_str(), std::ios::out | std::ios::app);
 		if (!outp.is_open())
 			throw WSexception("500");
-		vector<char>::iterator it = multipart_data.begin();
+		vector<char>::iterator	it = multipart_data.begin();
 		for (; it != multipart_data.end(); it++)
 			outp << *it;
 		outp.close();
+		(*status_code) = "201";
 	}
-
-	void	treat_multipart_body_boundaries(std::string body)	{
+	void	treat_multipart_body_boundaries(string body, string *status_code)	{
 		bool	data_end = false;
 		size_t	i = 0;
 		while (true)	{
@@ -190,7 +194,7 @@ class ClientHandler : public IO_Manager::FD_interest
 				i += multipart_boundary.size() + 2;
 				get_header_multipart_formdata(body, &i);
 				upload_data_multiform(body, &data_end, &i);
-				create_file_multiform();
+				create_file_multiform(status_code);
 				if (data_end == true)
 					break ;
 				body.erase(0, i);
@@ -211,45 +215,38 @@ class ClientHandler : public IO_Manager::FD_interest
 				body.erase(0, value + 1);
 		}
 	}
-	void	add_user_in_db()	{
+	void	add_user_in_db(string *status_code)	{
 		std::ofstream db;
 		db.open("web_ressources/users/all", std::ios_base::app);
-		if (!db.is_open())	{
-			return ;
-		}
+		if (!db.is_open())
+			throw WSexception("500");
 		db << url_encoded_collector[0].second;
 		db << " | ";
 		db << url_encoded_collector[1].second << endl;
 		db.close();
+		(*status_code) = "201";
 	}
-	bool	search_user_in_db()	{
+	bool	search_user_in_db(string *status_code)	{
 		std::fstream db;
 		db.open("web_ressources/users/all", std::fstream::in | std::ios_base::app);
-		if (!db.is_open())	{
-			return false ;
-		}
+		if (!db.is_open())
+			throw WSexception("500");
 		std::string	db_content;
 		std::string	format = " | ";
 		while (getline(db, db_content))	{
 			if (!url_encoded_collector[0].second.compare(db_content.substr(0, url_encoded_collector[0].second.size())))	{
 				if (!url_encoded_collector[1].second.compare(db_content.substr(url_encoded_collector[0].second.size() + format.size(), db_content.size())))
 					return db.close(), true;
-				else
-					cout << RED_AINSI << "POST: [BAD PASSWORD FOR CONNEXION]" << END_AINSI << endl;
 			}
 		}
+		(*status_code) = "401";
 		return  db.close(), false;
 	}
 	unsigned int	redirect_post_request_on_content_type(vector<string> content_type)	{
-		if (!content_type[1].compare("multipart/form-data;"))	{
-			multipart_boundary = "--" + content_type[2].substr(std::string("boundary=").size(), content_type[2].size());
-			treat_multipart_body_boundaries(string(request.body));
+		if (!content_type[1].compare("multipart/form-data;"))
 			return 0;
-		}
-		else if (!content_type[1].compare("application/x-www-form-urlencoded"))	{
-			treat_encoded_url(std::string(request.body));
+		else if (!content_type[1].compare("application/x-www-form-urlencoded"))
 			return 1;
-		}
 		else
 			return 2;
 	}
@@ -257,20 +254,24 @@ class ClientHandler : public IO_Manager::FD_interest
 		vector<string>	content_type = request.get_header_fields("Content-Type");
 		switch (redirect_post_request_on_content_type(content_type))	{
 			case 0:
+				multipart_boundary = "--" + content_type[2].substr(std::string("boundary=").size(), content_type[2].size());
+				treat_multipart_body_boundaries(string(request.body), &status_code);
 				response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);
 				break;
 			case 1:
-				if (!url_encoded_collector[0].first.compare("connexion-page-email") && search_user_in_db())	{
+				treat_encoded_url(std::string(request.body));
+				if (!url_encoded_collector[0].first.compare("connexion-page-email") && search_user_in_db(&status_code))
 					target_ressource_path = "web_ressources/logged.html";
-				}
-				else if (!url_encoded_collector[0].first.compare("subscribe-page-email") )	{
-					add_user_in_db();
-				}
-				response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);
+				else if (!url_encoded_collector[0].first.compare("subscribe-page-email") )
+					add_user_in_db(&status_code);
 				url_encoded_collector.clear();
+				response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);
 				break;
 			case 2:
-				response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);	}
+				if (is_regular_file(request._path))
+					response = HTTP_Response::mk_from_regualr_file_and_status_code("200", target_ressource_path);
+				else
+					response = HTTP_Response::Mk_default_response("404");	}
 		IO_Manager::change_interest_epoll_mask(fd , EPOLLOUT);
 	}
 	// GET method

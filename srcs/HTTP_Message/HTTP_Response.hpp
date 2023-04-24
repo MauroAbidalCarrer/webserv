@@ -192,7 +192,7 @@ class HTTP_Response : public HTTP_Message
         
         //set body content
         response.body = read_file_into_string(pathname);
-        
+
         //set content-Type
         response.set_header_fields("Content-Type", "text/plain;");
         //If file has an extension overwrite content-Type. Yes, this is ineffcient, but it's midnight I have to get things done.
