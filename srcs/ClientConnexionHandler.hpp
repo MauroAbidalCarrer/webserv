@@ -128,15 +128,17 @@ class ClientHandler : public IO_Manager::FD_interest
 	}
 
 	//POST mehtod
+	int	header_len;
 	void	get_header_multipart_formdata(string body, size_t *i)	{
 		string	content_form = "";
-		string	end_header = "\n\r";
+		string	end_header = "\r\n";
 		string	tmp = body.substr(*i, 2);
 
 		for (; tmp.compare(end_header); (*i)++)	{
 			content_form += body[*i];
 			tmp = body.substr(*i, 2);
 		}
+		header_len = content_form.size();
 		char	*header_content;
 		header_content = strtok(const_cast<char *>(content_form.c_str()), ";\n");
 		for(size_t i = 0; header_content; i++) 	{
@@ -150,17 +152,12 @@ class ClientHandler : public IO_Manager::FD_interest
 		(*i) += 2;
 	}
 	void	upload_data_multiform(string body, bool *end, size_t *i)	{
-		string	upload_content = "";
 		string	end_boundary = multipart_boundary + "--\r\n";
-
-		for (;*i < body.size(); (*i)++)	{
-			if (!body.substr(*i, multipart_boundary.size()).compare(multipart_boundary))	{
-				if (!end_boundary.compare(&body[*i]))
-					(*end) = true;
-				break ;
-			}
-			multipart_data.push_back(body[*i]);
-		}
+		size_t d = body.find(multipart_boundary, multipart_boundary.size());
+		multipart_data.insert(multipart_data.begin(), (body.begin() + body.find("\r\n\r\n") + 4), body.begin() + d);
+		(*i) = d;
+		if (!end_boundary.compare(&body[*i]))
+			(*end) = true;
 	}
 	void	create_file_multiform(string *status_code)	{
 		string			file = "filename";
@@ -181,7 +178,7 @@ class ClientHandler : public IO_Manager::FD_interest
 			directory_path = directory_path.substr(0, directory_path.find_last_of("/"));
 		else if (!is_directory(request._path))
 			throw WSexception("400");
-		std::ofstream	outp((directory_path + "/" + file).c_str(), std::ios::out | std::ios::app);
+		std::ofstream	outp((directory_path + "/" + file).c_str(), std::ios::out | std::ios::trunc);
 		if (!outp.is_open())
 			throw WSexception("500");
 		vector<char>::iterator	it = multipart_data.begin();

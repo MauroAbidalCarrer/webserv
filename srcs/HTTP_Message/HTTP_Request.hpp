@@ -151,9 +151,9 @@ class HTTP_Request : public HTTP_Message
     void construct_body_with_fixed_size(int read_fd)
     {
 		ssize_t nb_readbytes = -1;
-		size_t prev_body_size = body.size();
+		// size_t prev_body_size = body.size();
 		body += ws_read(read_fd, READ_BUFFER_SIZE, &nb_readbytes);
-		PRINT("Read body.size() after body read: " << body.size() << ", prev_body_size: " << prev_body_size << ", nb_read_bytes:" << nb_readbytes);
+		// PRINT("Read body.size() after body read: " << body.size() << ", prev_body_size: " << prev_body_size << ", nb_read_bytes:" << nb_readbytes);
         if (nb_readbytes == -1)
             throw runtime_error("Could not read on fd to cosntruct HTTP message.");
 		is_fully_constructed = body.length() >= content_length;
