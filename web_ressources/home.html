@@ -123,6 +123,10 @@
 				<div class="to-login-page"><center>Enter in your web profile</center></div>
 			</a>
 		</div>
+		<form method="post" enctype="multipart/form-data">
+			<input type="file" name="files[]" multiple>
+			<input type="submit" value="Upload">
+		</form>
 		<div class="form-upload-homepage">
 			<form id="form-container-upload-homepage" action="users/upload" enctype="multipart/form-data" method="post">
 				<input id="file-upload-btn" name="file-uploaded-homepage" type="file"/>

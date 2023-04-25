@@ -151,11 +151,10 @@ class ClientHandler : public IO_Manager::FD_interest
 	}
 	void	upload_data_multiform(string body, bool *end, size_t *i)	{
 		string	upload_content = "";
-		string	end_boundary = "--\r\n";
+		string	end_boundary = multipart_boundary + "--\r\n";
+
 		for (;*i < body.size(); (*i)++)	{
-			PRINT("i: " << i << ", body.size(): " << body.size());
 			if (!body.substr(*i, multipart_boundary.size()).compare(multipart_boundary))	{
-				(*i) +=  multipart_boundary.size();
 				if (!end_boundary.compare(&body[*i]))
 					(*end) = true;
 				break ;
@@ -194,7 +193,7 @@ class ClientHandler : public IO_Manager::FD_interest
 	void	treat_multipart_body_boundaries(string body, string *status_code)	{
 		bool	data_end = false;
 		size_t	i = 0;
-		while (true)	{
+		while (!data_end && body.size())	{
 			if (!body.substr(0, multipart_boundary.size()).compare(multipart_boundary))	{
 				i += multipart_boundary.size() + 2;
 				get_header_multipart_formdata(body, &i);
@@ -203,9 +202,12 @@ class ClientHandler : public IO_Manager::FD_interest
 				if (data_end == true)
 					break ;
 				body.erase(0, i);
-				break ;
+				multipart_data.clear();
+				multipart_header.clear();
+				i = 0;
 			}
-			i++;
+			else
+				i++;
 		}
 	}
 	void	treat_encoded_url(std::string body)	{
