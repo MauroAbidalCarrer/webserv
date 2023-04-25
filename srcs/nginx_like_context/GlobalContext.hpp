@@ -21,6 +21,8 @@ class GlobalContext
     }
     GlobalContext(string config_file_path)
     {
+        if (file_is_ASCII(config_file_path) == false)
+            throw runtime_error("Config file is not ASCII.");
         vector<string> config_file_tokens = tokenize_config_file(config_file_path);
         string_vec_it_t end_it = config_file_tokens.end();
         for (string_vec_it_t it = config_file_tokens.begin(); it != end_it; it++)
