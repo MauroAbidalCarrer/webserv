@@ -7,6 +7,7 @@
 # include "typedefs.hpp"
 # include "LocationContext.hpp"
 
+# define MAX_BODY_SIZE_LIMIT 3000000
 
 //Whenever "server" is mentioned it is implied that it is "virtual server"
 
@@ -30,7 +31,7 @@ struct VirtualServerContext
     location_contexts(),
     redirected_URLs(),
     client_body_size_limit_as_string(),
-    client_body_size_limit(string::npos)
+    client_body_size_limit(MAX_BODY_SIZE_LIMIT)
     { }
     VirtualServerContext(string_vec_it_t it, string_vec_it_t server_context_end_it) :
     listen_ip(),
@@ -40,7 +41,7 @@ struct VirtualServerContext
     location_contexts(),
     redirected_URLs(),
     client_body_size_limit_as_string(),
-    client_body_size_limit(string::npos)
+    client_body_size_limit(MAX_BODY_SIZE_LIMIT)
     {
         listen_ip = "127.0.0.1";
         listen_port = "80";
