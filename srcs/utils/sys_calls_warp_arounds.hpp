@@ -323,4 +323,15 @@ void delete_file(string filename)
         throw WSexception("500", SystemCallException("unlink"));
     }
 }
+
+bool file_is_ASCII(string filename)
+{
+    int c;
+    std::ifstream a(filename.c_str(), std::ios_base::binary);
+    if (a.is_open() == false)
+        throw WSexception("404", "Could not open file " + filename);
+    while((c = a.get()) != EOF && c <= 127) 
+        ;
+    return c == EOF;
+}
 #endif
