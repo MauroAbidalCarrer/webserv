@@ -91,7 +91,10 @@ class ClientHandler : public IO_Manager::FD_interest
 			if (std::count(locationContext.allowed_methods.begin(), locationContext.allowed_methods.end(), request.HTTP_method) == 0)
 				throw WSexception("405");
 			if (request.content_length > virtualServerContext.client_body_size_limit)
+			{
+				PRINT("request.content_length: " << request.content_length << ", virtualServerContext.client_body_size_limit: " << virtualServerContext.client_body_size_limit);
 				throw WSexception("413");
+			}
 			if (virtualServerContext.redirected_URLs.count(request._path))
 			{
 				string redirected_url = virtualServerContext.redirected_URLs[request._path];
@@ -259,7 +262,8 @@ class ClientHandler : public IO_Manager::FD_interest
 			case 0:
 				multipart_boundary = "--" + content_type[2].substr(std::string("boundary=").size(), content_type[2].size());
 				treat_multipart_body_boundaries(request.body, &status_code);
-				response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);
+				// response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);
+				response = HTTP_Response::Mk_default_response(status_code);
 				break;
 			case 1:
 				treat_encoded_url(request.body);
@@ -551,7 +555,6 @@ class ClientHandler : public IO_Manager::FD_interest
 				PRINT_FAINT(request.debug());
 				// PRINT_FAINT("request.body.size: " << request.body.size());
 				handle_request();
-				PRINT("------Request has been handled.");
 			}
 		}
 	}

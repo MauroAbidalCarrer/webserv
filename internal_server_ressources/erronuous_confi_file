@@ -2,7 +2,8 @@ server
 {
     listen localhost:8080;
     server_name my_awesome_server;
-    error_page 404 /cat_HTTP_Responses/404.jpg;
+    eror_page 404 /cat_HTTP_Responses/404.jpg;
+    eror_page 404 /cat_HTTP_Responses/404.jpg;
     error_page 406 /cat_HTTP_Responses/406.jpg;
     error_page 500 /cat_HTTP_Responses/500.jpg;
     location /
@@ -20,12 +21,6 @@ server
         directory_listing;
         root web_ressources;
         allowed_methods DELETE GET POST;
-    }
-    location /users/upload
-    {
-        allowed_methods GET POST;
-        root web_ressources;
-        directory_listing;
     }
 }
 server

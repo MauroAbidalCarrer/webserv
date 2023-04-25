@@ -71,9 +71,10 @@ class HTTP_Response : public HTTP_Message
                     string element_name = ent->d_name;
                     if (element_name == ".")
                         continue;
-                    if (ent->d_type & DT_DIR)
+                    if (ent->d_type & DT_DIR && element_name[element_name.size() - 1] != '/')
                         element_name += "/";
                     response_dst.body.append("\t\t\t<tr><th><a href=\"");
+                    PRINT("PATH is " << locationContext.path);
                     response_dst.body.append(locationContext.path);
                     if (locationContext.path[locationContext.path.size() - 1] != '/')
                         response_dst.body.append("/");

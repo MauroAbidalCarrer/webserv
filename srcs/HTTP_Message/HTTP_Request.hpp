@@ -92,7 +92,8 @@ class HTTP_Request : public HTTP_Message
 	}
 	void construct_header(int socket_fd)
 	{
-		PRINT("read " << HTTP_Message::construct_header(socket_fd, "431", "400") << " bytes while constructing header");
+		if (HTTP_Message::construct_header(socket_fd, "431", "400") == 0)
+			throw NoBytesToReadException();
 		if (header_is_constructed)
 		{
 			request_line = first_line;
@@ -124,6 +125,8 @@ class HTTP_Request : public HTTP_Message
 				is_fully_constructed = body.length() >= content_length;
 				body_type = fixed_size_body;
 			}
+			else
+				content_length = 0;
 			vector<string> type_encoding_header_fiels;
 			if (try_get_header_fields("Transfer-Encoding", type_encoding_header_fiels))
 			{
@@ -157,7 +160,7 @@ class HTTP_Request : public HTTP_Message
         if (nb_readbytes == -1)
             throw runtime_error("Could not read on fd to cosntruct HTTP message.");
 		is_fully_constructed = body.length() >= content_length;
-        if (nb_readbytes == 0/*  && is_fully_constructed */)
+        if (nb_readbytes == 0)
             throw NoBytesToReadException();
     }
 	void handle_new_chunked_body_content()
@@ -188,7 +191,10 @@ class HTTP_Request : public HTTP_Message
 		while (chunk_size != 0);
 		is_fully_constructed = chunk_size == 0;
 		if (is_fully_constructed)
-			PRINT("Request fully constructed.");
+		{
+			content_length = body.length();
+			PRINT("Chunked request fully constructed.");
+		}
 		// PRINT("is_fully_constructed: " << is_fully_constructed << endl);
 	}
 	size_t get_next_CRLF_index()
