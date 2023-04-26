@@ -5,7 +5,7 @@
 
 # include "typedefs.hpp"
 # include "VirtualServerContext.hpp"
-# include "ClientConnexionHandler.hpp"
+# include "ClientHandler.hpp"
 
 class GlobalContext
 {

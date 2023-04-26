@@ -6,7 +6,7 @@ INCS	=	-I srcs/HTTP_Message\
 
 SRCS	:= srcs/main.cpp
 OBJS	:= $(SRCS:.cpp=.o)
-DEPS	=	$(OBJS:.o=.d)
+DEPS	 = $(OBJS:.o=.d)
 
 CXX	:= c++
 CXXFLAGS := -std=c++98 -g3 -Wall -Werror -Wextra -MMD -MP 
@@ -16,11 +16,9 @@ all: $(NAME)
 
 no_debug: CXXFLAGS += -DNO_DEBUG
 no_debug: $(OBJS)
-	mkdir -p objs
-	$(CXX) $(INCS) $(CXXFLAGS) -o $(NAME) $(OBJS)
+	$(CXX) $(OBJS) -o $(NAME)
 
 $(NAME): $(OBJS)
-	mkdir -p objs
 	$(CXX) $(OBJS) -o $@
 
 %.o: %.cpp 
