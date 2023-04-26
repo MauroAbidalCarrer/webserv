@@ -56,6 +56,7 @@ class Server
         try
         {
             signal(SIGINT, &Server::handle_SIGINT);
+            signal(SIGPIPE, &Server::handle_SIGPIPE);
             setup_CSV_maps();
             GlobalContextSingleton = GlobalContext(config_file_path);
             PRINT("Config file path: " << config_file_path << ", nb servers: " << GlobalContextSingleton.virtual_server_contexts.size());
@@ -167,7 +168,9 @@ class Server
         string listening_port = get_port_as_string_from_socket_addres(reinterpret_cast<sockaddr_t *>(&local_addr));
         IO_Manager::set_interest(connexion_socket_fd, EPOLLIN, new ClientHandler(connexion_socket_fd, listening_ip_address, listening_port));
         //debugging
-        cout << "New client connexion on socket " << connexion_socket_fd << ", listening interface: " << get_network_interface_as_string(reinterpret_cast<sockaddr_t *>(&local_addr)) << endl;
+# ifndef NO_DEBUG
+        PRINT("New client connexion on socket " << connexion_socket_fd << ", listening interface: " << get_network_interface_as_string(reinterpret_cast<sockaddr_t *>(&local_addr)));
+# endif
     }
     static string get_network_interface_as_string(sockaddr_t *ai_addr)
     {
@@ -263,6 +266,11 @@ class Server
         (void)signal;
         cout << BLUE_AINSI << "Received SIGINT, stopping server." << END_AINSI << endl;
         received_SIGINT = true;
+    }
+    static void handle_SIGPIPE(int sig)
+    {
+        (void)sig;
+        PRINT_WARNING("received SIGPIPE!");
     }
 };
 #endif

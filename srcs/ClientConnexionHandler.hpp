@@ -44,7 +44,7 @@ class ClientHandler : public IO_Manager::FD_interest
 	VirtualServerContext virtualServerContext;
 	LocationContext locationContext;
 	vector<pair<string, string> > 	url_encoded_collector;
-	std::map<int, pid_t> 			pipe_fds_to_cgi_pids;
+	map<int, pid_t> 			pipe_fds_to_cgi_pids;
 	vector<string>					multipart_header;
 	vector<char>					multipart_data;
 	string							multipart_boundary;
@@ -63,7 +63,11 @@ class ClientHandler : public IO_Manager::FD_interest
 	{
 		*this = other;
 	}
-	~ClientHandler() {}
+	~ClientHandler() 
+	{
+		for (map<int, pid_t>::iterator i = pipe_fds_to_cgi_pids.begin(); i != pipe_fds_to_cgi_pids.end(); i++)
+			IO_Manager::remove_interest_and_close_fd(i->first);
+	}
 	// operator overloads
 	ClientHandler &operator=(const ClientHandler &rhs)
 	{
@@ -281,6 +285,10 @@ class ClientHandler : public IO_Manager::FD_interest
 				break;
 			case 2:
 				std::ofstream	outp(request._path.c_str(), std::ios::out | std::ios::trunc | std::ios::binary);
+				if (is_directory(request._path) || is_regular_file(request._path) == false)
+					throw WSexception("406", "Request path \"" + request._path + "\" is not a regular file");
+				if (request.body.length() == 0)
+					throw WSexception("406", "Request's content-length is zero.");
 				if (!outp.is_open())
 					throw WSexception("500");
 				outp << request.body;
@@ -369,7 +377,9 @@ class ClientHandler : public IO_Manager::FD_interest
 			response.construct_from_CGI_output(p_read);
 			if (response.is_fully_constructed)
 			{
-				cout << "Fully constructed CGI response, closing pipe read and waiting for child process." << END_AINSI << endl; 
+# ifndef NO_DEBUG
+				PRINT("Fully constructed CGI response, closing pipe read and waiting for child process."); 
+# endif
 				IO_Manager::remove_interest_and_close_fd(p_read);
 				IO_Manager::change_interest_epoll_mask(this->fd, EPOLLOUT);
 				wait_cgi(p_read);
@@ -385,7 +395,7 @@ class ClientHandler : public IO_Manager::FD_interest
 	}
 	void handle_cgi_read_pipe_hungup(int pipe_fd)
 	{
-		cout << YELLOW_WARNING << "EPOLLHUP flag set on read pipe " << fd << ", closing fd and setting response to default 500." << endl;
+		PRINT_WARNING("EPOLLHUP flag set on read pipe " << fd << ", closing fd and setting response to default 500.");
 		IO_Manager::remove_interest_and_close_fd(pipe_fd);
 		response = HTTP_Response::Mk_default_response("500");
 		IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
@@ -408,7 +418,7 @@ class ClientHandler : public IO_Manager::FD_interest
 		int cgi_status_code = 0;
 		pipe_fds_to_cgi_pids.erase(pipe_fd);
 		waitpid(pipe_fds_to_cgi_pids[pipe_fd], &cgi_status_code, 0);
-		cout << "cgi_status_code: " << cgi_status_code << endl;
+		PRINT("cgi_status_code: " << cgi_status_code << endl);
 		pipe_fds_to_cgi_pids.erase(pipe_fd);
 	}
 	void	cgiChild(char **cgi_command, std::string cgi_launcher, int *p, int *r)	{
@@ -557,8 +567,10 @@ class ClientHandler : public IO_Manager::FD_interest
 			if (request.is_fully_constructed)
 			{
 				timeout_mode = no_timeout;
+# ifndef NO_DEBUG
 				PRINT("New request from client on socket " << fd << ":");
 				PRINT_FAINT(request.debug());
+# endif
 				// PRINT_FAINT("request.body.size: " << request.body.size());
 				handle_request();
 			}
@@ -570,7 +582,11 @@ class ClientHandler : public IO_Manager::FD_interest
 	}
 	void close_connexion(string cause)
 	{
+# ifndef NO_DEBUG
 		PRINT("Closing client connexion on socket " << fd << ", cause: " << cause);
+# else
+		(void)cause;
+# endif
 		IO_Manager::remove_interest_and_close_fd(fd);
 	}
 
@@ -578,10 +594,12 @@ class ClientHandler : public IO_Manager::FD_interest
 	void handle_WSexception(const WSexception& e)
 	{
 		response = e.response;
+# ifndef NO_DEBUG
 		PRINT("Caught WSexception while processing client request.");
 		PRINT("e.what(): " << e.what());
 		PRINT("response: ");
 		PRINT(response.debug());
+# endif
 		IO_Manager::change_interest_epoll_mask(fd, EPOLLOUT);
 		if (request.is_redirected)
 		{

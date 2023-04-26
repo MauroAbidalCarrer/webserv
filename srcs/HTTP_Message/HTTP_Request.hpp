@@ -5,6 +5,7 @@
 # include <string>
 # include "HTTP_Message.hpp"
 # include "parsing.hpp"
+# include "LocationContext.hpp"
 
 # define HOST 1
 # define PORT 2
@@ -119,6 +120,8 @@ class HTTP_Request : public HTTP_Message
 			if (try_get_header_fields("Content-Length", content_length_header_fields))
 			{
 				content_length = get_content_length_from_header();
+				if (content_length > 300000000)
+					throw_WSexcetpion("413", "Content-Length is too long.");
 				PRINT("Request has fixed size body, content_length: " << content_length);
 				body.reserve(content_length);
 				body.insert(body.begin(), construct_buffer.begin() + construct_buffer.find("\r\n\r\n") + 4, construct_buffer.end());

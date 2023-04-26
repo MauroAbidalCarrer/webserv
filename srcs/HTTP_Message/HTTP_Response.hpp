@@ -74,7 +74,6 @@ class HTTP_Response : public HTTP_Message
                     if (ent->d_type & DT_DIR && element_name[element_name.size() - 1] != '/')
                         element_name += "/";
                     response_dst.body.append("\t\t\t<tr><th><a href=\"");
-                    PRINT("PATH is " << locationContext.path);
                     response_dst.body.append(locationContext.path);
                     if (locationContext.path[locationContext.path.size() - 1] != '/')
                         response_dst.body.append("/");
@@ -136,11 +135,14 @@ class HTTP_Response : public HTTP_Message
     void construct_from_CGI_output(int read_fd)
     {
         ssize_t nb_read_bytes = 0;
+        PRINT("this is null: " << (this == NULL) << ", this: " << this);
         if (header_is_constructed == false)
             construct_header(read_fd);
         else
             body.append(ws_read(read_fd, READ_BUFFER_SIZE, &nb_read_bytes));
         is_fully_constructed = nb_read_bytes < READ_BUFFER_SIZE;
+        if (body.length() > 0)
+            set_content_length();
     }
     ssize_t construct_header(int read_fd)
     {

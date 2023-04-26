@@ -6,13 +6,15 @@ server
     error_page 406 /cat_HTTP_Responses/406.jpg;
     error_page 500 /cat_HTTP_Responses/500.jpg;
     client_body_size_limit 100000000;
+    redirect web_ressources/cat_site https://www.youtube.com/;
     location /
     {
         default_file home.html;
+        allowed_methods GET POST;
         root web_ressources;
         cgi .pl;
         cgi .cgi;
-        cgi .php;
+        cgi .php /bin/php;
         cgi .sh /bin/sh;
         directory_listing;
     }
@@ -24,7 +26,7 @@ server
     }
     location /users/upload
     {
-        allowed_methods GET POST;
+        allowed_methods GET POST DELETE;
         root web_ressources;
         directory_listing;
     }

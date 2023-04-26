@@ -220,6 +220,11 @@ public:
         vector<string> content_length_header = get_header_fields("Content-Length");
         if (content_length_header.size() < 2)
             throw_WSexcetpion("400", "Header \"Content-Length\" has no value!");
+        for (size_t i = 0; i < content_length_header[1].size(); i++)
+        {
+            if (content_length_header[1][i] < '0' || content_length_header[1][i] > '9')
+                throw_WSexcetpion("400", "Content-Length value is not at standard format.");
+        }
         return std::strtoul(content_length_header[1].c_str(), NULL, 0);
     }
     void print_body_in_hexa()
