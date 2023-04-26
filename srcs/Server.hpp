@@ -58,6 +58,7 @@ class Server
             signal(SIGINT, &Server::handle_SIGINT);
             setup_CSV_maps();
             GlobalContextSingleton = GlobalContext(config_file_path);
+            PRINT("Config file path: " << config_file_path << ", nb servers: " << GlobalContextSingleton.virtual_server_contexts.size());
             setup_connexion_queues();
             IO_Manager::wait__for_events_and_call_callbacks();
         }

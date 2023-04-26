@@ -21,26 +21,33 @@ class GlobalContext
     }
     GlobalContext(string config_file_path)
     {
-        if (file_is_ASCII(config_file_path) == false)
-            throw runtime_error("Config file is not ASCII.");
-        vector<string> config_file_tokens = tokenize_config_file(config_file_path);
-        string_vec_it_t end_it = config_file_tokens.end();
-        for (string_vec_it_t it = config_file_tokens.begin(); it != end_it; it++)
+        try
         {
-            if (*it != "server")
-                throw runtime_error("invalid token in global context " + *it + "(expected \"server\").");
-            it++;
-            if (it == end_it || *it != "{")
-                throw std::runtime_error("virtual server context path is not followed by an openning bracket.");
-            string_vec_it_t server_context_end_it = parsing::find_closing_bracket_it(it, end_it);
-            it++;
-            virtual_server_contexts.push_back(VirtualServerContext(it, server_context_end_it));
-            it = server_context_end_it;
+            if (file_is_ASCII(config_file_path) == false)
+                throw runtime_error("Config file is not ASCII.");
+            vector<string> config_file_tokens = tokenize_config_file(config_file_path);
+            string_vec_it_t end_it = config_file_tokens.end();
+            for (string_vec_it_t it = config_file_tokens.begin(); it != end_it; it++)
+            {
+                if (*it != "server")
+                    throw runtime_error("invalid token in global context " + *it + "(expected \"server\").");
+                it++;
+                if (it == end_it || *it != "{")
+                    throw std::runtime_error("virtual server context path is not followed by an openning bracket.");
+                string_vec_it_t server_context_end_it = parsing::find_closing_bracket_it(it, end_it);
+                it++;
+                virtual_server_contexts.push_back(VirtualServerContext(it, server_context_end_it));
+                it = server_context_end_it;
+            }
+            //debugging
+            for (size_t i = 0; i < virtual_server_contexts.size(); i++)
+                virtual_server_contexts[i].debug();
+            cout << endl;
         }
-        //debugging
-        for (size_t i = 0; i < virtual_server_contexts.size(); i++)
-            virtual_server_contexts[i].debug();
-        cout << endl;
+        catch (const std::exception& e)
+        {
+            PRINT_WARNING("caught an exception while parsing config file.");
+        }
     }
     ~GlobalContext() { }
     //operator overloads

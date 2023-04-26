@@ -61,6 +61,8 @@ struct VirtualServerContext
             listen_ip = "127.0.0.1";
         if (client_body_size_limit_as_string.empty() == false)
             client_body_size_limit = std::strtoul(client_body_size_limit_as_string.c_str(), NULL, 0);
+        if (client_body_size_limit > MAX_BODY_SIZE_LIMIT)
+            client_body_size_limit = MAX_BODY_SIZE_LIMIT;
     }
     //returns true if a server_name drective was parced
     bool parse_server_name_directive(string_vec_it_t& it, string_vec_it_t server_context_end_it)

@@ -232,6 +232,14 @@ void ws_send(int socket_fd, std::string msg, int flags)
         throw SystemCallException("send");
 }
 
+size_t get_fstream_size(std::ifstream* stream)
+{
+    stream->seekg(0, std::ios::end);
+    size_t file_size = stream->tellg();
+    stream->seekg(0, std::ios::beg);
+    return file_size;
+}
+
 std::string read_file_into_string(const std::string& filename)
 {
     std::ifstream file(filename.data(), std::ios_base::binary);
@@ -247,6 +255,8 @@ std::string read_file_into_string(const std::string& filename)
             throw WSexception("406", SystemCallException("open"));
         throw WSexception("500", SystemCallException("open"));
     }
+    if (get_fstream_size(&file) > 300000000)
+        throw WSexception("500", "Trying to read a file that is bigger that 300MB, size is: ");
     std::stringstream buffer;
     buffer << file.rdbuf();
     return buffer.str();

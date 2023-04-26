@@ -50,7 +50,6 @@ struct LocationContext
     allowed_methods()
     {
         allowed_methods.push_back("GET");
-        allowed_methods.push_back("POST");
         this->path = path;
         while (it != location_context_end_it)
         {
@@ -177,6 +176,7 @@ struct LocationContext
         cout << "\t\tAllowed methods:";
         for (size_t i = 0; i < allowed_methods.size(); i++)
             cout << " " << allowed_methods[i];
+        cout << endl;
         cout << endl;
     }
 };

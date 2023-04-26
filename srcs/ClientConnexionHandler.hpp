@@ -183,7 +183,10 @@ class ClientHandler : public IO_Manager::FD_interest
 			throw WSexception("400");
 		std::ofstream	outp((directory_path + "/" + file).c_str(), std::ios::out | std::ios::trunc);
 		if (!outp.is_open())
+		{
+			PRINT_WARNING("Sending WSexception 500.");
 			throw WSexception("500");
+		}
 		vector<char>::iterator	it = multipart_data.begin();
 		for (; it != multipart_data.end(); it++)
 			outp << *it;
@@ -277,7 +280,7 @@ class ClientHandler : public IO_Manager::FD_interest
 				response = HTTP_Response::mk_from_regualr_file_and_status_code(status_code, target_ressource_path);
 				break;
 			case 2:
-				std::ofstream	outp(request._path.c_str(), std::ios::out | std::ios::app | std::ios::binary);
+				std::ofstream	outp(request._path.c_str(), std::ios::out | std::ios::trunc | std::ios::binary);
 				if (!outp.is_open())
 					throw WSexception("500");
 				outp << request.body;
