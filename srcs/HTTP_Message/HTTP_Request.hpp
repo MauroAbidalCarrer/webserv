@@ -137,6 +137,7 @@ class HTTP_Request : public HTTP_Message
 				body_type = chunked_body;
 				body.insert(body.begin(), construct_buffer.begin() + construct_buffer.find("\r\n\r\n") + 4, construct_buffer.end());
 				PRINT("Header:" << endl << FAINT_AINSI << get_header_as_string() << END_AINSI);
+				// PRINT("Construct header:" << endl << construct_buffer);
 				// PRINT("Body:"  << FAINT_AINSI << END_AINSI << endl << body);
 				handle_new_chunked_body_content();
 			}

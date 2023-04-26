@@ -7,7 +7,7 @@
 # include "typedefs.hpp"
 # include "LocationContext.hpp"
 
-# define MAX_BODY_SIZE_LIMIT 3000000
+# define MAX_BODY_SIZE_LIMIT 300000000
 
 //Whenever "server" is mentioned it is implied that it is "virtual server"
 

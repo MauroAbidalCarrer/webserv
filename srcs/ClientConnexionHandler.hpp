@@ -22,7 +22,7 @@
 #define WRITE 1
 
 #define CGI_TIMEOUT_IN_MILL 2000
-#define REQUEST_TIMEOUT_IN_MILL 1000
+#define REQUEST_TIMEOUT_IN_MILL 3000
 
 #define MAXIMUM_HTTP_HEADER_SIZE 1024
 #define GET_RESPONSE_CONTENT_RAD_BUFFER_SIZE 10000
@@ -194,7 +194,7 @@ class ClientHandler : public IO_Manager::FD_interest
 		bool	data_end = false;
 		size_t	i = 0;
 		while (!data_end && body.size())	{
-			if (!body.substr(0, multipart_boundary.size()).compare(multipart_boundary))	{
+			if (!body.substr(i, multipart_boundary.size()).compare(multipart_boundary))	{
 				i += multipart_boundary.size() + 2;
 				get_header_multipart_formdata(body, &i);
 				upload_data_multiform(body, &data_end, &i);
@@ -533,6 +533,9 @@ class ClientHandler : public IO_Manager::FD_interest
 				// PRINT("Constructing request on socket " << fd);
 				timeout_mode = renew_after_IO_operation;
 				timeout_in_mill = REQUEST_TIMEOUT_IN_MILL;
+				last_io_in_mill = ws_epoch_time_in_mill();
+				// if (!request.header_is_constructed)
+				// 	PRINT("Setting last_io_in_mill: " << last_io_in_mill << ", timeout_in_mill: " << timeout_in_mill << ", next timeout: " << get_timeout_in_mill());
 				request.construct_from_socket(fd);
 			}
 			catch (const HTTP_Message::NoBytesToReadException &e) 
