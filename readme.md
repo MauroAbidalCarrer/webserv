@@ -1,4 +1,4 @@
-## static webserv
+## webserv
 
 This is a project to prepare to the 42 webserv project.  
 We are going to implement a static webserver that will only implement the GET request.  
